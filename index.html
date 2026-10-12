@@ -299,7 +299,7 @@ function loadWallet(){let w=null;try{w=JSON.parse(localStorage.getItem('studsWal
 const wallet=loadWallet();
 // Options on the title screen: ref strictness, commentary voice, phone vibration.
 let refMode=2,commMode='voice',buzzOn=true;const REFS=['OFF','LENIENT','NORMAL','STRICT'],REFMUL=[0,0.5,1,1.6];
-try{const v=localStorage.getItem('studsRef');if(v!==null)refMode=(+v||0)%4;const c=localStorage.getItem('studsComm');if(c==='voice'||c==='text'||c==='off')commMode=c;buzzOn=localStorage.getItem('studsBuzz')!=='0';}catch(e){}
+try{const v=localStorage.getItem('studsRef');if(v!==null)refMode=(+v||0)%4;const c=localStorage.getItem('studsComm2');if(c==='voice'||c==='text'||c==='off')commMode=c;buzzOn=localStorage.getItem('studsBuzz')!=='0';}catch(e){}
 const saveOpt=(k,v)=>{try{localStorage.setItem(k,String(v));}catch(e){}};
 function vib(ms){if(!buzzOn)return;try{const C=window.Capacitor,Hp=C&&C.Plugins&&C.Plugins.Haptics;
   if(Hp&&Hp.vibrate){Hp.vibrate({duration:Array.isArray(ms)?ms.reduce((a,b)=>a+b,0):ms});return;}if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
@@ -512,7 +512,7 @@ function bindOpts(){const el=document.getElementById('opts');if(!el)return;
   const draw=()=>{el.innerHTML='<button type="button" data-o="ref">REF: '+REFS[refMode]+'</button><button type="button" data-o="comm">COMMENTARY: '+commMode.toUpperCase()+'</button><button type="button" data-o="buzz">VIBRATE: '+(buzzOn?'ON':'OFF')+'</button>';
     el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const o=b.dataset.o;initAudio();
       if(o==='ref'){refMode=(refMode+1)%4;saveOpt('studsRef',refMode);}
-      else if(o==='comm'){commMode={voice:'text',text:'off',off:'voice'}[commMode];saveOpt('studsComm',commMode);if(commMode==='voice')say('Commentary is on.');}
+      else if(o==='comm'){commMode={voice:'text',text:'off',off:'voice'}[commMode];saveOpt('studsComm2',commMode);if(commMode==='voice')playClip('kickoff');}
       else{buzzOn=!buzzOn;saveOpt('studsBuzz',buzzOn?'1':'0');vib(40);}
       draw();});};
   draw();}
@@ -759,12 +759,14 @@ function comm(evt,c,pri){const L=COMM[evt];if(!L||commMode==='off'||state==='tit
   const s=L[i].replace(/\{a\}/g,nm(c.a)||'They').replace(/\{v\}/g,nm(c.v)||'the defender').replace(/\{k\}/g,nm(c.k)||'the keeper')
     .replace(/\{T\}/g,tcase(TEAMS[t].name)).replace(/\{O\}/g,tcase(TEAMS[1-t].name)).replace(/\{S\}/g,tcase(TEAMS[0].name)+' '+TEAMS[0].score+', '+tcase(TEAMS[1].name)+' '+TEAMS[1].score);
   commEl.textContent=s;commEl.classList.remove('hide');commT=2.8;commPri=pri;commCd=pri>=2?1.4:2.4;
-  if(commMode==='voice'&&pri>=2)say(s);}
+  if(commMode==='voice'&&pri>=2)playClip(evt);}
 function commTick(dt){commCd-=dt;if(commT>0){commT-=dt;if(commT<=0){commEl.classList.add('hide');commPri=0;}}}
-let ttsVoice=null;
-function say(s){if(muted||!('speechSynthesis' in window))return;try{const u=new SpeechSynthesisUtterance(s);u.rate=1.12;u.pitch=0.95;u.volume=0.9;u.lang='en-GB';
-  if(!ttsVoice){const vs=speechSynthesis.getVoices();ttsVoice=vs.find(v=>/en.GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;}if(ttsVoice)u.voice=ttsVoice;
-  speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+// Voice: recorded commentator clips listed in comm/clips.json ({"goal":["goal_1.mp3",...]}). No clips, no voice: the ticker still shows every line.
+let CLIPS={},clipNow=null;const clipLast={};
+try{fetch('comm/clips.json').then(r=>r.ok?r.json():{}).then(j=>{CLIPS=j||{};}).catch(()=>{});}catch(e){}
+function playClip(evt){const L=CLIPS[evt];if(muted||!L||!L.length)return;
+  const last=clipLast[evt];let i=Math.random()*L.length|0;if(L.length>1&&i===last)i=(i+1)%L.length;clipLast[evt]=i;
+  try{if(clipNow){clipNow.pause();clipNow=null;}const a=new Audio('comm/'+L[i]);a.volume=0.95;a.play().catch(()=>{});clipNow=a;}catch(e){}}
 function burst(x,y,n,cols,sp,up,z0){for(let i=0;i<n;i++){const a=rand(0,PI*2),s=rand(0.3,1)*sp;parts.push({x,y,z:(z0||0)+rand(0,6),vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:rand(0.3,1)*up,life:rand(0.4,0.9),col:cols[i%cols.length],r:rand(1.2,2.8)});}}
 
 // ---------- ball control ----------
