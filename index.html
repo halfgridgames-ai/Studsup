@@ -164,8 +164,8 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 }
 @media (prefers-reduced-motion:reduce){.fury.full i{animation:none}}
 </style>
-</head><body>
 
+</head><body>
 <div class="stage" id="stage">
 <canvas id="gl"></canvas>
 <canvas id="game"></canvas>
@@ -1554,7 +1554,7 @@ function init3D(){
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x060b16,1100,2800);
   const camera=new THREE.PerspectiveCamera(40,1,5,5000);
-  R={rollAx:new THREE.Vector3(),rollQ:new THREE.Quaternion(),renderer,scene,camera,models:[],look:{x:CX,z:CY},lastBall:{x:CX,y:CY},crowds:[],boards:[],cam:new THREE.Vector3(CX,200,CY+300)};
+  R={standG:[],rollAx:new THREE.Vector3(),rollQ:new THREE.Quaternion(),renderer,scene,camera,models:[],look:{x:CX,z:CY},lastBall:{x:CX,y:CY},crowds:[],boards:[],cam:new THREE.Vector3(CX,200,CY+300)};
   // sky dome
   const sky=new THREE.Mesh(new THREE.SphereGeometry(3200,24,12),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:canvasTex(16,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#02040a');gr.addColorStop(0.45,'#0b1730');gr.addColorStop(0.52,'#1c2d48');gr.addColorStop(1,'#060b16');g.fillStyle=gr;g.fillRect(0,0,w,h);})}));
   sky.position.set(CX,0,CY);scene.add(sky);R.sky=sky;
@@ -1587,7 +1587,7 @@ function init3D(){
       const wall=new THREE.Mesh(new THREE.BoxGeometry(len,8,3),Lam(k%2?'#e8322b':'#1c2330'));wall.position.set(0,y0+2,z0+1);grp.add(wall);}
     const top=10+tiers*62;const roof=new THREE.Mesh(new THREE.BoxGeometry(len+40,4,tiers*70+60),roofM);roof.position.set(0,top+50,-60-tiers*35);roof.rotation.x=0.08;grp.add(roof);
     for(let i=-2;i<=2;i++){const col=new THREE.Mesh(new THREE.BoxGeometry(5,top+50,5),steel);col.position.set(i*len/5,(top+50)/2,-70-tiers*70);grp.add(col);}
-    grp.position.set(x,0,z);grp.rotation.y=ry;scene.add(grp);};
+    grp.position.set(x,0,z);grp.rotation.y=ry;scene.add(grp);R.standG.push(grp);};
   stand(W+300,CX,-40,0,true);stand(H+160,-60,CY,PI/2,false);stand(H+160,W+60,CY,-PI/2,false);stand(W+300,CX,H+40,PI,false);
   // floodlight towers
   const glowTex=canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(255,255,240,1)');r.addColorStop(0.3,'rgba(255,250,220,.6)');r.addColorStop(1,'rgba(255,250,220,0)');g.fillStyle=r;g.fillRect(0,0,64,64);});
@@ -1718,6 +1718,8 @@ function render(t,dt){
   const kc=1-Math.exp(-6*dt);R.cam.x+=(cp[0]-R.cam.x)*kc;R.cam.y+=(cp[1]-R.cam.y)*kc;R.cam.z+=(cp[2]-R.cam.z)*kc;
   R.camera.fov=RP?(port?62:40):port?(camMode===2?74:62):camMode===2?52:camMode===0?44:36;R.camera.updateProjectionMatrix();
   R.camera.position.set(R.cam.x+sx,R.cam.y+sy,R.cam.z);
+  // a stand the camera has moved into or behind would block the view: hide it until the camera comes back out (top, left, right, bottom)
+  {const c=R.camera.position,sg=R.standG;if(sg.length===4){sg[0].visible=c.z>-30;sg[1].visible=c.x>-50;sg[2].visible=c.x<W+50;sg[3].visible=c.z<H+30;}}
   if(RP)R.camera.lookAt(R.look.x+15,10,R.look.z);else if(camMode===2)R.camera.lookAt(R.look.x+120,0,R.look.z);else R.camera.lookAt(R.look.x,camMode===0?6:0,R.look.z+(camMode===0?-10:8));
   R.sun.position.set(R.look.x-260,620,R.look.z+380);R.sun.target.position.set(R.look.x,0,R.look.z);
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
