@@ -118,11 +118,13 @@
   "lastmin_2.mp3"
  ],
  "replay": [
-  "replay_1.mp3",
-  "replay_2.mp3"
+  "replay_1.mp3"
  ],
  "full": [
   "full_1.mp3",
   "full_2.mp3"
+ ],
+ "replayf": [
+  "replay_2.mp3"
  ]
 }
