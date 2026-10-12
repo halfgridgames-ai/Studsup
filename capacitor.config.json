@@ -1,0 +1,8 @@
+{
+  "appId": "com.studsup.game",
+  "appName": "Studs Up",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "android": { "allowMixedContent": false, "captureInput": true },
+  "ios": { "contentInset": "never", "scrollEnabled": false }
+}
