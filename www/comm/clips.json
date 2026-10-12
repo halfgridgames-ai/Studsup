@@ -1,0 +1,128 @@
+{
+ "kickoff": [
+  "kickoff_1.mp3",
+  "kickoff_2.mp3",
+  "kickoff_3.mp3"
+ ],
+ "hit": [
+  "hit_1.mp3",
+  "hit_2.mp3",
+  "hit_3.mp3",
+  "hit_4.mp3",
+  "hit_5.mp3"
+ ],
+ "jump": [
+  "jump_1.mp3",
+  "jump_2.mp3",
+  "jump_3.mp3"
+ ],
+ "dive": [
+  "dive_1.mp3",
+  "dive_2.mp3"
+ ],
+ "barge": [
+  "barge_1.mp3",
+  "barge_2.mp3"
+ ],
+ "steal": [
+  "steal_1.mp3",
+  "steal_2.mp3"
+ ],
+ "juke": [
+  "juke_1.mp3",
+  "juke_2.mp3",
+  "juke_3.mp3"
+ ],
+ "hurdle": [
+  "hurdle_1.mp3",
+  "hurdle_2.mp3",
+  "hurdle_3.mp3"
+ ],
+ "fireball": [
+  "fireball_1.mp3",
+  "fireball_2.mp3",
+  "fireball_3.mp3"
+ ],
+ "torched": [
+  "torched_1.mp3",
+  "torched_2.mp3"
+ ],
+ "save": [
+  "save_1.mp3",
+  "save_2.mp3"
+ ],
+ "parry": [
+  "parry_1.mp3",
+  "parry_2.mp3"
+ ],
+ "miss": [
+  "miss_1.mp3",
+  "miss_2.mp3",
+  "miss_3.mp3"
+ ],
+ "post": [
+  "post_1.mp3",
+  "post_2.mp3"
+ ],
+ "bar": [
+  "bar_1.mp3"
+ ],
+ "goal": [
+  "goal_1.mp3",
+  "goal_2.mp3",
+  "goal_3.mp3",
+  "goal_4.mp3"
+ ],
+ "owngoal": [
+  "owngoal_1.mp3",
+  "owngoal_2.mp3"
+ ],
+ "yellow": [
+  "yellow_1.mp3",
+  "yellow_2.mp3"
+ ],
+ "red": [
+  "red_1.mp3",
+  "red_2.mp3"
+ ],
+ "foul": [
+  "foul_1.mp3"
+ ],
+ "penalty": [
+  "penalty_1.mp3",
+  "penalty_2.mp3"
+ ],
+ "penscore": [
+  "penscore_1.mp3",
+  "penscore_2.mp3"
+ ],
+ "pensave": [
+  "pensave_1.mp3"
+ ],
+ "ref": [
+  "ref_1.mp3",
+  "ref_2.mp3"
+ ],
+ "refred": [
+  "refred_1.mp3"
+ ],
+ "dance": [
+  "dance_1.mp3",
+  "dance_2.mp3"
+ ],
+ "half": [
+  "half_1.mp3"
+ ],
+ "lastmin": [
+  "lastmin_1.mp3",
+  "lastmin_2.mp3"
+ ],
+ "replay": [
+  "replay_1.mp3",
+  "replay_2.mp3"
+ ],
+ "full": [
+  "full_1.mp3",
+  "full_2.mp3"
+ ]
+}
