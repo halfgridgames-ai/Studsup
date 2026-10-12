@@ -151,7 +151,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 <canvas id="game"></canvas>
 <div class="hud" aria-live="polite"><span class="tm h">HOOLIGANS</span><span class="sc" id="score">0 – 0</span><span class="tm a">PENGUINS</span><span class="clk" id="clock">0'</span></div>
 <div class="fury" id="fury"><label>FURY</label><div class="bar"><i id="furyFill"></i></div></div>
-<div class="btn-ui"><button id="camBtn" type="button">CAM</button><button id="fsBtn" type="button">FULL SCREEN</button><button id="pauseBtn" type="button">PAUSE</button><button id="muteBtn" type="button">SOUND ON</button></div>
+<div class="btn-ui"><button id="camBtn" type="button">CAM</button><button id="fsBtn" type="button">FULL SCREEN</button><button id="pauseBtn" type="button">PAUSE</button><button id="musicBtn" type="button">MUSIC ON</button><button id="muteBtn" type="button">SOUND ON</button></div>
 <div class="banner" id="banner" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -176,7 +176,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
       <div><span>Shoot (hold) · tackle</span><b>K / X</b></div>
       <div><span>Jump kick</span><b>SPRINT + TACKLE</b></div>
       <div><span>Diving header</span><b>TACKLE FROM RANGE</b></div>
-      <div><span>Dance (fills Fury)</span><b>B</b></div>
+      <div><span>Team dance (fills Fury)</span><b>B</b></div>
       <div><span>Pause</span><b>P / ESC</b></div>
       <div><span>Gamepad</span><b>A PASS/SWITCH · B SHOOT/TACKLE · Y DANCE · RT SPRINT</b></div>
     </div>
@@ -187,7 +187,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
       <div><span>Off the ball</span><b>SWITCH · TACKLE</b></div>
       <div><span>Tackle</span><b>BARGE · SLIDE · JUMP KICK · DIVE</b></div>
       <div><span>One-touch</span><b>TAP AS THE PASS ARRIVES</b></div>
-      <div><span>Dance</span><b>3 SECONDS = MAX FURY</b></div>
+      <div><span>Dance</span><b>WHOLE TEAM · FILLS FURY</b></div>
     </div>
     <div class="pick"><div class="prow"><span>YOU</span><div class="chips" id="pickMe"></div></div>
       <div class="prow"><span>VS</span><div class="chips" id="pickOpp"></div></div></div>
@@ -299,7 +299,7 @@ const basePos=p=>p.team===0?{x:p.bx,y:p.by}:{x:W-p.bx,y:H-p.by};
 const live=p=>!p.off;
 const ownGoalX=t=>t===0?0:W, attackDir=t=>t===0?1:-1;
 
-function resetBodies(){oneTouch=null;setPiece=null;players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.hitSet.clear();});}
+function resetBodies(){oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.hitSet.clear();});}
 function kickoff(team){
   resetBodies();
   players.forEach(p=>{if(p.off)return;const b=basePos(p);p.x=b.x;p.y=b.y;p.face=p.team?PI:0;});
@@ -312,7 +312,7 @@ function kickoff(team){
 }
 let matchHits=0;
 function newMatch(){
-  matchHits=0;applyTeams();makeTeams();celeb=null;if(R)buildModels();clock=0;human=null;charge=0;charging=false;
+  matchHits=0;teamDance=null;applyTeams();makeTeams();celeb=null;if(R)buildModels();clock=0;human=null;charge=0;charging=false;
   parts.length=0;pops.length=0;kickoff(0);sfx('whistle');
 }
 
@@ -365,6 +365,7 @@ function initAudio(){
   if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
   master=AC.createGain();master.gain.value=muted?0:0.55;master.connect(AC.destination);
   nbuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  musicGain=AC.createGain();musicGain.gain.value=musicOn?MUSIC_VOL:0;musicGain.connect(master);setInterval(musicTick,40);
   const src=AC.createBufferSource();src.buffer=nbuf;src.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=520;bp.Q.value=0.6;
   crowdGain=AC.createGain();crowdGain.gain.value=0.05;src.connect(bp);bp.connect(crowdGain);crowdGain.connect(master);src.start();
 }
@@ -393,6 +394,51 @@ function sfx(k){
       crowdGain.gain.linearRampToValueAtTime(0.22,t+0.15);crowdGain.gain.linearRampToValueAtTime(0.05,t+1.2);break;}
   }
 }
+// ---------- music ----------
+// Three original loops played by a tiny step sequencer: a chill lo-fi groove for normal play, a disco tune for team dances, and a party anthem after goals.
+const MUSIC_VOL=0.32;let musicGain=null,musicOn=true,mus={mode:null,next:0,step:0};
+try{musicOn=localStorage.getItem('studsMusic')!=='0';}catch(e){}
+const mtof=n=>440*Math.pow(2,(n-69)/12);
+function mNote(n,t,dur,vol,type,cut){const o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type=type||'triangle';o.frequency.value=mtof(n);
+  f.type='lowpass';f.frequency.value=cut||1800;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+0.015);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(f);f.connect(g);g.connect(musicGain);o.start(t);o.stop(t+dur+0.05);}
+function mKick(t,v){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(130,t);o.frequency.exponentialRampToValueAtTime(42,t+0.16);
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);o.connect(g);g.connect(musicGain);o.start(t);o.stop(t+0.25);}
+function mNoise(t,dur,v,type,freq){const sN=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();sN.buffer=nbuf;f.type=type;f.frequency.value=freq;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);sN.connect(f);f.connect(g);g.connect(musicGain);sN.start(t,Math.random());sN.stop(t+dur+0.02);}
+const SONGS={
+  // "Sunday League Sunset": 78 bpm lo-fi, Am7 Dm7 G7 Cmaj7
+  chill:{bpm:78,swing:0.12,bars:[[57,60,64,67],[50,53,57,60],[55,59,62,65],[48,52,55,59]],
+    play(st,t,bar,ch,sd){if(st===0||st===8)ch.forEach((n,i)=>mNote(n,t+i*0.012,sd*7.5,0.05,'sine',1400));
+      if(st===0)mNote(ch[0]-12,t,sd*5,0.13,'triangle',500);if(st===10)mNote(ch[0]-12,t,sd*3,0.09,'triangle',500);
+      if(st===0||st===7||st===10)mKick(t,0.32);if(st===4||st===12)mNoise(t,0.12,0.06,'bandpass',1600);
+      if(st%2===0)mNoise(t,0.04,st%4===2?0.035:0.02,'highpass',7000);
+      const mel=[[69,-1,72,-1,-1,74,-1,-1],[69,-1,-1,67,-1,-1,64,-1],[67,-1,71,-1,74,-1,72,-1],[71,-1,-1,67,-1,64,-1,-1]][bar%4];
+      if(st%2===0&&mel[st/2]>0)mNote(mel[st/2]+12,t,sd*3,0.035,'sine',2600);}},
+  // "Studs Shuffle": 118 bpm disco for team dances, Em7 / A7
+  dance:{bpm:118,swing:0,bars:[[64,67,71,74],[64,67,71,74],[57,61,64,67],[57,61,64,67]],
+    play(st,t,bar,ch,sd){if(st%4===0)mKick(t,0.5);if(st===4||st===12)mNoise(t,0.16,0.16,'bandpass',1500);
+      if(st%4===2)mNoise(t,0.12,0.07,'highpass',6000);else mNoise(t,0.03,0.025,'highpass',8000);
+      const r=ch[0]-24,bl=[0,12,-1,12,0,-1,12,10,0,12,-1,12,7,-1,10,12];if(bl[st]>=0)mNote(r+bl[st],t,sd*0.9,0.16,'sawtooth',700);
+      if(st===3||st===6||st===11||st===14)ch.forEach(n=>mNote(n,t,sd*0.8,0.035,'square',2200));
+      const hook=[76,-1,79,-1,81,-1,79,76,-1,74,-1,76,-1,-1,71,-1];if(bar%2===0&&hook[st]>0)mNote(hook[st],t,sd*1.6,0.05,'triangle',3000);}},
+  // "Back of the Net": 132 bpm party anthem after goals, C F G C
+  party:{bpm:132,swing:0,bars:[[60,64,67,72],[53,57,60,65],[55,59,62,67],[60,64,67,72]],
+    play(st,t,bar,ch,sd){if(st%4===0)mKick(t,0.55);if(st===4||st===12)mNoise(t,0.18,0.18,'bandpass',1700);if(st%2===1)mNoise(t,0.05,0.05,'highpass',7000);
+      if(st%2===0)mNote(ch[0]-24+(st%4?12:0),t,sd*1.2,0.15,'sawtooth',800);
+      if(st===0||st===6||st===10)ch.forEach(n=>mNote(n+12,t,sd*2.5,0.04,'sawtooth',2600));
+      const tune=[[72,-1,72,74,76,-1,72,-1,79,-1,-1,-1,77,-1,76,-1],[77,-1,77,76,74,-1,72,-1,74,-1,-1,-1,-1,-1,-1,-1]][bar%2];
+      if(tune[st]>0)mNote(tune[st],t,sd*1.8,0.07,'square',3200);}}};
+function musicMode(){if(teamDance)return 'dance';if(state==='goal')return 'party';return 'chill';}
+function musicTick(){if(!AC||!musicGain)return;const mode=musicMode();
+  if(mode!==mus.mode){mus.mode=mode;mus.step=0;mus.next=AC.currentTime+0.06;}
+  const S=SONGS[mode],sd=60/S.bpm/4;
+  while(mus.next<AC.currentTime+0.15){const st=mus.step%16,bar=(mus.step/16|0),ch=S.bars[bar%S.bars.length];
+    S.play(st,mus.next+(st%2?S.swing*sd:0),bar,ch,sd);mus.step++;mus.next+=sd;}}
+function goalSting(){if(!AC||!musicGain||!musicOn)return;const t=AC.currentTime+0.02;[72,76,79,84].forEach((n,i)=>mNote(n,t+i*0.09,0.9-i*0.1,0.09,'sawtooth',3500));mNote(48,t,1.2,0.2,'triangle',600);}
+const musicBtn=document.getElementById('musicBtn');
+function syncMusicBtn(){musicBtn.textContent=musicOn?'MUSIC ON':'MUSIC OFF';if(musicGain)musicGain.gain.value=musicOn?MUSIC_VOL:0;}
+musicBtn.addEventListener('click',()=>{initAudio();musicOn=!musicOn;try{localStorage.setItem('studsMusic',musicOn?'1':'0');}catch(e){}syncMusicBtn();musicBtn.blur();});syncMusicBtn();
 const muteBtn=document.getElementById('muteBtn');
 function toggleMute(){muted=!muted;if(master)master.gain.value=muted?0:0.55;muteBtn.textContent=muted?'SOUND OFF':'SOUND ON';}
 muteBtn.addEventListener('click',()=>{initAudio();toggleMute();muteBtn.blur();});
@@ -498,7 +544,7 @@ fsBtn.addEventListener('click',()=>{initAudio();toggleFull();fsBtn.blur();});
 const fsSync=()=>{fsBtn.textContent=fsEl()?'EXIT FULL':'FULL SCREEN';setTimeout(resize,120);};
 document.addEventListener('fullscreenchange',fsSync);document.addEventListener('webkitfullscreenchange',fsSync);
 function fullTime(){
-  state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;
+  stopDance(true);state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits;addCoins(earned);
   const row=(l,v)=>'<div><span>'+l+'</span><b>+'+v+'</b></div>';
@@ -529,7 +575,9 @@ const ICON={
   jump:svg('<path d="M13.5 2L5 13.5h6.5L9.5 22 19 9.5h-6.5z"/>'),
   dive:svg('<circle cx="18" cy="9" r="2.6"/><path d="M15 10.5L4 15M9 13l-2 6M2 19h20"/>'),
   header:svg('<circle cx="17" cy="5.5" r="3"/><circle cx="9" cy="13" r="2.4"/><path d="M11 15l9 4M3 21h18"/>')};
-const DANCE_T=3;
+const DANCE_T=3;let teamDance=null;
+// The whole side dances until you touch the stick or any button (or the ball goes dead).
+function stopDance(quiet){if(!teamDance)return;teamDance=null;for(const q of players)q.dance=0;if(!quiet&&human)popup(human.x,human.y-30,'DANCE OVER');}
 const TKNAME={slide:'SLIDE',jump:'JUMP KICK',dive:'DIVE',header:'HEADER',barge:'BARGE'};
 // Our side has the ball, or a pass of ours is on its way to the player you control: buttons stay PASS / SHOOT.
 function atkMode(){return ball.owner?ball.owner.team===0:!!(ball.passTo&&ball.passTo.team===0&&ball.lastTeam===0);}
@@ -549,9 +597,9 @@ function hud(){
   const cd=!atk&&me&&me.tackleCd>0?clamp(me.tackleCd/(TK[me.tk]||TK.slide).cd,0,1):0;
   const pr=atk?Math.round((charging?charge:0)*40)/40:Math.round((cd?1-cd:0)*40)/40;
   if(pr!==lastP1){lastP1=pr;shootBtn.style.setProperty('--p',pr);}
-  {const me2=human&&!human.off?human:null,dp=me2&&me2.dance>0?Math.round(me2.dance/DANCE_T*40)/40:0;
-   if(dp!==lastDP){lastDP=dp;danceBtn.style.setProperty('--p',dp);danceBtn.classList.toggle('going',dp>0);}
-   const full=TEAMS[0].fury>=100;if(full!==lastFull){lastFull=full;danceBtn.classList.toggle('full',full);}}
+  {const dp=teamDance?Math.round(TEAMS[0].fury/100*40)/40:0;
+   if(dp!==lastDP){lastDP=dp;danceBtn.style.setProperty('--p',dp);}
+   const go=!!teamDance;if(go!==lastFull){lastFull=go;danceBtn.classList.toggle('going',go);danceBtn.querySelector('.lb').textContent=go?'STOP':'DANCE';}}
   if((cd>0)!==(lastP2===1)){lastP2=cd>0?1:0;shootBtn.classList.toggle('cool',cd>0);}
   const s=TEAMS[0].score+' – '+TEAMS[1].score,c=Math.min(90,Math.floor(clock/MATCH*90))+"'",f=Math.round(TEAMS[0].fury);
   const key=s+c+f;if(key===lastHud)return;lastHud=key;scoreEl.textContent=s;clockEl.textContent=c;furyFill.style.width=f+'%';furyEl.classList.toggle('full',f>=100);}
@@ -646,7 +694,7 @@ const HITW={slide:HITWORDS,barge:['SHOULDERED!','BUMPED!','OOF!'],jump:['KUNG FU
 // Victims get launched: the bigger the tackle, the higher and further they fly before tumbling down.
 function knockDown(q,a,word,kind){
   const big=kind==='jump',lift={jump:270,dive:170,slide:110,barge:70}[kind]||130,hv=big?310:kind==='dive'?270:220;
-  if(q.dance>0&&q.team===0)popup(q.x,q.y-46,'DANCE RUINED!','#d63cc0');q.dance=0;
+  if(q.dance>0&&q.team===0)popup(q.x,q.y-46,'OUCH! MID-DANCE!','#d63cc0');q.dance=0;
   if(kind&&a&&a.team===0)matchHits++;
   q.down=big?1.75:1.4;q.slide=q.barge=q.recover=0;q.air=0;q.lz=0.1;q.lvz=lift;q.vx=Math.cos(a.face)*hv;q.vy=Math.sin(a.face)*hv;
   shake=Math.max(shake,big?14:kind==='dive'?10:8);hitZoom=big?1:0.6;
@@ -731,7 +779,7 @@ function takeSetPiece(p){const sp=setPiece;setPiece=null;
 let celeb=null;
 const CELEBS=['slide','flip','plane','dance','pile'];
 function goal(team){
-  TEAMS[team].score++;state='goal';freeze=3.4;nextKick=1-team;shake=14;sfx('roar');sfx('bigkick');
+  TEAMS[team].score++;stopDance(true);goalSting();state='goal';freeze=3.4;nextKick=1-team;shake=14;sfx('roar');sfx('bigkick');
   const lb=ball.lastBy,own=!!(lb&&lb.team!==team);
   let by=lb&&!own&&!lb.off?lb:null;if(!by){let bd=1e9;for(const p of players)if(p.team===team&&!p.off&&p.role!=='GK'){const d=dist(p,ball);if(d<bd){bd=d;by=p;}}}
   const type=team===0?{celebration_classic:'plane',celebration_knee_slide:'slide',celebration_corner_flag:'flag',celebration_penguin_waddle:'waddle'}[wallet.equipped.celebration]||'plane'
@@ -843,8 +891,9 @@ function gkThink(p,dt){
   moveTo(p,tx,ty,spd);
 }
 function aiThink(p,dt,chaser,presser){
+  if(p.down>0||p.slide>0||p.recover>0||p.barge>0){p.dvx=p.dvy=0;p.dance=0;return;}
+  if(teamDance&&p.team===0){p.dance+=dt;p.dvx=p.dvy=0;p.face=Math.atan2(CY-p.y,(W/2+(p.i%2?200:-200))-p.x);return;}
   p.dance=0;
-  if(p.down>0||p.slide>0||p.recover>0||p.barge>0){p.dvx=p.dvy=0;return;}
   if(setPiece&&setPiece.taker===p){if(ball.owner===p)return setPieceThink(p,dt,false);setPiece=null;}
   if(setPiece&&holdOff(p))return;
   if(p.role==='GK')return gkThink(p,dt);
@@ -902,14 +951,14 @@ function humanThink(dt){
     const dx=p.x-ball.x,dy=p.y-ball.y,d=hyp(dx,dy)||1;if(d<92&&p.dvx*dx+p.dvy*dy<=0){p.dvx=dx/d*RUN;p.dvy=dy/d*RUN;}return;}
   if(ball.owner!==p&&charging){charging=false;charge=0;}
   if(p.down>0||p.slide>0||p.recover>0||p.barge>0)return;
-  if(p.dance>0){
-    if(inp.x||inp.y||pressed.pass||pressed.shoot||pressed.tackle||state!=='play'){p.dance=0;popup(p.x,p.y-30,'DANCE OVER');}
-    else{p.dance+=dt;p.dvx=p.dvy=0;const T=TEAMS[0];T.fury=Math.min(100,T.fury+dt*100/DANCE_T);
-      if((p.dance*4|0)!==((p.dance-dt)*4|0)){popup(p.x+rand(-14,14),p.y-20,pick(['♪','♫','♬']),pick(['#ffc23a','#d63cc0','#6dff9a','#38b6ff']));sfx('note');}
-      if(p.dance>=DANCE_T||T.fury>=100){T.fury=100;p.dance=0;popup(p.x,p.y-34,'FURY MAXED!','#ff6a3a');flash(0.35,'214,60,192');sfx('roar');
+  if(teamDance){
+    if(inp.x||inp.y||pressed.pass||pressed.shoot||pressed.tackle||pressed.dance||state!=='play')stopDance();
+    else{p.dance+=dt;p.dvx=p.dvy=0;teamDance.t+=dt;const T=TEAMS[0];T.fury=Math.min(100,T.fury+dt*100/DANCE_T);
+      if((teamDance.t*2|0)!==((teamDance.t-dt)*2|0)){const q=pick(players.filter(x=>x.team===0&&!x.off));popup(q.x+rand(-14,14),q.y-20,pick(['♪','♫','♬']),pick(['#ffc23a','#d63cc0','#6dff9a','#38b6ff']));}
+      if(T.fury>=100&&!teamDance.maxed){teamDance.maxed=true;popup(p.x,p.y-34,'FURY MAXED!','#ff6a3a');flash(0.35,'214,60,192');sfx('roar');
         burst(p.x,p.y,30,['#d63cc0','#ffc23a','#f3efe2'],220,200,10);rings.push({x:p.x,y:p.y,life:0.6,big:1});}
       return;}}
-  if(pressed.dance&&TEAMS[0].fury<100){p.dance=0.001;p.dvx=p.dvy=0;charging=false;charge=0;popup(p.x,p.y-34,'DANCE!','#d63cc0');sfx('ooh');return;}
+  if(pressed.dance&&state==='play'){teamDance={t:0,maxed:TEAMS[0].fury>=100};p.dance=0.001;p.dvx=p.dvy=0;charging=false;charge=0;popup(p.x,p.y-34,'DANCE PARTY!','#d63cc0');sfx('ooh');return;}
   const has=ball.owner===p,sp=has?SPRINT*0.93:(held.sprint?SPRINT:RUN);
   p.dvx=inp.x*sp;p.dvy=inp.y*sp;if(inp.x||inp.y)p.face=Math.atan2(inp.y,inp.x);
   else if(ball.passTo===p&&!ball.owner){const q=receivePt(p);moveTo(p,q.x,q.y,SPRINT);}
