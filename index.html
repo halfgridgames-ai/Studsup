@@ -1596,6 +1596,65 @@ function fxStep(dt){if(!R.fxL)return;const b=ball,v=hyp(b.vx,b.vy);
     const f=1-i/(R.trailN-1),w=w0*f,a=f*f*R.trailA;for(const s2 of [0,1]){const k=(i*2+s2)*3,sg=s2?1:-1;pos.array[k]=p[0]+TV.x*w*sg;pos.array[k+1]=p[1]+TV.y*w*sg;pos.array[k+2]=p[2]+TV.z*w*sg;
       col.array[k]=TC.r*a;col.array[k+1]=TC.g*a;col.array[k+2]=TC.b*a;}}
   pos.needsUpdate=true;col.needsUpdate=true;}
+// ---------- motion-capture clips (Mixamo) ----------
+// models/models.json "_anims" points at one armature-only GLB holding every Mixamo clip. Each clip is baked once per team rig:
+// for every frame, each source bone's turn away from its own rest pose is put onto the matching team bone's rest pose
+// (world space, so different rest poses and bone rolls don't matter), then made local to the parent.
+let ANIMSRC=null;
+const anNorm=n=>n.toLowerCase().replace(/^.*:/,'').replace(/^mixamorig\d*/,'').replace(/[^a-z0-9]/g,'');
+function anChain(bones){const hips=bones.find(b=>anNorm(b.name)==='hips');if(!hips)return null;const out=[];let b=hips;
+  while(b){const k=b.children.filter(c=>c.isBone).find(c=>/spine|neck|head/.test(anNorm(c.name)));if(!k||/neck|head/.test(anNorm(k.name)))break;out.push(k);b=k;}return {hips,spine:out};}
+function anMap(sb,tb){const map=new Map(),tn=new Map(tb.map(b=>[anNorm(b.name),b]));
+  for(const b of sb){const n=anNorm(b.name);if(/spine/.test(n))continue;const t=tn.get(n);if(t)map.set(b,t);}
+  const cs=anChain(sb),ct=anChain(tb);if(cs&&ct){const a=cs.spine,c=ct.spine;for(let i=0;i<a.length;i++){const j=Math.round(i*(c.length-1)/Math.max(1,a.length-1));if(c[j])map.set(a[i],c[j]);}}
+  return map;}
+function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene,tgt=rig.gltf.scene,clips={};
+  const sb=[],tb=[];src.traverse(o=>{if(o.isBone)sb.push(o);});tgt.traverse(o=>{if(o.isBone)tb.push(o);});
+  const map=anMap(sb,tb);if(map.size<10){rig.clips={};return;}
+  src.updateMatrixWorld(true);tgt.updateMatrixWorld(true);
+  const wq=b=>b.getWorldQuaternion(new THREE.Quaternion()),restS=new Map(sb.map(b=>[b,wq(b)])),restT=new Map(tb.map(b=>[b,wq(b)])),restL=new Map(tb.map(b=>[b,b.quaternion.clone()]));
+  const flipQ=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),PI),fl=!!rig.flip,fi=flipQ.clone().invert();
+  const sH=anChain(sb).hips,tH=anChain(tb).hips,sHy=sH.getWorldPosition(new THREE.Vector3()).y,tHp=tH.getWorldPosition(new THREE.Vector3()),ratio=(tHp.y-rig.minY)/Math.max(1e-6,sHy);
+  const order=[];tgt.traverse(o=>{if(o.isBone)order.push(o);});const sHrest=sH.getWorldPosition(new THREE.Vector3());
+  const mixer=new THREE.AnimationMixer(src),tmpq=new THREE.Quaternion(),cur=new Map(),inv=new THREE.Matrix4().copy(tH.parent.matrixWorld).invert();
+  for(const clip of ANIMSRC.animations){const act=mixer.clipAction(clip);act.reset().play();const fps=30,n=Math.max(2,Math.ceil(clip.duration*fps)+1),times=[];
+    const qv=new Map(order.map(b=>[b,[]])),pv=[];let dist=0,last=null;
+    for(let f=0;f<n;f++){const t=Math.min(clip.duration,f/fps);times.push(t);mixer.setTime(t);src.updateMatrixWorld(true);
+      for(const b of order){const par=b.parent&&b.parent.isBone?cur.get(b.parent):b.parent.getWorldQuaternion(tmpq).clone();
+        let w;const sbn=[...map].find(e=>e[1]===b);
+        if(sbn){const d=wq(sbn[0]).multiply(restS.get(sbn[0]).clone().invert());if(fl)d.premultiply(flipQ).multiply(fi);w=d.multiply(restT.get(b));}
+        else w=par.clone().multiply(restL.get(b));
+        cur.set(b,w);const l=par.clone().invert().multiply(w);qv.get(b).push(l.x,l.y,l.z,l.w);}
+      const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
+      const y=tHp.y+(hp.y-sHrest.y)*ratio,lp=new THREE.Vector3(tHp.x,y,tHp.z).applyMatrix4(inv);pv.push(lp.x,lp.y,lp.z);}
+    act.stop();const tracks=order.map(b=>new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,qv.get(b)));
+    tracks.push(new THREE.VectorKeyframeTrack(tH.name+'.position',times,pv));
+    const c=new THREE.AnimationClip(clip.name,clip.duration,tracks);c.speed=dist*ratio*rig.scale/Math.max(0.01,clip.duration);clips[clip.name]=c;}
+  rig.clips=clips;}
+// which clip (if any) a player should be showing right now; null = the hand-made pose runs the limbs
+const ANIM_PICK={idle:['soccer_idle','idle','breathing_idle','standing_idle'],gkidle:['goalkeeper_idle','soccer_idle','idle'],
+  jog:['jog','jogging','soccer_run','running','run'],sprint:['fast_run','sprint','running','run'],
+  fly:['flying_back_death','falling_back','falling_down','dying_backwards'],fall:['falling_down','dying_backwards','fall','hit_reaction'],
+  win:['victory','cheering','knee_slide','samba_dancing'],dance:['samba_dancing','samba_dance','hip_hop_dancing','dance'],
+  kick:['soccer_kick','strike_forward','kick','soccer_pass'],pass:['soccer_pass','pass','soccer_kick'],header:['header','soccer_header'],
+  slide:['soccer_tackle','slide_tackle','tackle'],jumpk:['flying_kick'],gkdive:['goalkeeper_diving_save','diving_save'],
+  throw:['throw_in','soccer_throw_in'],spin:['spin','soccer_spin']};
+function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
+  for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
+function anState(p){const spd=hyp(p.vx,p.vy);
+  if(p.down>0)return p.down<0.45?null:(p.lz>0||p.downFly)?'fly':'fall';
+  if(state==='goal'&&p!==ref&&celeb&&celeb.team===p.team)return 'win';
+  if(p.dance>0)return 'dance';
+  if(p.gkDive||p.gkLand>0||p.slide>0||p.barge>0||p.skill>0||(setPiece&&setPiece.taker===p&&setPiece.kind==='throw'))return null;
+  if(p.kickAnim>0)return null;
+  if(p.role==='GK'&&spd<60)return 'gkidle';
+  return spd>SPRINT*0.8?'sprint':spd>22?'jog':'idle';}
+function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const k=anState(p),clip=k?anFind(rig,k):null;
+  if(clip!==m.clip){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;
+    if(clip){const a=m.mixer.clipAction(clip);a.reset();const once=k==='fly'||k==='fall';a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=once;a.play();if(prev)prev.crossFadeTo(a,0.18,false);else a.fadeIn(0.15);}
+    else if(prev)prev.fadeOut(0.15);}
+  if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);a.timeScale=(k==='jog'||k==='sprint')?clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6):1;/* in-place clips: one cycle matches a jog-to-sprint pace */}
+  m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*12);return clip?k:0;}
 // ---------- rigged models ----------
 // A team can use a real skinned 3D model (glTF/GLB from Meshy, Mixamo, Blender...) instead of the built-in block figure.
 // The game still poses the simple proxy joints (body, hips, knees, shoulders, elbows) exactly as before, and every frame
@@ -1624,7 +1683,7 @@ function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true)
   return {gltf,flip,scale:RIG_H/h,minY:y0,anims:gltf.animations||[]};}
 function rigLoad(kind,url,opt){if(RIGS[kind])return RIGS[kind];
   const U=rigLoad.urls||(rigLoad.urls={});U[url]=U[url]||rigLoadLibs().then(()=>new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,null,no)));
-  RIGS[kind]=U[url].then(g=>{const r=rigPrepare(g,opt);RIGS[kind]=r;if(r&&R)buildModels();return r;})
+  RIGS[kind]=U[url].then(g=>{const r=rigPrepare(g,opt);RIGS[kind]=r;if(r)anBake(r);if(r&&R)buildModels();return r;})
     .catch(e=>{console.warn('rig load failed',url,e);RIGS[kind]=null;});return RIGS[kind];}
 function makeRigged(p,rig,TT){
   const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
@@ -1645,12 +1704,13 @@ function makeRigged(p,rig,TT){
     chain.push({j:[legs[i]],L:limb(ul[i],kid(ul[i],f.ll))},{j:[legs[i],knees[i]],L:limb(ll[i],kid(ll[i],[])),up:chain.length},
                {j:[arms[i]],L:limb(ua[i],kid(ua[i],f.la))},{j:[arms[i],elbows[i]],L:limb(la[i],kid(la[i],[])),up:chain.length+2});}
   // the proxy's arms hang at the sides; keep a little gap so a T-posed mesh doesn't push the hands into the hips
-  return {g,body,legs,arms,knees,elbows,kind:'human',rig:{chain,acc:rigQ(),d:chain.map(()=>rigQ())}};}
+  const mixer=rig.clips&&Object.keys(rig.clips).length?new THREE.AnimationMixer(sc):null;
+  return {g,body,legs,arms,knees,elbows,kind:'human',rigRef:rig,mixer,procW:1,rig:{chain,acc:rigQ(),d:chain.map(()=>rigQ()),tq:rigQ()}};}
 // Copy the proxy pose onto the bones: wanted = proxy joint turn * straighten-to-down * rest pose, then made local to the parent bone.
 function rigApply(m){const r=m.rig;if(!r)return;
   r.chain.forEach((c,k)=>{const acc=r.acc.copy(c.j[0].quaternion);for(let i=1;i<c.j.length;i++)acc.multiply(c.j[i].quaternion);
     const d=r.d[k].copy(acc).multiply(c.L.align).multiply(c.L.rest);
-    const par=c.up!=null?r.d[c.up]:c.L.parentRest;c.L.b.quaternion.copy(par).invert().multiply(d);});}
+    const par=c.up!=null?r.d[c.up]:c.L.parentRest;const w=m.mixer?m.procW:1;if(w>=0.999)c.L.b.quaternion.copy(par).invert().multiply(d);else if(w>0.001){r.tq.copy(par).invert().multiply(d);c.L.b.quaternion.slerp(r.tq,w);}});}
 // ---------- referee ----------
 function refStep(dt){const r=ref;if(r.off)return;r.cardT=Math.max(0,r.cardT-dt);
   if(r.down>0){r.down-=dt;const k=Math.exp((r.lz>0?-1:-4)*dt);r.vx*=k;r.vy*=k;
@@ -1774,8 +1834,8 @@ function ballPhysics(dt){
 // World mapping: sim x -> X, sim y -> Z, height z -> Y.
 const PIT_M=90;let R=null;
 (function(){const q=new URLSearchParams(location.search).get('rigtest');
-  if(q){for(const k of ['human','penguin','bear','roo','gorilla','granny','ninja','riot','alien','dolphin','referee'])RIG_FILES[k]='models/'+q+'.glb';return;}
-  if(location.protocol==='file:')return;fetch('models/models.json').then(r=>r.ok?r.json():null).then(j=>{if(j){Object.assign(RIG_FILES,j);if(R)buildModels();}}).catch(()=>{});})();
+  if(q){for(const k of ['human','penguin','bear','roo','gorilla','granny','ninja','riot','alien','dolphin','referee'])RIG_FILES[k]='models/'+q+'.glb';const qa=new URLSearchParams(location.search).get('animtest');if(qa)setTimeout(()=>anLoad('models/'+qa+'.glb'),0);return;}
+  if(location.protocol==='file:')return;fetch('models/models.json').then(r=>r.ok?r.json():null).then(j=>{if(j){Object.assign(RIG_FILES,j);if(j._anims)anLoad(j._anims);if(R)buildModels();}}).catch(()=>{});})();
 const STADS={stadium_home:{fog:0x060b16,near:1100,far:2800,sky:0xffffff,ground:0xffffff,hemi:0xdfe8ff,hi:0.62,stars:true,wx:null,grip:10,roll:1.15},
   stadium_rainy_rec:{fog:0x283039,near:450,far:1900,sky:0x9aa6b6,ground:0xa9b7a2,hemi:0xc8d2dc,hi:0.5,stars:false,wx:'rain',grip:8.5,roll:1.6},
   stadium_ice_rink:{em:0x3c5a6e,fog:0x16283f,near:800,far:2600,sky:0xb0dcff,ground:0xcff0ff,hemi:0xe8f6ff,hi:0.8,stars:true,wx:'snow',grip:3,roll:0.5},
@@ -1860,6 +1920,7 @@ function makeHuman(p,TT){
 }
 const MAKERS={human:p=>makeHuman(p),penguin:p=>makePenguin(p),bear:p=>makeBeast(p,'bear'),roo:p=>makeBeast(p,'roo'),gorilla:p=>makeBeast(p,'gorilla'),
   granny:p=>makeHuman(p),ninja:p=>makeHuman(p),riot:p=>makeHuman(p),alien:p=>makeHuman(p),dolphin:p=>makeBeast(p,'dolphin')};
+function anLoad(url){rigLoadLibs().then(()=>new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,null,no))).then(g=>{ANIMSRC=g;for(const k in RIGS){const r=RIGS[k];if(r&&r.gltf)anBake(r);}if(R)buildModels();}).catch(e=>console.warn('anims failed',e));}
 function rigFor(kind){const url=RIG_FILES[kind];if(!url)return null;const r=RIGS[kind];if(r&&r.gltf)return r;if(r===undefined)rigLoad(kind,url,RIG_FILES[kind+'@']);return null;}
 function buildModels(){for(const m of R.models)R.scene.remove(m.g);R.models=players.map(p=>{const k=TEAMS[p.team].kind,rg=rigFor(k);const m=rg?makeRigged(p,rg):(MAKERS[k]||MAKERS.human)(p);R.scene.add(m.g);return m;});
   const rr=rigFor('referee');if(rr&&R.refModel&&!R.refModel.rig){R.scene.remove(R.refModel.g);R.refModel=makeRigged(ref,rr,{gk:'#16191f'});R.scene.add(R.refModel.g);}}
@@ -2129,7 +2190,8 @@ function render(t,dt){
   R.sun.position.set(R.look.x-260,620,R.look.z+380);R.sun.target.position.set(R.look.x,0,R.look.z);
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
-  players.forEach((p,i)=>{poseModel(p,R.models[i],t,dt);blendPose(R.models[i],dt);rigApply(R.models[i]);});poseModel(ref,R.refModel,t,dt);blendPose(R.refModel,dt);rigApply(R.refModel);
+  const anim=(p,m)=>{poseModel(p,m,t,dt);blendPose(m,dt);const k=m.mixer?anUpdate(p,m,dt):0;if(k==='fly'||k==='fall'||k==='win'||k==='dance'){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
+  players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
   let rv=null;R.plan=null;
@@ -2218,7 +2280,7 @@ function frame(now){
   render(now/1000,dt);clipTick();hud();commTick(dt);if(NET.host&&NET.on)netHostTick(dt);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__game={rigLoad,RIGS,RIG_FILES,startSkill,skillKind,shoot,get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
+window.__game={anLoad,get ANIMSRC(){return ANIMSRC},rigLoad,RIGS,RIG_FILES,startSkill,skillKind,shoot,get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
   ref,startPenalty,refHit,startSkill,skillKind,threat,hit,foul,goal,openTour,startTour,wallet,TOUR,CLUBS,get setPiece(){return setPiece},set setPiece(v){setPiece=v},get replay(){return replay},get comm(){return commEl.textContent},
   get clock(){return clock},set clock(v){clock=v},get refMode(){return refMode},set refMode(v){refMode=v},get AIDIFF(){return AIDIFF},set AIDIFF(v){AIDIFF=v},set AUTO(v){AUTO=v},STATS,get R(){return R},poseModel,blendPose};
 })();
