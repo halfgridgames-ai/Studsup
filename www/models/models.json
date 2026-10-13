@@ -9,5 +9,6 @@
  "riot": "models/riot.glb",
  "alien": "models/alien.glb",
  "dolphin": "models/dolphin.glb",
- "referee": "models/referee.glb"
+ "referee": "models/referee.glb",
+ "_anims": "models/anims.glb"
 }
