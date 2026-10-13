@@ -1617,44 +1617,68 @@ function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene
   const sH=anChain(sb).hips,tH=anChain(tb).hips,sHy=sH.getWorldPosition(new THREE.Vector3()).y,tHp=tH.getWorldPosition(new THREE.Vector3()),ratio=(tHp.y-rig.minY)/Math.max(1e-6,sHy);
   const order=[];tgt.traverse(o=>{if(o.isBone)order.push(o);});const sHrest=sH.getWorldPosition(new THREE.Vector3());
   const mixer=new THREE.AnimationMixer(src),tmpq=new THREE.Quaternion(),cur=new Map(),inv=new THREE.Matrix4().copy(tH.parent.matrixWorld).invert();
-  for(const clip of ANIMSRC.animations){const act=mixer.clipAction(clip);act.reset().play();const fps=30,n=Math.max(2,Math.ceil(clip.duration*fps)+1),times=[];
+  // mirrored copies (left/right swapped) of clips listed in ANIM_MIRROR, so a move done one way exists both ways
+  const tn=new Map(tb.map(b=>[anNorm(b.name),b])),src4=new Map([...map].map(e=>[e[1],e[0]])),swap=n=>n.replace(/left|right/g,x=>x==='left'?'right':'left');
+  const twin=new Map(tb.map(b=>[b,tn.get(swap(anNorm(b.name)))||b]));
+  const jobs=ANIMSRC.animations.map(c=>[c,false]).concat(ANIMSRC.animations.filter(c=>ANIM_MIRROR.includes(c.name)).map(c=>[c,true]));
+  for(const [clip,mir] of jobs){const act=mixer.clipAction(clip);act.reset().play();const fps=30,n=Math.max(2,Math.ceil(clip.duration*fps)+1),times=[];
     const qv=new Map(order.map(b=>[b,[]])),pv=[];let dist=0,last=null;
     for(let f=0;f<n;f++){const t=Math.min(clip.duration,f/fps);times.push(t);mixer.setTime(t);src.updateMatrixWorld(true);
       for(const b of order){const par=b.parent&&b.parent.isBone?cur.get(b.parent):b.parent.getWorldQuaternion(tmpq).clone();
-        let w;const sbn=[...map].find(e=>e[1]===b);
-        if(sbn){const d=wq(sbn[0]).multiply(restS.get(sbn[0]).clone().invert());if(fl)d.premultiply(flipQ).multiply(fi);w=d.multiply(restT.get(b));}
+        let w;const sb0=src4.get(mir?twin.get(b):b);
+        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);w=d.multiply(restT.get(b));}
         else w=par.clone().multiply(restL.get(b));
         cur.set(b,w);const l=par.clone().invert().multiply(w);qv.get(b).push(l.x,l.y,l.z,l.w);}
       const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
       const y=tHp.y+(hp.y-sHrest.y)*ratio,lp=new THREE.Vector3(tHp.x,y,tHp.z).applyMatrix4(inv);pv.push(lp.x,lp.y,lp.z);}
     act.stop();const tracks=order.map(b=>new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,qv.get(b)));
     tracks.push(new THREE.VectorKeyframeTrack(tH.name+'.position',times,pv));
-    const c=new THREE.AnimationClip(clip.name,clip.duration,tracks);c.speed=dist*ratio*rig.scale/Math.max(0.01,clip.duration);clips[clip.name]=c;}
+    const nm=clip.name+(mir?'_m':''),c=new THREE.AnimationClip(nm,clip.duration,tracks);c.speed=dist*ratio*rig.scale/Math.max(0.01,clip.duration);clips[nm]=c;}
   rig.clips=clips;}
 // which clip (if any) a player should be showing right now; null = the hand-made pose runs the limbs
-const ANIM_PICK={idle:['soccer_idle','idle','breathing_idle','standing_idle'],gkidle:['goalkeeper_idle','soccer_idle','idle'],
+const ANIM_PICK={idle:['soccer_idle','offensive_idle','idle','breathing_idle','standing_idle'],gkidle:['goalkeeper_idle','soccer_idle','idle'],
   jog:['jog','jogging','soccer_run','running','run'],sprint:['fast_run','sprint','running','run'],
   fly:['flying_back_death','falling_back','falling_down','dying_backwards'],fall:['falling_down','dying_backwards','fall','hit_reaction'],
   win:['victory','cheering','knee_slide','samba_dancing'],dance:['samba_dancing','samba_dance','hip_hop_dancing','dance'],
   kick:['soccer_kick','strike_forward','kick','soccer_pass'],pass:['soccer_pass','pass','soccer_kick'],header:['header','soccer_header'],
   slide:['soccer_tackle','slide_tackle','tackle'],jumpk:['flying_kick'],gkdive:['goalkeeper_diving_save','diving_save'],
   throw:['throw_in','soccer_throw_in'],spin:['spin','soccer_spin']};
+// one-shot moves: [clip, from, to] seconds of the source clip, stretched over the game's own timer for that move
+const ANIM_MIRROR=['gk_dive_a'];
+const ANIM_SEG={kick:['soccer_kick',0.27,0.6],slide:['soccer_tackle',0.2,0.8],slideR:['soccer_tackle',1.0,1.8],
+  jump:['scissor_kick',0.45,1.3],jumpR:['scissor_kick',2.2,2.8],dive:['soccer_trip',0.3,0.75],diveR:['standing_up',0.6,1.7],
+  gkdiveA:['gk_dive_a',0.75,1.6],gkdiveB:['gk_dive_a_m',0.75,1.6],gklandA:['gk_dive_a',1.6,2.3],gklandB:['gk_dive_a_m',1.6,2.3],
+  catch:['gk_catch',0.2,0.8],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
 function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
   for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
-function anState(p){const spd=hyp(p.vx,p.vy);
-  if(p.down>0)return p.down<0.45?null:(p.lz>0||p.downFly)?'fly':'fall';
-  if(state==='goal'&&p!==ref&&celeb&&celeb.team===p.team)return 'win';
-  if(p.dance>0)return 'dance';
-  if(p.gkDive||p.gkLand>0||p.slide>0||p.barge>0||p.skill>0||(setPiece&&setPiece.taker===p&&setPiece.kind==='throw'))return null;
-  if(p.kickAnim>0)return null;
-  if(p.role==='GK'&&spd<60)return 'gkidle';
-  return spd>SPRINT*0.8?'sprint':spd>22?'jog':'idle';}
-function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const k=anState(p),clip=k?anFind(rig,k):null;
-  if(clip!==m.clip){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;
-    if(clip){const a=m.mixer.clipAction(clip);a.reset();const once=k==='fly'||k==='fall';a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=once;a.play();if(prev)prev.crossFadeTo(a,0.18,false);else a.fadeIn(0.15);}
+// which clip (if any) a player shows now, and for one-shot moves how far through it they are (0..1)
+function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
+  if(p.down>0)return p.down<0.45?one('getup',1-p.down/0.45):[(p.lz>0||p.downFly)?'fly':'fall'];
+  if(state==='goal'&&p!==ref&&celeb&&celeb.team===p.team)return ['win'];
+  if(p.dance>0)return ['dance'];
+  // keeper dives: pick the clip whose dive goes the same way as the game's dive, from the keeper's own point of view
+  const side=d=>Math.cos(p.face)*d>0?'B':'A';
+  if(p.gkDive&&p.gkDive.dir){const D=p.gkDive;return one('gkdive'+side(D.dir),1-D.t/(D.T||0.55));}
+  if(p.gkLand>0&&p.gkLandDir)return one('gkland'+side(p.gkLandDir),1-p.gkLand/0.5);
+  if(p.slide>0&&TK[p.tk])return one(p.tk,1-p.slide/TK[p.tk].dur);
+  if(p.recover>0&&TK[p.tk]&&ANIM_SEG[p.tk+'R'])return one(p.tk+'R',1-p.recover/TK[p.tk].rec);
+  if(p.barge>0||p.skill>0||p.gkDive)return [null];
+  if(setPiece&&setPiece.taker===p&&setPiece.kind==='throw')return one('throwHold',0);
+  if(p.throwAnim>0)return one('throw',1-p.throwAnim/0.3);
+  if(p.kickAnim>0)return one('kick',1-p.kickAnim/0.3);
+  if(p.role==='GK'&&p.catchT>0)return one('catch',1-p.catchT/0.35);
+  if(p.role==='GK'&&spd<60)return ['gkidle'];
+  return [spd>SPRINT*0.8?'sprint':spd>22?'jog':'idle'];}
+function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const [k,pr]=anState(p),seg=k&&ANIM_SEG[k];
+  const clip=!k?null:seg?rig.clips[seg[0]]||null:anFind(rig,k);
+  if(clip!==m.clip||(clip&&!!seg!==!!m.seg)){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;m.seg=!!seg;
+    if(clip){const a=m.mixer.clipAction(clip);if(a!==prev){a.reset();if(prev)prev.crossFadeTo(a,seg?0.08:0.18,false);else a.fadeIn(seg?0.08:0.15);}
+      const once=k==='fly'||k==='fall';a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=once;a.play();}
     else if(prev)prev.fadeOut(0.15);}
-  if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);a.timeScale=(k==='jog'||k==='sprint')?clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6):1;/* in-place clips: one cycle matches a jog-to-sprint pace */}
-  m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*12);return clip?k:0;}
+  if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);
+    if(seg){a.timeScale=0;a.time=Math.min(clip.duration-0.001,seg[1]+(seg[2]-seg[1])*pr);}
+    else a.timeScale=(k==='jog'||k==='sprint')?clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6):1;/* in-place clips: one cycle matches a jog-to-sprint pace */}
+  m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*(seg?30:12));return clip?k:0;}
 // ---------- rigged models ----------
 // A team can use a real skinned 3D model (glTF/GLB from Meshy, Mixamo, Blender...) instead of the built-in block figure.
 // The game still poses the simple proxy joints (body, hips, knees, shoulders, elbows) exactly as before, and every frame
@@ -2190,7 +2214,7 @@ function render(t,dt){
   R.sun.position.set(R.look.x-260,620,R.look.z+380);R.sun.target.position.set(R.look.x,0,R.look.z);
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
-  const anim=(p,m)=>{poseModel(p,m,t,dt);blendPose(m,dt);const k=m.mixer?anUpdate(p,m,dt):0;if(k==='fly'||k==='fall'||k==='win'||k==='dance'){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
+  const anim=(p,m)=>{poseModel(p,m,t,dt);blendPose(m,dt);const k=m.mixer?anUpdate(p,m,dt):0;if(k==='fly'||k==='fall'||k==='win'||k==='dance'||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
@@ -2282,7 +2306,7 @@ function frame(now){
 requestAnimationFrame(frame);
 window.__game={anLoad,get ANIMSRC(){return ANIMSRC},rigLoad,RIGS,RIG_FILES,startSkill,skillKind,shoot,get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
   ref,startPenalty,refHit,startSkill,skillKind,threat,hit,foul,goal,openTour,startTour,wallet,TOUR,CLUBS,get setPiece(){return setPiece},set setPiece(v){setPiece=v},get replay(){return replay},get comm(){return commEl.textContent},
-  get clock(){return clock},set clock(v){clock=v},get refMode(){return refMode},set refMode(v){refMode=v},get AIDIFF(){return AIDIFF},set AIDIFF(v){AIDIFF=v},set AUTO(v){AUTO=v},STATS,get R(){return R},poseModel,blendPose};
+  get clock(){return clock},set clock(v){clock=v},get refMode(){return refMode},set refMode(v){refMode=v},get AIDIFF(){return AIDIFF},set AIDIFF(v){AIDIFF=v},set AUTO(v){AUTO=v},STATS,get R(){return R},poseModel,blendPose,anState,TK,ANIM_SEG,get paused(){return paused},set paused(v){paused=v}};
 })();
 </script>
 </body></html>
