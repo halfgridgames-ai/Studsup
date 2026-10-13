@@ -1,0 +1,13 @@
+{
+ "human": "models/human.glb",
+ "penguin": "models/penguin.glb",
+ "bear": "models/bear.glb",
+ "roo": "models/roo.glb",
+ "gorilla": "models/gorilla.glb",
+ "granny": "models/granny.glb",
+ "ninja": "models/ninja.glb",
+ "riot": "models/riot.glb",
+ "alien": "models/alien.glb",
+ "dolphin": "models/dolphin.glb",
+ "referee": "models/referee.glb"
+}

@@ -1537,6 +1537,61 @@ function netWall(p,px,py){const inMouth=y=>Math.abs(y-CY)<GH+6;
       const lim=GH-8;if(Math.abs(p.y-CY)>lim){p.y=CY+Math.sign(p.y-CY)*lim;p.vy=0;}}
     else if(inMouth(p.y)){p.y=py;p.vy=0;}}
   if(p.role==='GK'&&(p.gkDive||p.gkLand>0)&&Math.min(p.x,W-p.x)<45){const lim=GH-10;if(Math.abs(p.y-CY)>lim){p.y=CY+Math.sign(p.y-CY)*lim;p.vy=0;}}}
+// ---------- rigged models ----------
+// A team can use a real skinned 3D model (glTF/GLB from Meshy, Mixamo, Blender...) instead of the built-in block figure.
+// The game still poses the simple proxy joints (body, hips, knees, shoulders, elbows) exactly as before, and every frame
+// those joint angles are copied onto the model's own bones, so every move (runs, kicks, dives, slides, dances) works on any humanoid rig.
+const RIG_FILES={};  // kind -> 'models/<file>.glb'; filled from models/models.json when it exists
+const RIGS={},RIG_H=31;let rigLibs=null;
+const rigQ=()=>new THREE.Quaternion(),DOWN=new THREE.Vector3(0,-1,0);
+function rigLoadLibs(){if(rigLibs)return rigLibs;const ld=src=>new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e);});
+  rigLibs=ld('lib/GLTFLoader.js').then(()=>ld('lib/SkeletonUtils.js'));return rigLibs;}
+// Find the limb bones by name (Mixamo, Meshy/Blender ".L/.R" and "_l/_r" styles) and sort left/right by where they sit.
+function rigFind(root){const all=[];root.traverse(o=>{if(o.isBone)all.push(o);});
+  const norm=n=>n.toLowerCase().replace(/^.*:/,'').replace(/^mixamorig\d*/,'').replace(/(^|[._\s-])(left|right|l|r)(?=$|[._\s-])/g,'').replace(/left|right/g,'').replace(/[._\s-]/g,'');
+  const pick=re=>all.filter(b=>{const k=norm(b.name);return re.test(k)||re.test(k.replace(/[lr]$/,''));});
+  const ul=pick(/^(upleg|upperleg|thigh|leg?up)\d*$/),ll=pick(/^(leg|lowerleg|calf|shin|knee)\d*$/),ua=pick(/^(arm|upperarm)\d*$/),la=pick(/^(forearm|lowerarm|elbow)\d*$/);
+  return {all,ul,ll,ua,la};}
+function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);
+  const box=new THREE.Box3();const v=new THREE.Vector3();root.traverse(o=>{if(!o.isMesh)return;const pos=o.geometry.attributes.position,st=Math.max(1,pos.count/400|0);  // skinned vertices as actually drawn
+    if(o.isSkinnedMesh)o.skeleton.update();for(let i=0;i<pos.count;i+=st){if(o.isSkinnedMesh){o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);}else v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld);box.expandByPoint(v);}});
+  const f=rigFind(root);if(f.ul.length<2||f.ll.length<2||f.ua.length<2||f.la.length<2){console.warn('rig: limb bones not found',f);return null;}
+  const wp=b=>b.getWorldPosition(new THREE.Vector3());
+  // which way the model faces: toes point forward if there are toe bones, otherwise trust glTF (+Z) unless told to flip
+  let flip=!!(opt&&opt.flip);const toe=f.all.find(b=>/toe/i.test(b.name)&&!/end/i.test(b.name)),foot=toe&&toe.parent;
+  if(toe&&foot&&!(opt&&'flip' in opt))flip=wp(toe).z<wp(foot).z;
+  let by0=1e9,by1=-1e9;for(const b of f.all){const y=wp(b).y;by0=Math.min(by0,y);by1=Math.max(by1,y);}
+  let h=box.max.y-box.min.y,y0=box.min.y;const span=(by1-by0)||1;if(!(h>span*0.95&&h<span*1.7)){h=span*1.15;y0=by0-span*0.03;}  // odd skins: size from the skeleton instead
+  return {gltf,flip,scale:RIG_H/h,minY:y0,anims:gltf.animations||[]};}
+function rigLoad(kind,url,opt){if(RIGS[kind])return RIGS[kind];
+  const U=rigLoad.urls||(rigLoad.urls={});U[url]=U[url]||rigLoadLibs().then(()=>new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,null,no)));
+  RIGS[kind]=U[url].then(g=>{const r=rigPrepare(g,opt);RIGS[kind]=r;if(r&&R)buildModels();return r;})
+    .catch(e=>{console.warn('rig load failed',url,e);RIGS[kind]=null;});return RIGS[kind];}
+function makeRigged(p,rig,TT){
+  const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const inner=new THREE.Group();inner.scale.setScalar(rig.scale);inner.rotation.y=rig.flip?PI:0;inner.position.y=-rig.minY*rig.scale;body.add(inner);
+  const sc=THREE.SkeletonUtils.clone(rig.gltf.scene);inner.add(sc);
+  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
+  g.updateMatrixWorld(true);const f=rigFind(sc),bodyInv=body.getWorldQuaternion(rigQ()).invert();
+  const bq=b=>bodyInv.clone().multiply(b.getWorldQuaternion(rigQ())),bp=b=>body.worldToLocal(b.getWorldPosition(new THREE.Vector3()));
+  const bySide=a=>a.slice().sort((x,y)=>bp(x).x-bp(y).x).slice(0,1).concat(a.slice().sort((x,y)=>bp(y).x-bp(x).x).slice(0,1));
+  // for each limb bone: its rest orientation in body space, and the turn that makes it hang straight down like the proxy limb at zero
+  const limb=(b,child)=>{const q=bq(b),pq=bq(b.parent),dir=(child?bp(child):bp(b).add(new THREE.Vector3(0,-1,0))).sub(bp(b)).normalize();
+    return {b,rest:q,parentRest:pq,align:rigQ().setFromUnitVectors(dir,DOWN)};};
+  const kid=(b,list)=>list.find(c=>c.parent===b)||b.children.find(c=>c.isBone);
+  const ul=bySide(f.ul),ll=bySide(f.ll),ua=bySide(f.ua),la=bySide(f.la);
+  const P=()=>new THREE.Object3D(),legs=[P(),P()],knees=[P(),P()],arms=[P(),P()],elbows=[P(),P()];
+  legs.forEach((l,i)=>{l.add(knees[i]);body.add(l);});arms.forEach((a,i)=>{a.add(elbows[i]);body.add(a);});
+  const chain=[];for(const i of [0,1]){
+    chain.push({j:[legs[i]],L:limb(ul[i],kid(ul[i],f.ll))},{j:[legs[i],knees[i]],L:limb(ll[i],kid(ll[i],[])),up:chain.length},
+               {j:[arms[i]],L:limb(ua[i],kid(ua[i],f.la))},{j:[arms[i],elbows[i]],L:limb(la[i],kid(la[i],[])),up:chain.length+2});}
+  // the proxy's arms hang at the sides; keep a little gap so a T-posed mesh doesn't push the hands into the hips
+  return {g,body,legs,arms,knees,elbows,kind:'human',rig:{chain,acc:rigQ(),d:chain.map(()=>rigQ())}};}
+// Copy the proxy pose onto the bones: wanted = proxy joint turn * straighten-to-down * rest pose, then made local to the parent bone.
+function rigApply(m){const r=m.rig;if(!r)return;
+  r.chain.forEach((c,k)=>{const acc=r.acc.copy(c.j[0].quaternion);for(let i=1;i<c.j.length;i++)acc.multiply(c.j[i].quaternion);
+    const d=r.d[k].copy(acc).multiply(c.L.align).multiply(c.L.rest);
+    const par=c.up!=null?r.d[c.up]:c.L.parentRest;c.L.b.quaternion.copy(par).invert().multiply(d);});}
 // ---------- referee ----------
 function refStep(dt){const r=ref;if(r.off)return;r.cardT=Math.max(0,r.cardT-dt);
   if(r.down>0){r.down-=dt;const k=Math.exp((r.lz>0?-1:-4)*dt);r.vx*=k;r.vy*=k;
@@ -1658,6 +1713,9 @@ function ballPhysics(dt){
 // ---------- rendering (three.js scene + 2D overlay for effects) ----------
 // World mapping: sim x -> X, sim y -> Z, height z -> Y.
 const PIT_M=90;let R=null;
+(function(){const q=new URLSearchParams(location.search).get('rigtest');
+  if(q){for(const k of ['human','penguin','bear','roo','gorilla','granny','ninja','riot','alien','dolphin','referee'])RIG_FILES[k]='models/'+q+'.glb';return;}
+  if(location.protocol==='file:')return;fetch('models/models.json').then(r=>r.ok?r.json():null).then(j=>{if(j){Object.assign(RIG_FILES,j);if(R)buildModels();}}).catch(()=>{});})();
 const STADS={stadium_home:{fog:0x060b16,near:1100,far:2800,sky:0xffffff,ground:0xffffff,hemi:0xdfe8ff,hi:0.62,stars:true,wx:null,grip:10,roll:1.15},
   stadium_rainy_rec:{fog:0x283039,near:450,far:1900,sky:0x9aa6b6,ground:0xa9b7a2,hemi:0xc8d2dc,hi:0.5,stars:false,wx:'rain',grip:8.5,roll:1.6},
   stadium_ice_rink:{em:0x3c5a6e,fog:0x16283f,near:800,far:2600,sky:0xb0dcff,ground:0xcff0ff,hemi:0xe8f6ff,hi:0.8,stars:true,wx:'snow',grip:3,roll:0.5},
@@ -1742,7 +1800,9 @@ function makeHuman(p,TT){
 }
 const MAKERS={human:p=>makeHuman(p),penguin:p=>makePenguin(p),bear:p=>makeBeast(p,'bear'),roo:p=>makeBeast(p,'roo'),gorilla:p=>makeBeast(p,'gorilla'),
   granny:p=>makeHuman(p),ninja:p=>makeHuman(p),riot:p=>makeHuman(p),alien:p=>makeHuman(p),dolphin:p=>makeBeast(p,'dolphin')};
-function buildModels(){for(const m of R.models)R.scene.remove(m.g);R.models=players.map(p=>{const m=(MAKERS[TEAMS[p.team].kind]||MAKERS.human)(p);R.scene.add(m.g);return m;});}
+function rigFor(kind){const url=RIG_FILES[kind];if(!url)return null;const r=RIGS[kind];if(r&&r.gltf)return r;if(r===undefined)rigLoad(kind,url,RIG_FILES[kind+'@']);return null;}
+function buildModels(){for(const m of R.models)R.scene.remove(m.g);R.models=players.map(p=>{const k=TEAMS[p.team].kind,rg=rigFor(k);const m=rg?makeRigged(p,rg):(MAKERS[k]||MAKERS.human)(p);R.scene.add(m.g);return m;});
+  const rr=rigFor('referee');if(rr&&R.refModel&&!R.refModel.rig){R.scene.remove(R.refModel.g);R.refModel=makeRigged(ref,rr,{gk:'#16191f'});R.scene.add(R.refModel.g);}}
 // Bears, kangaroos and gorillas share the human rig (legs pivot at the hips, arms at the shoulders) so every pose works on them.
 function makeBeast(p,kind){
   const T=TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
@@ -1996,7 +2056,7 @@ function render(t,dt){
   R.sun.position.set(R.look.x-260,620,R.look.z+380);R.sun.target.position.set(R.look.x,0,R.look.z);
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
-  players.forEach((p,i)=>{poseModel(p,R.models[i],t,dt);blendPose(R.models[i],dt);});poseModel(ref,R.refModel,t,dt);blendPose(R.refModel,dt);
+  players.forEach((p,i)=>{poseModel(p,R.models[i],t,dt);blendPose(R.models[i],dt);rigApply(R.models[i]);});poseModel(ref,R.refModel,t,dt);blendPose(R.refModel,dt);rigApply(R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
   let rv=null;R.plan=null;
@@ -2085,7 +2145,7 @@ function frame(now){
   render(now/1000,dt);clipTick();hud();commTick(dt);if(NET.host&&NET.on)netHostTick(dt);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__game={get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
+window.__game={rigLoad,RIGS,RIG_FILES,get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
   ref,startPenalty,refHit,startSkill,skillKind,threat,hit,foul,goal,openTour,startTour,wallet,TOUR,CLUBS,get setPiece(){return setPiece},set setPiece(v){setPiece=v},get replay(){return replay},get comm(){return commEl.textContent},
   get clock(){return clock},set clock(v){clock=v},get refMode(){return refMode},set refMode(v){refMode=v},get AIDIFF(){return AIDIFF},set AIDIFF(v){AIDIFF=v},set AUTO(v){AUTO=v},STATS,get R(){return R},poseModel,blendPose};
 })();
