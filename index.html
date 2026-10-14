@@ -1537,7 +1537,7 @@ function step(dt){
   if(state==='replay'){replayStep(dt);return;}
   if(state!=='play'){
     freeze-=dt;refStep(dt);
-    if(state==='goal'){ballPhysics(dt);celebStep(dt);if(freeze>2.9)recFrame();if(freeze<=0){celeb=null;if(replayOn){const k=replayOn;replayOn=false;startReplay(k);}else kickoff(nextKick);}}
+    if(state==='goal'){ballPhysics(dt);celebStep(dt);if(freeze>2.8)recFrame();if(freeze<=0){celeb=null;if(replayOn){const k=replayOn;replayOn=false;startReplay(k);}else kickoff(nextKick);}}
     else{if(ball.owner)ballPhysics(0);if(freeze<=0)state='play';}
     return;
   }
@@ -1815,10 +1815,17 @@ function lerpFrame(f0,f1,u){const L=(a,b)=>a+(b-a)*u;ball.x=L(f0.b[0],f1.b[0]);b
     if(a[5]>0&&b[5]>0)p.down=L(a[5],b[5]);if(a[6]>0&&b[6]>0)p.slide=L(a[6],b[6]);if(a[11]>0&&b[11]>0)p.kickAnim=L(a[11],b[11]);if(a[12]>0&&b[12]>0)p.skill=L(a[12],b[12]);
     if(p.gkDive&&a[14]&&b[14])p.gkDive.t=L(a[14][1],b[14][1]);if(a[15]>0&&b[15]>0)p.gkLand=L(a[15],b[15]);if(a[17]>0&&b[17]>0)p.catchT=L(a[17],b[17]);});
   ref.x=L(f0.r[0],f1.r[0]);ref.y=L(f0.r[1],f1.r[1]);ref.face=lerpA(f0.r[2],f1.r[2],u);}
-function startReplay(kind){replay={f:0,frames:REC.slice(),kind};state='replay';celeb=null;bannerEl.hidden=true;bannerT=0;comm(kind==='fire'?'replayf':'replay',{},2);}
+// Find the shot in the recording: the last moment the ball left a player's foot (or suddenly sped up, for headers and deflections).
+// The replay starts a little before it and the camera is set up behind the shooter, looking down the line of the shot at the goal.
+function replayPlan(fr){const n=fr.length,gx=fr[n-1].b[0]<W/2?0:W;let kick=-1;
+  for(let i=n-1;i>0;i--){const a=fr[i-1],b=fr[i];if(a.o>=0&&b.o<0){kick=i;break;}
+    if(hyp(b.b[3],b.b[4])-hyp(a.b[3],a.b[4])>160){kick=i;break;}}
+  if(kick<0)kick=Math.max(0,n-70);const start=Math.max(0,kick-80);
+  return {start,kick:kick-start,K:{x:fr[kick].b[0],y:fr[kick].b[1]},G:{x:gx,y:CY}};}
+function startReplay(kind){const pl=replayPlan(REC);replay={f:0,frames:REC.slice(pl.start),kind,kick:pl.kick,K:pl.K,G:pl.G,snap:true};state='replay';celeb=null;bannerEl.hidden=true;bannerT=0;comm(kind==='fire'?'replayf':'replay',{},2);}
 function replayStep(dt){const rp=replay;if(!rp||!rp.frames.length){replay=null;kickoff(nextKick);return;}
   // normal-ish speed for the build-up, then real slow motion for the last moments before the goal; frames are blended so it stays smooth
-  const fr=rp.frames,slow=rp.f>fr.length-105;rp.rate=slow?0.32:0.8;rp.f+=dt*60*rp.rate;const i=Math.min(fr.length-1,rp.f|0);applyFrame(fr[i]);
+  const fr=rp.frames,slow=rp.kick!=null?rp.f>rp.kick-16:rp.f>fr.length-105;rp.rate=slow?0.3:0.8;rp.f+=dt*60*rp.rate;const i=Math.min(fr.length-1,rp.f|0);applyFrame(fr[i]);
   if(i<fr.length-1)lerpFrame(fr[i],fr[i+1],rp.f-i);
   if(ball.super&&Math.random()<0.9)parts.push({x:ball.x,y:ball.y,z:ball.z+4,vx:rand(-20,20),vy:rand(-20,20),vz:rand(10,40),life:rand(0.2,0.45),col:Math.random()<0.5?'#ffc23a':'#ff5a14',r:rand(2,4)});
   if(rp.f>=fr.length-1||(rp.f>12&&(CT[0].pressed.pass||CT[0].pressed.shoot||CT[0].pressed.skill||CT[0].pressed.dance||CT[0].pressed.tackle||(NET.host&&(CT[1].pressed.pass||CT[1].pressed.shoot))))){replay=null;kickoff(nextKick);}}
@@ -1854,7 +1861,7 @@ function ballPhysics(dt){
     const k=Math.exp((b.z>0?-0.12:-stad().roll)*dt);b.vx*=k;b.vy*=k;b.spin+=hyp(b.vx,b.vy)*dt*0.15;
     if(b.super&&Math.random()<0.9)parts.push({x:b.x,y:b.y,z:b.z+4,vx:rand(-20,20),vy:rand(-20,20),vz:rand(10,40),life:rand(0.2,0.45),col:Math.random()<0.5?'#ffc23a':'#ff5a14',r:rand(2,4)});
     if(b.inNet){const side=b.x<CX?0:W,dir=side===0?-1:1;
-      if((b.x-side)*dir>GD-3){b.x=side+dir*(GD-3);b.vx*=-0.2;}if(Math.abs(b.y-CY)>GH-3){b.y=CY+Math.sign(b.y-CY)*(GH-3);b.vy*=-0.2;}if(b.z>BAR-4){b.z=BAR-4;b.vz=0;}return;}
+      if((b.x-side)*dir>GD-3){b.x=side+dir*(GD-3);b.vx*=-0.2;}if((b.x-side)*dir<4){b.x=side+dir*4;b.vx=0;}b.vx*=Math.exp(-3*dt);b.vy*=Math.exp(-3*dt);/* stays in the net */if(Math.abs(b.y-CY)>GH-3){b.y=CY+Math.sign(b.y-CY)*(GH-3);b.vy*=-0.2;}if(b.z>BAR-4){b.z=BAR-4;b.vz=0;}return;}
     if(state!=='play')return;
     // goal line
     for(const side of [0,W]){const crossed=side===0?(px>=0&&b.x<0):(px<=W&&b.x>W);if(!crossed)continue;
@@ -2240,17 +2247,24 @@ function render(t,dt){
   const sx=shake?rand(-shake,shake)*0.6:0,sy=shake?rand(-shake,shake)*0.6:0;
   const zm=1-Math.min(1,goalCam)*0.3-(CT[0].charging?CT[0].charge*0.1:0)-hitZoom*0.09;
   let cp;
-  if(RP){const pr=replay&&replay.frames.length?clamp(replay.f/replay.frames.length,0,1):0,ang=-0.95+pr*1.5,rad=215-pr*45;
-    cp=[R.look.x+Math.sin(ang)*rad,62-pr*26,R.look.z+Math.cos(ang)*rad];}
+  if(RP&&replay&&replay.K){const rp=replay,K=rp.K,G=rp.G,dx=G.x-K.x,dy=G.y-K.y,d=Math.max(1,hyp(dx,dy)),ux=dx/d,uy=dy/d,
+      after=clamp((rp.f-rp.kick)/45,0,1),nx=-uy,ny=ux,sd=Math.abs(K.y+ny*70-CY)<Math.abs(K.y-ny*70-CY)?1:-1;
+    // behind the shooter and a little to the inside, then sliding up the line of the shot so the net is close when the ball hits it
+    const e=after*after*(3-2*after),bx=K.x-ux*150,by=K.y-uy*150,gx2=G.x-ux*Math.min(170,d+150),gy2=G.y-uy*Math.min(170,d+150);
+    cp=[clamp(bx+(gx2-bx)*e+nx*sd*70,-40,W+40),48-after*10,clamp(by+(gy2-by)*e+ny*sd*70,-30,H+30)];
+    const lx=ball.x+ux*25,lz=ball.y+uy*25;
+    if(rp.snap){rp.snap=false;R.look.x=lx;R.look.z=lz;R.cam.x=cp[0];R.cam.y=cp[1];R.cam.z=cp[2];}
+    else{const kl=1-Math.exp(-10*dt);R.look.x+=(lx-R.look.x)*kl;R.look.z+=(lz-R.look.z)*kl;}}
+  else if(RP)cp=[R.look.x-50,46,R.look.z+200];
   else{const f=far*zm*(R.fit||1);if(camMode===0)cp=[R.look.x,150*f,R.look.z+235*f];
   else if(camMode===1)cp=[R.look.x,250*f,R.look.z+330*f];
   else cp=[R.look.x-230*f,110*f,R.look.z*(0.6+((R.fit||1)-1)*0.8)+CY*(0.4-((R.fit||1)-1)*0.8)];}
-  const kc=1-Math.exp(-6*dt);R.cam.x+=(cp[0]-R.cam.x)*kc;R.cam.y+=(cp[1]-R.cam.y)*kc;R.cam.z+=(cp[2]-R.cam.z)*kc;
+  const kc=1-Math.exp((RP?-3:-6)*dt);R.cam.x+=(cp[0]-R.cam.x)*kc;R.cam.y+=(cp[1]-R.cam.y)*kc;R.cam.z+=(cp[2]-R.cam.z)*kc;
   R.camera.fov=RP?(port?62:40):port?(camMode===2?74:62):camMode===2?52:camMode===0?44:36;R.camera.updateProjectionMatrix();
   R.camera.position.set(R.cam.x+sx,R.cam.y+sy,R.cam.z);
   // a stand the camera has moved into or behind would block the view: hide it until the camera comes back out (top, left, right, bottom)
   {const c=R.camera.position,sg=R.standG;if(sg.length===4){sg[0].visible=c.z>-30;sg[1].visible=c.x>-50;sg[2].visible=c.x<W+50;sg[3].visible=c.z<H+30;}}
-  if(RP)R.camera.lookAt(R.look.x+15,10,R.look.z);else if(camMode===2)R.camera.lookAt(R.look.x+120,0,R.look.z);else R.camera.lookAt(R.look.x,camMode===0?6:0,R.look.z+(camMode===0?-10:8));
+  if(RP)R.camera.lookAt(R.look.x,8,R.look.z);else if(camMode===2)R.camera.lookAt(R.look.x+120,0,R.look.z);else R.camera.lookAt(R.look.x,camMode===0?6:0,R.look.z+(camMode===0?-10:8));
   // keep the ball in shot: if it drifts near an edge (a high lob, a long switch, a fast break) pull the camera back and toward it
   if(!RP){R.camera.updateMatrixWorld();const v=R.fitV.set(ball.x,ball.z+5,ball.y).project(R.camera),ax=Math.abs(v.x),
       out=v.z>1||ax>0.74||v.y>0.72||v.y<-0.78,safe=ax<0.5&&v.y<0.45&&v.y>-0.55;
