@@ -169,6 +169,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .iconbtn{font-size:20px;width:40px;height:40px;background:var(--panel);color:var(--chalk);border:2px solid var(--chalk);cursor:pointer;display:grid;place-items:center;padding:0}
 .logo{font-family:var(--display);font-size:clamp(54px,15vw,104px);line-height:.88;margin:6px 0 4px;transform:skewX(-8deg);color:var(--chalk);text-shadow:6px 6px 0 var(--home);text-align:center}
 .logo em{font-style:normal;color:var(--flare)}
+.logo.logoimg{transform:none;text-shadow:none;margin:0 auto;line-height:0}.logo.logoimg img{display:block;width:min(74vw,400px);max-height:34vh;object-fit:contain;margin:0 auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.55))}@media (max-height:500px){.logo.logoimg img{max-height:25vh}}
 .logo small{display:block;font-size:.17em;letter-spacing:.32em;color:var(--chalk);text-shadow:none;margin-top:10px;opacity:.85}
 .modes{display:grid;gap:12px}
 .mode{font-family:var(--body);display:grid;grid-template-columns:52px 1fr 22px;align-items:center;gap:12px;text-align:left;background:var(--mc);border:0;padding:14px 16px;color:#fff;cursor:pointer;
@@ -715,7 +716,7 @@ const modeBtn=(k,ic,t,sub)=>'<button type="button" class="mode '+k+'" data-m="'+
 function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();state='title';}
   const ts=tourState(),prog=ts.r>=TOUR.length?'World champions! Play it again':'Region '+(ts.r+1)+' of '+TOUR.length+' · '+TOUR[ts.r].icon+' '+TOUR[ts.r].name;
   showMenu('<div class="hrow"><span class="coins"></span><span style="flex:1"></span><button type="button" class="shopbtn" id="shopBtn">SHOP</button><button type="button" class="iconbtn" id="setBtn" aria-label="Settings">⚙</button></div>'+
-    '<h1 class="logo">STUDS <em>UP</em><small>RED CARD FOOTBALL</small></h1>'+
+    '<h1 class="logo logoimg"><img src="logo.png" srcset="logo.png 1x, logo@2x.png 2x" alt="Studs Up: Red Card Football" onerror="this.parentNode.classList.remove(\'logoimg\');this.parentNode.innerHTML=\'STUDS <em>UP</em><small>RED CARD FOOTBALL</small>\'"></h1>'+
     '<div class="modes">'+modeBtn('single','⚽','SINGLE MATCH','Any two teams, one match')+modeBtn('career','🏆','CAREER',prog)+modeBtn('online','📶','1V1 ONLINE','Play a friend with a room code')+'</div>'+
     '<button type="button" class="link" id="howBtn">HOW TO PLAY</button>');
   sheet.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{initAudio();({single:openSingle,career:openTour,online:openOnline})[b.dataset.m]();});
