@@ -1182,7 +1182,7 @@ const KICK_T=0.42;  // how long the kick swing shows after the ball leaves the f
 const KICKS={pass:{w:0.11,f:0.34},shot:{w:0.15,f:0.5},pen:{w:0.15,f:0.45},punt:{w:0.2,f:0.45},roll:{w:0.2,f:0.4}},KICKN=['pass','shot','pen','punt','roll'];
 function release(p,vx,vy,vz){const had=ball.owner===p&&!(p.air>1),hands=had&&p.role==='GK'&&!setPiece,
     kind=hands?(vz>150?'punt':'roll'):setPiece&&setPiece.kind==='penalty'?'pen':(hyp(vx,vy)>=520||vz>=200)?'shot':'pass',K=KICKS[kind],w=had?K.w:0;
-  p.kickK=kind;p.kickW=w;p.kickT=w+(w?K.f:KICK_T);p.kickAnim=p.kickT;ball.holdT=w;ball.holdBy=w?p:null;ball.holdSfx=null;ball.lastBy=p;ball.owner=null;ball.vx=vx;ball.vy=vy;ball.vz=vz;ball.z=Math.max(ball.z,1);p.kickCd=0.28;ball.lastTeam=p.team;ball.tried=new Set();ball.super=false;ball.shot=false;ball.pen=false;}
+  p.kickK=kind;p.kickW=w;p.kickFace=hyp(vx,vy)>1?Math.atan2(vy,vx):p.face;p.kickT=w+(w?K.f:KICK_T);p.kickAnim=p.kickT;ball.holdT=w;ball.holdBy=w?p:null;ball.holdSfx=null;ball.lastBy=p;ball.owner=null;ball.vx=vx;ball.vy=vy;ball.vz=vz;ball.z=Math.max(ball.z,1);p.kickCd=0.28;ball.lastTeam=p.team;ball.tried=new Set();ball.super=false;ball.shot=false;ball.pen=false;}
 // Closest any opponent gets to the straight line from a to b.
 // Where a receiver should run: the planned spot, or straight at the ball once it is close or off course.
 function receivePt(p){const b=ball,pp=b.passPt;if(!pp||hyp(b.x-p.x,b.y-p.y)<70||hyp(b.vx,b.vy)<120)return {x:b.x+b.vx*0.1,y:b.y+b.vy*0.1};
@@ -1417,6 +1417,7 @@ function dancePose(m,t,peng,style){const b=m.body,up=i=>(i?1:-1);
   m.legs[0].rotation.x=Math.max(0,Math.sin(w))*-0.7;m.legs[1].rotation.x=Math.max(0,-Math.sin(w))*-0.7;}
 function celebStep(dt){const c=celeb;if(!c)return;c.t+=dt;const s=c.by;
   for(const p of players){if(p.off)continue;let tx=null,ty=0,spd=0;
+    if(p.role==='GK'&&(p.gkDive||p.gkLand>0)){if(p.gkLand>0)p.gkLand-=dt;gkAirStep(p,dt);const px=p.x,py=p.y;p.x+=p.vx*dt;p.y+=p.vy*dt;netWall(p,px,py);continue;}
     if(p.down>0){p.down-=dt;const k=Math.exp((p.lz>0?-1:-4)*dt);p.vx*=k;p.vy*=k;if(p.lz>0){p.lvz-=900*dt;p.lz+=p.lvz*dt;if(p.lz<=0){p.lz=0;p.lvz=0;}}}
     else if(p===s){
       if(c.type==='plane'){const a=c.t*2.4;tx=c.cx+Math.cos(a)*60;ty=c.cy+Math.sin(a)*60;spd=SPRINT;}
@@ -1531,26 +1532,35 @@ function carrierThink(p,dt){
   const free=od>110,s=od<75?RUN*(cp?1.1:1.3):free?RUN*(cp?1.0+0.1*lv:1.12):RUN*0.98;
   p.dvx=Math.cos(p.drA)*s;p.dvy=Math.sin(p.drA)*s;p.face=p.drA;
 }
+// A committed dive: push off, full stretch as the ball arrives, land on the side, then roll over the shoulder back onto the feet.
+const GK_LAND=1.0,GK_LIE=0.32;  // landing time in all; the first part lying where they landed, the rest the roll
+function gkRolling(p){return p.gkLand>0&&p.gkLandDir&&1-p.gkLand/GK_LAND>GK_LIE-0.04;}
+function gkAirStep(p,dt){
+  if(p.gkDive){const D=p.gkDive,T=D.T||0.55;D.t-=dt;
+    if(D.t>0){const pr=clamp(1-D.t/T,0,1),sp=(D.sp||340)*(pr<0.12?pr/0.12:pr<0.7?1:Math.max(0,(1-pr)/0.3));p.dvx=p.vx=0;p.dvy=p.vy=D.dir*sp;
+      p.air=D.dir?Math.sin(pr*PI)*(D.h||0)*0.45:Math.sin(pr*PI)*6;return true;}
+    p.gkDive=null;p.air=0;if(D.dir){p.gkLand=GK_LAND;p.gkLandDir=D.dir;burst(p.x,p.y,8,['#c9b98a','#6dbb4a','#3f8a2f'],110,60);}}
+  if(p.gkLand>0){const u=1-p.gkLand/GK_LAND,r=p.gkLandDir&&u>GK_LIE&&u<0.85?75:0;p.dvx=p.vx=0;p.dvy=p.vy=(p.gkLandDir||0)*r;return true;}
+  return false;}
 function gkThink(p,dt){
   const own=ownGoalX(p.team),dir=attackDir(p.team);
   // A committed dive: full stretch towards where the shot will cross the line, then a moment on the floor before getting up.
-  if(p.gkDive){const D=p.gkDive,T=D.T||0.55;D.t-=dt;
-    if(D.t>0){const pr=clamp(1-D.t/T,0,1),sp=(D.sp||340)*(pr<0.65?1:Math.max(0,(1-pr)/0.35));p.dvx=p.vx=0;p.dvy=p.vy=D.dir*sp;p.air=D.dir?Math.sin(pr*PI)*(6+(D.h||0)*0.45):0;return;}
-    p.gkDive=null;p.air=0;if(D.dir){p.gkLand=0.5;p.gkLandDir=D.dir;}}
-  if(p.gkLand>0){p.dvx=p.dvy=p.vx=p.vy=0;return;}
+  if(gkAirStep(p,dt))return;
   if(ball.owner===p){p.hold+=dt;p.dvx=p.dvy=0;p.face=dir>0?0:PI;
     if(p.hold>0.9){const t=bestPassTarget(p,p.face,false);if(t)passTo(p,t);else release(p,dir*500,rand(-100,100),280);}return;}
   const bd=hyp(ball.x-own,ball.y-CY);
   let tx=own+dir*(14+clamp((bd-140)*0.06,0,26)),ty=CY+(ball.y-CY)*0.6,spd=RUN*1.05;
   if(!ball.owner&&ball.vx*-dir>160){const t=(own-ball.x)/ball.vx;if(t>0&&t<1.3){ty=ball.y+ball.vy*t;spd=330;}
     // a shot about to arrive out of reach: dive for it
-    if(t>0.05&&t<0.5&&ball.lastTeam!==p.team&&ball.vx*-dir>300&&!(p.diveCd>0)){const ly=ball.y+ball.vy*t,lz=Math.max(0,ball.z+ball.vz*t-450*t*t),d=ly-p.y;
-      if(Math.abs(d)>14&&Math.abs(ly-CY)<GH+20&&lz<BAR+6){p.gkDive={dir:Math.sign(d),t:0.6,T:0.6,sp:clamp(Math.abs(d)/Math.max(t,0.14),220,400),h:clamp(lz,0,32)};p.diveCd=1.2;return;}}}
+    if(t>0.05&&t<0.42&&ball.lastTeam!==p.team&&ball.vx*-dir>300&&!(p.diveCd>0)){const ly=ball.y+ball.vy*t,lz=Math.max(0,ball.z+ball.vz*t-450*t*t),d=ly-p.y;
+      if(Math.abs(d)>14&&Math.abs(ly-CY)<GH+20&&lz<BAR+6){{const T=clamp(t/0.6,0.4,0.7);p.gkDive={dir:Math.sign(d),t:T,T,sp:clamp(Math.abs(d)/Math.max(t,0.14),220,420),h:clamp(lz,0,32)};}p.diveCd=1.2;return;}}}
   ty=clamp(ty,CY-GH-8,CY+GH+8);
   const inBox=Math.abs(ball.x-own)<BOX_D&&Math.abs(ball.y-CY)<BOX_H;
   if(inBox&&!ball.owner&&ball.z<30&&hyp(ball.vx,ball.vy)<320){const [,od]=nearestOpp({x:ball.x,y:ball.y,team:p.team});if(dist(p,ball)<od*1.2){tx=ball.x;ty=ball.y;spd=RUN*1.2;}}
   else if(inBox&&ball.owner&&ball.owner.team!==p.team&&dist(p,ball)<110){tx=(tx+ball.x)/2;ty=(ty+ball.y)/2;spd=RUN*1.1;}
   moveTo(p,tx,ty,spd);
+  // keepers never turn their back on the pitch: face the ball, within a forward arc
+  {const fw=dir>0?0:PI,a=Math.atan2(ball.y-p.y,ball.x-p.x),off=Math.atan2(Math.sin(a-fw),Math.cos(a-fw));p.face=fw+clamp(off,-1.25,1.25);}
 }
 function aiThink(p,dt,chaser,presser){
   if(p.down>0||p.slide>0||p.recover>0||p.barge>0||p.skill>0){p.dvx=p.dvy=0;p.dance=0;return;}
@@ -1729,6 +1739,7 @@ function step(dt){
   for(const p of players){if(p.off||p===HUMS[p.team])continue;aiThink(p,dt,ch[p.team],pr[p.team]);}
   // integrate
   for(const p of players){if(p.off)continue;
+    if(p.kickAnim>0&&p.kickFace!=null&&!(p.down>0||p.slide>0))p.face=p.kickFace;  // no steering mid-kick: the body stays on the ball's line
     p.kickCd-=dt;p.stealCd-=dt;p.tackleCd-=dt;p.skillCd-=dt;if(p.catchT>0)p.catchT-=dt;if(p.gkLand>0)p.gkLand-=dt;if(p.diveCd>0)p.diveCd-=dt;if(p.kickAnim>0)p.kickAnim-=dt;if(p.throwAnim>0)p.throwAnim-=dt;
     if(p.down>0){p.down-=dt;const k=Math.exp((p.lz>0?-1:-4)*dt);p.vx*=k;p.vy*=k;
       if(p.lz>0){p.lvz-=900*dt;p.lz+=p.lvz*dt;if(p.lz<=0){p.lz=0;burst(p.x,p.y,8,['#c9b98a','#6dbb4a','#3f8a2f'],120,80);scuff(p.x,p.y,Math.atan2(p.vy,p.vx),12);
@@ -1826,12 +1837,16 @@ function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene
   const tn=new Map(tb.map(b=>[anNorm(b.name),b])),src4=new Map([...map].map(e=>[e[1],e[0]])),swap=n=>n.replace(/left|right/g,x=>x==='left'?'right':'left');
   const twin=new Map(tb.map(b=>[b,tn.get(swap(anNorm(b.name)))||b]));
   const jobs=ANIMSRC.animations.map(c=>[c,false]).concat(ANIMSRC.animations.filter(c=>ANIM_MIRROR.includes(c.name)).map(c=>[c,true]));
+  const Yax=new THREE.Vector3(0,1,0),hd=mir=>{const d=wq(sH).multiply(restS.get(sH).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}const v=new THREE.Vector3(0,0,1).applyQuaternion(d);return Math.atan2(v.x,v.z);},
+    wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
   for(const [clip,mir] of jobs){const act=mixer.clipAction(clip);act.reset().play();const fps=30,n=Math.max(2,Math.ceil(clip.duration*fps)+1),times=[];
+    const yf=ANIM_YAWFIX[clip.name];let href=0;if(yf){mixer.setTime(yf[0]);src.updateMatrixWorld(true);href=hd(mir);}
     const qv=new Map(order.map(b=>[b,[]])),pv=[];let dist=0,last=null;
     for(let f=0;f<n;f++){const t=Math.min(clip.duration,f/fps);times.push(t);mixer.setTime(t);src.updateMatrixWorld(true);
+      let yq=null;if(yf){const h=hd(mir);yq=new THREE.Quaternion().setFromAxisAngle(Yax,yf[1]*wrap(h-href)-h);}
       for(const b of order){const par=b.parent&&b.parent.isBone?cur.get(b.parent):b.parent.getWorldQuaternion(tmpq).clone();
         let w;const sb0=src4.get(mir?twin.get(b):b);
-        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);w=d.multiply(restT.get(b));}
+        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);if(yq)d.premultiply(yq);w=d.multiply(restT.get(b));}
         else w=par.clone().multiply(restL.get(b));
         cur.set(b,w);const l=par.clone().invert().multiply(w);qv.get(b).push(l.x,l.y,l.z,l.w);}
       const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
@@ -1852,11 +1867,14 @@ const ANIM_PICK={idle:['soccer_idle','offensive_idle','idle','breathing_idle','s
   roll:['sprinting_forward_roll'],boxer:['punching'],gkmiss:['goalkeeper_miss'],shout:['goalkeeper_directing']};
 // one-shot moves: [clip, from, to] seconds of the source clip, stretched over the game's own timer for that move
 const ANIM_MIRROR=['gk_dive_a'];
+// kick clips twist the whole body round a long way (a shot ends 50 degrees off its line): [contact time, share of the twist kept].
+// The body is squared to the ball's line at contact and only part of the twist is kept, so a kick never reads as a turn.
+const ANIM_YAWFIX={kick_shot:[0.47,0.45],kick_pass:[0.26,0.5],kick_pen:[0.8,0.45],gk_punt:[2.17,0.45],gk_throw:[1.6,0.4]};
 // kick_*: [clip, wind-up start, ball contact, end of follow-through]
 const ANIM_SEG={pose_win:['victory',1.0,1.0],pose_idle:['soccer_idle',2.0,2.0],pose_point:['goalkeeper_directing',1.5,1.5],pose_gk:['goalkeeper_idle',1.0,1.0],kick:['soccer_kick',0.18,0.6],kick_pass:['kick_pass',0.03,0.26,0.53],kick_shot:['kick_shot',0.2,0.47,1.05],kick_pen:['kick_pen',0.6,0.8,1.2],
   kick_punt:['gk_punt',1.75,2.17,2.75],kick_roll:['gk_throw',1.25,1.6,2.2],slide:['soccer_tackle',0.2,0.8],slideR:['soccer_tackle',1.0,1.8],
   jump:['scissor_kick',0.45,1.3],jumpR:['scissor_kick',2.2,2.8],dive:['soccer_trip',0.3,0.75],diveR:['standing_up',0.6,1.7],
-  gkdiveA:['gk_dive_a',0.75,1.6],gkdiveB:['gk_dive_a_m',0.75,1.6],gklandA:['gk_dive_a',1.6,2.3],gklandB:['gk_dive_a_m',1.6,2.3],
+  gkdiveA:['gk_dive_a',0.45,1.45],gkdiveB:['gk_dive_a_m',0.45,1.45],gklandA:['gk_dive_a',1.45,1.95],gklandB:['gk_dive_a_m',1.45,1.95],gkroll:['sprinting_forward_roll',0.66,1.2],
   catch:['gk_catch',0.2,0.8],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
 function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
   for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
@@ -1867,12 +1885,12 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   if(state==='goal'&&p!==ref&&celeb){const c=celeb;
     if(c.team===p.team){if(p===c.by){const k={roll:'roll',boxer:'boxer',pile:'win'}[c.type];return [k||null];}
       if(p.role==='GK')return ['shout'];if(spd>60)return [spd>SPRINT*0.8?'sprint':'jog'];return [['win','boxer','win','shout'][p.i%4]];}
-    if(p.role==='GK'&&spd<60)return ['gkmiss'];}
+    if(p.role==='GK'&&spd<60&&!p.gkDive&&!(p.gkLand>0))return ['gkmiss'];}
   if(p.dance>0)return ['dance'];
   // keeper dives: pick the clip whose dive goes the same way as the game's dive, from the keeper's own point of view
   const side=d=>Math.cos(p.face)*d>0?'B':'A';
   if(p.gkDive&&p.gkDive.dir){const D=p.gkDive;return one('gkdive'+side(D.dir),1-D.t/(D.T||0.55));}
-  if(p.gkLand>0&&p.gkLandDir)return one('gkland'+side(p.gkLandDir),1-p.gkLand/0.5);
+  if(p.gkLand>0&&p.gkLandDir){const u=1-p.gkLand/GK_LAND;return u<GK_LIE?one('gkland'+side(p.gkLandDir),u/GK_LIE):one('gkroll',(u-GK_LIE)/(1-GK_LIE));}
   if(p.slide>0&&TK[p.tk])return one(p.tk,1-p.slide/TK[p.tk].dur);
   if(p.recover>0&&TK[p.tk]&&ANIM_SEG[p.tk+'R'])return one(p.tk+'R',1-p.recover/TK[p.tk].rec);
   if(p.barge>0||p.skill>0||p.gkDive)return [null];
@@ -2026,7 +2044,7 @@ function outOfPlay(b){
 function ballPhysics(dt){
   const b=ball;
   if(b.owner){const o=b.owner,mv=hyp(o.vx,o.vy),hands=o.role==='GK'&&!setPiece,off=hands?6:11+(mv>40?4*Math.max(0,Math.sin(o.phase*1.1))*Math.min(1,mv/SPRINT):0);
-    b.x=o.x+Math.cos(o.face)*off;b.y=o.y+Math.sin(o.face)*off;b.z=hands?14:o.skill>0&&o.sk==='hurdle'?o.air*0.9:0;b.vx=o.vx;b.vy=o.vy;b.vz=0;b.spin+=hyp(o.vx,o.vy)*dt*0.15;
+    b.x=o.x+Math.cos(o.face)*off;b.y=o.y+Math.sin(o.face)*off;b.z=hands&&(o.gkDive||o.gkLand>0)?6+(o.air||0):hands?14:o.skill>0&&o.sk==='hurdle'?o.air*0.9:0;b.vx=o.vx;b.vy=o.vy;b.vz=0;b.spin+=hyp(o.vx,o.vy)*dt*0.15;
     if(setPiece&&setPiece.taker===o){const sp=setPiece;
       if(sp.kind==='corner'||sp.kind==='penalty'){b.x=sp.bx;b.y=sp.by;}
       else if(sp.kind==='throw'){const sw=sp.go>0?1-sp.go/0.3:0,back=3-sw*9;b.x=o.x-Math.cos(o.face)*back;b.y=o.y-Math.sin(o.face)*back;b.z=27+Math.sin(sw*PI)*4-sw*4;}
@@ -2538,8 +2556,8 @@ const KN=(m,a,b)=>{if(m.knees.length){m.knees[0].rotation.x=a;m.knees[1].rotatio
 function poseModel(p,m,t,dt){
   const g=m.g,b=m.body;g.visible=!p.off;if(p.off)return;
   g.position.set(p.x,(p.air||0)+(p.lz||0),p.y);
-  const want=PI/2-p.face;if(m.yaw==null)m.yaw=want;const dy=Math.atan2(Math.sin(want-m.yaw),Math.cos(want-m.yaw)),dt1=dt||0.016;
-  const fast=p.slide>0||p.down>0||p.gkDive||p.skill>0,ease=dy*Math.min(1,dt1*(fast?30:p.kickAnim>0?22:13)),cap=(fast?40:p.kickAnim>0?16:9.5)*dt1,
+  const want=PI/2-(gkRolling(p)?p.gkLandDir*PI/2:p.face);if(m.yaw==null)m.yaw=want;const dy=Math.atan2(Math.sin(want-m.yaw),Math.cos(want-m.yaw)),dt1=dt||0.016;
+  const fast=p.slide>0||p.down>0||p.gkDive||p.skill>0||(ball.holdT>0&&ball.holdBy===p)||gkRolling(p),ease=dy*Math.min(1,dt1*(fast?30:p.kickAnim>0?22:13)),cap=(fast?40:p.kickAnim>0?16:9.5)*dt1,
     step=clamp(ease,-cap,cap);m.yaw+=step;p.turnW=step/dt1;
   const spd0=hyp(p.vx,p.vy),bank=fast?0:-clamp(p.turnW*Math.min(1,spd0/SPRINT)*0.05,-0.3,0.3);m.bank=(m.bank||0)+(bank-(m.bank||0))*Math.min(1,dt1*10);
   g.rotation.order='YXZ';g.rotation.y=m.yaw;g.rotation.z=m.bank;m.turn=(m.turn||0)+(clamp(dy,-0.6,0.6)-(m.turn||0))*Math.min(1,(dt||0.016)*8);
