@@ -1836,6 +1836,14 @@ function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene
   // mirrored copies (left/right swapped) of clips listed in ANIM_MIRROR, so a move done one way exists both ways
   const tn=new Map(tb.map(b=>[anNorm(b.name),b])),src4=new Map([...map].map(e=>[e[1],e[0]])),swap=n=>n.replace(/left|right/g,x=>x==='left'?'right':'left');
   const twin=new Map(tb.map(b=>[b,tn.get(swap(anNorm(b.name)))||b]));
+  // rest-pose fix: the team models rest in all sorts of poses (arms out front, arms down, A-pose) while the clips start from a T-pose.
+  // Before a clip's turn is put on a limb, first swing that limb so it points the same way the source limb does at rest.
+  const LIMB=/^(shoulder|arm|forearm|hand|upleg|leg|foot)$/,bdir=b=>{const k=b.children.find(c=>c.isBone);if(!k)return null;
+    return k.getWorldPosition(new THREE.Vector3()).sub(b.getWorldPosition(new THREE.Vector3())).normalize();};
+  const corrOf=mir=>new Map(tb.map(b=>{const s0=src4.get(mir?twin.get(b):b),k=anNorm(b.name).replace(/left|right/,'');
+    if(!s0||!LIMB.test(k))return [b,null];const dt=bdir(b),ds=bdir(s0);if(!dt||!ds)return [b,null];if(mir)ds.x=-ds.x;if(fl)ds.applyQuaternion(flipQ);
+    return [b,new THREE.Quaternion().setFromUnitVectors(dt,ds)];}));
+  const corrs=[corrOf(false),corrOf(true)].map(m=>{for(const b of tb)if(/hand$/.test(anNorm(b.name))&&!m.get(b)&&b.parent)m.set(b,m.get(b.parent)||null);return m;});
   const jobs=ANIMSRC.animations.map(c=>[c,false]).concat(ANIMSRC.animations.filter(c=>ANIM_MIRROR.includes(c.name)).map(c=>[c,true]));
   const Yax=new THREE.Vector3(0,1,0),hd=mir=>{const d=wq(sH).multiply(restS.get(sH).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}const v=new THREE.Vector3(0,0,1).applyQuaternion(d);return Math.atan2(v.x,v.z);},
     wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
@@ -1846,7 +1854,7 @@ function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene
       let yq=null;if(yf){const h=hd(mir);yq=new THREE.Quaternion().setFromAxisAngle(Yax,yf[1]*wrap(h-href)-h);}
       for(const b of order){const par=b.parent&&b.parent.isBone?cur.get(b.parent):b.parent.getWorldQuaternion(tmpq).clone();
         let w;const sb0=src4.get(mir?twin.get(b):b);
-        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);if(yq)d.premultiply(yq);w=d.multiply(restT.get(b));}
+        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);if(yq)d.premultiply(yq);const cq=corrs[mir?1:0].get(b);if(cq)d.multiply(cq);w=d.multiply(restT.get(b));}
         else w=par.clone().multiply(restL.get(b));
         cur.set(b,w);const l=par.clone().invert().multiply(w);qv.get(b).push(l.x,l.y,l.z,l.w);}
       const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
@@ -1931,7 +1939,12 @@ function rigFind(root){const all=[];root.traverse(o=>{if(o.isBone)all.push(o);})
   const pick=re=>all.filter(b=>{const k=norm(b.name);return re.test(k)||re.test(k.replace(/[lr]$/,''));});
   const ul=pick(/^(upleg|upperleg|thigh|leg?up)\d*$/),ll=pick(/^(leg|lowerleg|calf|shin|knee)\d*$/),ua=pick(/^(arm|upperarm)\d*$/),la=pick(/^(forearm|lowerarm|elbow)\d*$/);
   return {all,ul,ll,ua,la};}
-function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);
+// A soft rim light on the players' edges, so they stand out from the grass at phone size.
+function charLook(mat){if(!mat||mat.userData.look)return;mat.userData.look=1;
+  mat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <output_fragment>',
+    'float rimF=1.0-max(dot(normalize(normal),normalize(vViewPosition)),0.0);outgoingLight+=vec3(1.0,0.96,0.88)*pow(rimF,3.0)*0.32;\n#include <output_fragment>');};
+  mat.needsUpdate=true;}
+function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);root.traverse(o=>{if(o.isMesh)charLook(o.material);});
   const box=new THREE.Box3();const v=new THREE.Vector3();root.traverse(o=>{if(!o.isMesh)return;const pos=o.geometry.attributes.position,st=Math.max(1,pos.count/400|0);  // skinned vertices as actually drawn
     if(o.isSkinnedMesh)o.skeleton.update();for(let i=0;i<pos.count;i+=st){if(o.isSkinnedMesh){o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);}else v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld);box.expandByPoint(v);}});
   const f=rigFind(root);if(f.ul.length<2||f.ll.length<2||f.ua.length<2||f.la.length<2){console.warn('rig: limb bones not found',f);return null;}
@@ -1950,7 +1963,7 @@ function makeRigged(p,rig,TT){
   const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
   const inner=new THREE.Group();inner.scale.setScalar(rig.scale);inner.rotation.y=rig.flip?PI:0;inner.position.y=-rig.minY*rig.scale;body.add(inner);
   const sc=THREE.SkeletonUtils.clone(rig.gltf.scene);inner.add(sc);
-  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
+  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){const ob=o.material.onBeforeCompile;o.material=o.material.clone();o.material.onBeforeCompile=ob;o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
   g.updateMatrixWorld(true);const f=rigFind(sc),bodyInv=body.getWorldQuaternion(rigQ()).invert();
   const bq=b=>bodyInv.clone().multiply(b.getWorldQuaternion(rigQ())),bp=b=>body.worldToLocal(b.getWorldPosition(new THREE.Vector3()));
   const bySide=a=>a.slice().sort((x,y)=>bp(x).x-bp(y).x).slice(0,1).concat(a.slice().sort((x,y)=>bp(y).x-bp(x).x).slice(0,1));
