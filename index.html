@@ -363,7 +363,7 @@ body{font-weight:600}
 .lnk.star{border-color:var(--flare);color:var(--flare);box-shadow:0 0 14px rgba(255,210,74,.18)}
 .foot{text-align:center;color:#7f93ad;font-size:12px;margin-top:4px}
 .ratebox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--flare);border-radius:12px;background:rgba(255,210,74,.08)}
-.ratebox span{flex:1 1 140px;font-family:var(--display);font-size:12px;letter-spacing:.06em;color:var(--flare)}
+.ratebox span{flex:1 1 100%;font-family:var(--display);font-size:12px;letter-spacing:.06em;color:var(--flare)}
 .ratebox button{font-family:var(--display);font-size:11px;letter-spacing:.08em;padding:8px 12px;border-radius:999px;cursor:pointer;border:1px solid var(--flare)}
 .ratebox .yes{background:var(--flare);color:#1a1200;font-weight:900}.ratebox .no{background:none;color:#cbbf95;border-color:rgba(255,210,74,.35)}
 @media (prefers-reduced-motion:reduce){.coach,.coach-hi{animation:none!important}}
@@ -1104,7 +1104,7 @@ const COACH=[
     when:()=>state==='play'&&!setPiece,done:e=>e.moved>0.8},
   {k:'shoot',t:'SHOOT',tch:'Hold <b-i>SHOOT</b-i> to power up, let go to fire. Tap <b-i>PASS</b-i> to pass.',key:'Hold <b-i>K</b-i> to power up, let go to fire. <b-i>J</b-i> passes.',el:()=>shootBtn,
     when:()=>state==='play'&&ball.owner&&ball.owner===HUMS[0],done:e=>e.shot},
-  {k:'tackle',t:'TAKE THEM OUT',tch:'They have the ball. Tap the red button to hit them, ball or no ball. <b-i>SWITCH</b-i> jumps to your closest player.',key:'They have the ball. Press <b-i>K</b-i> to hit them, ball or no ball. <b-i>J</b-i> switches player.',el:()=>shootBtn,
+  {k:'tackle',t:'TAKE THEM OUT',tch:'They have the ball. Tap the big button to hit them, ball or no ball. <b-i>SWITCH</b-i> jumps to your closest player.',key:'They have the ball. Press <b-i>K</b-i> to hit them, ball or no ball. <b-i>J</b-i> switches player.',el:()=>shootBtn,
     when:()=>state==='play'&&!setPiece&&!atkMode(0)&&HUMS[0]&&!HUMS[0].down,done:e=>e.tackle},
   {k:'fury',t:'FURY',tch:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>DANCE</b-i> fills it fast.',key:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>B</b-i> dances to fill it fast.',el:()=>furyEl,
     when:()=>coach.left.length===1,done:e=>e.shown>7||TD[0]}];
