@@ -339,6 +339,34 @@ body{font-weight:600}
 @media (orientation:portrait){.vsx{grid-template-columns:1fr;grid-template-rows:auto 1fr auto 1fr auto}.vsx-top,.vsx-foot{grid-column:1}.vsx-side img{height:min(26vh,70vw)}.vsx-mid{justify-self:center}
   .vsx::before{width:100%;height:55%;bottom:auto;left:0;clip-path:polygon(0 0,100% 0,100% 80%,0 100%)}.vsx::after{width:100%;height:55%;top:auto;right:0;clip-path:polygon(0 20%,100% 0,100% 100%,0 100%)}}
 @media (prefers-reduced-motion:reduce){.vsx *,.vsx::before,.vsx::after{animation-duration:.01s!important}}
+/* first-match coach: one tip at a time, pointing at the control it teaches */
+.coach{position:fixed;z-index:12;width:min(300px,calc(100vw - 24px));padding:12px 14px 10px;background:rgba(8,14,28,.92);border:1px solid var(--neon);border-radius:14px;
+  box-shadow:0 0 0 1px rgba(60,240,255,.25),0 0 28px rgba(60,240,255,.35),0 14px 30px rgba(0,0,0,.5);color:var(--chalk);font-family:var(--body);pointer-events:none;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:coachIn .28s cubic-bezier(.2,1.4,.4,1)}
+.coach[hidden]{display:none}
+.coach .ck{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--neon);margin-bottom:4px}
+.coach .ck i{font-style:normal;color:#8fa3bd;letter-spacing:.1em;margin-left:auto}
+.coach b{display:block;font-family:var(--display);font-size:17px;font-weight:900;letter-spacing:.06em;color:var(--flare);text-shadow:0 0 14px rgba(255,210,74,.45);margin-bottom:2px}
+.coach p{margin:0;font-size:15px;line-height:1.3;font-weight:600;color:#d7e4f2}
+.coach .skip{pointer-events:auto;margin-top:8px;background:none;border:0;padding:4px 0;color:#8fa3bd;font-family:var(--display);font-size:10px;letter-spacing:.18em;cursor:pointer}
+.coach::after{content:'';position:absolute;left:var(--ax,50%);width:14px;height:14px;background:rgba(8,14,28,.92);border:1px solid var(--neon);transform:translateX(-50%) rotate(45deg)}
+.coach.dn::after{bottom:-8px;border-top:0;border-left:0}.coach.up::after{top:-8px;border-bottom:0;border-right:0}.coach.mid::after{display:none}
+@keyframes coachIn{from{opacity:0;transform:translateY(8px) scale(.94)}}
+.coach-hi{animation:coachHi 1.1s ease-in-out infinite!important}
+@keyframes coachHi{0%,100%{box-shadow:0 0 0 0 rgba(255,210,74,.9),0 0 18px rgba(255,210,74,.6)}60%{box-shadow:0 0 0 14px rgba(255,210,74,0),0 0 26px rgba(255,210,74,.2)}}
+.touch .base.coach-hi{border-color:var(--flare)}
+/* settings links and the after-match rate strip */
+.links{display:grid;gap:8px;margin-top:4px}
+.lnk{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:rgba(12,20,40,.6);border:1px solid var(--line);border-radius:12px;color:var(--chalk);
+  font-family:var(--display);font-size:12px;font-weight:800;letter-spacing:.08em;cursor:pointer}
+.lnk span{width:22px;text-align:center;font-size:17px}
+.lnk.star{border-color:var(--flare);color:var(--flare);box-shadow:0 0 14px rgba(255,210,74,.18)}
+.foot{text-align:center;color:#7f93ad;font-size:12px;margin-top:4px}
+.ratebox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--flare);border-radius:12px;background:rgba(255,210,74,.08)}
+.ratebox span{flex:1 1 140px;font-family:var(--display);font-size:12px;letter-spacing:.06em;color:var(--flare)}
+.ratebox button{font-family:var(--display);font-size:11px;letter-spacing:.08em;padding:8px 12px;border-radius:999px;cursor:pointer;border:1px solid var(--flare)}
+.ratebox .yes{background:var(--flare);color:#1a1200;font-weight:900}.ratebox .no{background:none;color:#cbbf95;border-color:rgba(255,210,74,.35)}
+@media (prefers-reduced-motion:reduce){.coach,.coach-hi{animation:none!important}}
 </style>
 
 </head><body>
@@ -350,6 +378,7 @@ body{font-weight:600}
 <div class="btn-ui"><button id="camBtn" type="button">CAM</button><button id="fsBtn" type="button">FULL SCREEN</button><button id="pauseBtn" type="button" aria-label="Pause">❚❚</button><button id="musicBtn" type="button">MUSIC ON</button><button id="muteBtn" type="button">SOUND ON</button></div>
 <div class="banner" id="banner" hidden></div>
 <div class="toast" id="toast" hidden></div>
+<div class="coach" id="coach" role="status" aria-live="polite" hidden></div>
 <button type="button" class="clipbtn" id="clipBtn" hidden>📤 SHARE THIS GOAL</button>
 <div class="comm hide" id="comm" aria-live="polite"></div>
 
@@ -447,7 +476,7 @@ const wallet=loadWallet();
 // Options on the title screen: ref strictness, commentary voice, phone vibration.
 let refMode=2,commMode='voice',buzzOn=true;const REFS=['OFF','LENIENT','NORMAL','STRICT'],REFMUL=[0,0.3,0.6,1.1];
 try{const v=localStorage.getItem('studsRef');if(v!==null)refMode=(+v||0)%4;const c=localStorage.getItem('studsComm2');if(c==='voice'||c==='text'||c==='off')commMode=c;buzzOn=localStorage.getItem('studsBuzz')!=='0';}catch(e){}
-const saveOpt=(k,v)=>{try{localStorage.setItem(k,String(v));}catch(e){}};
+const saveOpt=(k,v)=>{try{localStorage.setItem(k,String(v));}catch(e){}},loadOpt=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
 function vib(ms){if(!buzzOn)return;try{const C=window.Capacitor,Hp=C&&C.Plugins&&C.Plugins.Haptics;
   if(Hp&&Hp.vibrate){Hp.vibrate({duration:Array.isArray(ms)?ms.reduce((a,b)=>a+b,0):ms});return;}if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 // World Tour: six regions, three matches each, the last one a boss. Conquering a region unlocks its prizes for free.
@@ -522,7 +551,7 @@ let matchHits=0;
 function newMatch(){CLIP.blob=null;
   matchHits=0;TD[0]=TD[1]=null;applyTeams();makeTeams();celeb=null;if(R)buildModels();clock=0;HUMS[0]=HUMS[1]=null;CT[0]=mkCtl();CT[1]=mkCtl();NET.seen={};
   parts.length=0;pops.length=0;Object.assign(ref,{down:0,lz:0,lvz:0,vx:0,vy:0,revenge:null,cardT:0,off:refMode===0});replay=null;replayOn=false;
-  kickoff(0);sfx('whistle');comm('kickoff',{t:0},2);
+  kickoff(0);sfx('whistle');comm('kickoff',{t:0},2);coachStart();
 }
 
 // ---------- input ----------
@@ -850,8 +879,22 @@ function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();s
   document.getElementById('setBtn').onclick=()=>{initAudio();openSettings();};
   document.getElementById('howBtn').onclick=()=>{initAudio();showMenu(subHead('HOW TO PLAY')+HOWTO);};}
 function openSettings(){showMenu(subHead('SETTINGS')+'<div class="setlist">'+quickRows()+setRow('REFEREE','ref',REFS,refMode)+setRow('VIBRATE','buzz',['ON','OFF'],buzzOn?0:1)+'</div>'+
-  '<div class="brow"><button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button></div>');bindSegs();
-  document.getElementById('fsBtn2').onclick=()=>{initAudio();toggleFull();};}
+  '<div class="brow"><button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button></div>'+
+  '<div class="links">'+lnk('rate','★','RATE STUDS UP','star')+lnk('share','📤','SHARE WITH A FRIEND')+lnk('coach','🎓','REPLAY THE TUTORIAL')+
+  lnk('privacy','🔒','PRIVACY POLICY')+lnk('terms','📄','TERMS OF SERVICE')+lnk('contact','✉','CONTACT US')+'</div>'+
+  '<p class="foot">Studs Up: Red Card Football · Half Grid Games · v'+GAME_V+'</p>');bindSegs();
+  document.getElementById('fsBtn2').onclick=()=>{initAudio();toggleFull();};
+  sheet.querySelectorAll('.lnk').forEach(b=>b.onclick=()=>{initAudio();const k=b.dataset.l;
+    if(k==='share')shareGame();else if(k==='coach'){coachReset();toast('TIPS ARE BACK FOR YOUR NEXT MATCH',2.5);}else openLink(LINKS[k]);});}
+const lnk=(k,ic,t,c)=>'<button type="button" class="lnk'+(c?' '+c:'')+'" data-l="'+k+'"><span aria-hidden="true">'+ic+'</span>'+t+'</button>';
+// Links out of the game. In the phone app, navigating to an outside page opens it in the browser, the Play app or the mail app.
+const GAME_V=29,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),
+  SITE='https://halfgridgames-ai.github.io/Studsup/',PLAY='https://play.google.com/store/apps/details?id=com.studsup.game',
+  LINKS={rate:NATIVE?'market://details?id=com.studsup.game':PLAY,privacy:SITE+'privacy.html',terms:SITE+'terms.html',contact:'mailto:halfgridgames@gmail.com?subject=Studs%20Up'};
+function openLink(url){if(NATIVE||url.startsWith('mailto:'))location.href=url;else window.open(url,'_blank','noopener');}
+function shareGame(){const text='Football with no rules except don\'t hit the ref. Play Studs Up with me!',d={title:'Studs Up: Red Card Football',text,url:PLAY};
+  if(navigator.share)navigator.share(d).catch(()=>{});
+  else{try{navigator.clipboard.writeText(text+' '+PLAY).then(()=>toast('LINK COPIED. PASTE IT TO A FRIEND',2.5),()=>toast(PLAY,4));}catch(e){toast(PLAY,4);}}}
 let pickSlot=0;
 // Two tabs (you, opponent) over a swipeable carousel of team cards. Swiping picks the centred team; the home ground behind the menu follows your pick.
 const ARW=d=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(d<0?'M15 5l-7 7 7 7':'M9 5l7 7-7 7')+'"/></svg>';
@@ -1031,21 +1074,75 @@ function fullTime(){
     endTour();}
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits+tourWin;addCoins(earned);
   const row=(l,v)=>'<div><span>'+l+'</span><b>+'+v+'</b></div>';
-  const canAd=!!MZ()&&wallet.ads.rewarded<6;
+  const canAd=!!MZ()&&wallet.ads.rewarded<6,askRate=a>b&&!NET.on&&(wallet.matches||0)>=2&&!loadOpt('studsRateAsked');
+  if(askRate)saveOpt('studsRateAsked','1');
   sheet.innerHTML='<h1>FULL<br><em>TIME</em></h1><div class="final">'+TEAMS[0].name+' '+a+' – '+b+' '+TEAMS[1].name+'</div><p>'+verdict+'</p>'+tourMsg+
     '<div class="earn">'+row(a>b?'Win':a===b?'Draw':'Loss',res)+(gl?row('Goals ×'+a,gl):'')+(cs?row('Clean sheet',cs):'')+(hits?row('Big hits',hits):'')+(tourWin?row('Tour win',tourWin):'')+
     '<div class="tot"><span>COINS</span><b id="earnTot">+'+earned+'</b></div></div>'+
+    (askRate?'<div class="ratebox" id="rateBox"><span>ENJOYING STUDS UP? A QUICK RATING HELPS A LOT</span><button type="button" class="yes" id="rateYes">★ RATE IT</button><button type="button" class="no" id="rateNo">NOT NOW</button></div>':'')+
     '<div class="topbar"><span class="coins"></span>'+(canAd?'<button type="button" class="adbtn" id="dblBtn">📺 WATCH AD: DOUBLE COINS</button>':'')+'<button type="button" class="shopbtn" id="shopBtn">SHOP</button>'+(CLIP.blob?'<button type="button" class="adbtn" id="clipBtn3">📤 SHARE LAST GOAL</button>':'')+'</div>'+
     (wasTour?'<div style="display:flex;gap:14px;flex-wrap:wrap">'+(tourState().r<TOUR.length?'<button class="go" id="goBtn" data-mode="tour" type="button">'+(a>b?'NEXT MATCH':'TRY AGAIN')+'</button>':'')+
       '<button class="go" id="teamsBtn" data-mode="tour" type="button" style="background:var(--panel)">CAREER MAP</button></div>'
     :'<div style="display:flex;gap:14px;flex-wrap:wrap"><button class="go" id="goBtn" type="button"'+(NET.on?' data-mode="net"':'')+'>REMATCH</button><button class="go" id="teamsBtn" type="button" style="background:var(--panel)">MAIN MENU</button></div>');
   sheet.className='sheet';overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');bindGo();{const c3=document.getElementById('clipBtn3');if(c3)c3.onclick=()=>clipShare();}
+  {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
+   if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
     if(ok){wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
   wallet.matches=(wallet.matches||0)+1;saveWallet();
   if(MZ()&&wallet.matches%2===0)setTimeout(()=>{try{MZ().showInterstitial().catch(()=>{});wallet.lastInterstitialAt=Date.now();saveWallet();}catch(e){}},600);
 }
+// ---------- first-match coach ----------
+// The first match teaches one control at a time: a tip points at the button, waits until you use it, then the next one appears.
+// Kick off waits for your tap while its tip is up. Replay it from Settings.
+const coachEl=document.getElementById('coach');
+const COACH=[
+  {k:'kick',t:'START THE MATCH',tch:'Tap <b-i>PASS</b-i> to start the match.',key:'Press <b-i>J</b-i> to start the match.',el:()=>passBtn,
+    when:()=>setPiece&&setPiece.kind==='kickoff'&&setPiece.taker===HUMS[0],done:e=>e.pass},
+  {k:'move',t:'RUN',tch:'Put your thumb anywhere on the left and drag. Push to the edge to sprint.',key:'Run with <b-i>WASD</b-i> or the arrows. Hold <b-i>SPACE</b-i> to sprint.',el:()=>jb,
+    when:()=>state==='play'&&!setPiece,done:e=>e.moved>0.8},
+  {k:'shoot',t:'SHOOT',tch:'Hold <b-i>SHOOT</b-i> to power up, let go to fire. Tap <b-i>PASS</b-i> to pass.',key:'Hold <b-i>K</b-i> to power up, let go to fire. <b-i>J</b-i> passes.',el:()=>shootBtn,
+    when:()=>state==='play'&&ball.owner&&ball.owner===HUMS[0],done:e=>e.shot},
+  {k:'tackle',t:'TAKE THEM OUT',tch:'They have the ball. Tap the red button to hit them, ball or no ball. <b-i>SWITCH</b-i> jumps to your closest player.',key:'They have the ball. Press <b-i>K</b-i> to hit them, ball or no ball. <b-i>J</b-i> switches player.',el:()=>shootBtn,
+    when:()=>state==='play'&&!setPiece&&!atkMode(0)&&HUMS[0]&&!HUMS[0].down,done:e=>e.tackle},
+  {k:'fury',t:'FURY',tch:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>DANCE</b-i> fills it fast.',key:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>B</b-i> dances to fill it fast.',el:()=>furyEl,
+    when:()=>coach.left.length===1,done:e=>e.shown>7||TD[0]}];
+let coach=null;
+function coachReset(){saveOpt('studsCoach','');}
+function coachStart(){coach=null;coachHide();if(loadOpt('studsCoach')==='1'||NET.on||AUTO)return;coach={left:COACH.slice(),cur:null,ev:{},gap:0.6};}
+function coachNote(k){if(coach)coach.ev[k]=true;}
+function coachEnd(skipped){coachHide();coach=null;saveOpt('studsCoach','1');if(!skipped)toast("YOU'RE READY. GO GET 'EM",2.4);}
+let coachHiEl=null;
+function coachHide(){coachEl.hidden=true;if(coachHiEl){coachHiEl.classList.remove('coach-hi');coachHiEl=null;}}
+function coachTick(dt){if(!coach)return;
+  if(state==='full'||state==='title'||NET.on){coachHide();if(state==='title'||NET.on)coach=null;return;}
+  if(paused||!overlay.hidden){coachEl.hidden=true;return;}
+  const ev=coach.ev;if(state==='play'&&hyp(CT[0].inp.x,CT[0].inp.y)>0.3)ev.moved=(ev.moved||0)+dt;
+  let c=coach.cur;
+  if(c){ev.shown=(ev.shown||0)+dt;
+    if(c.k==='kick'&&setPiece&&setPiece.kind==='kickoff')setPiece.t=0;   // the kick off waits for your tap
+    if(c.done(ev)){coach.left.splice(coach.left.indexOf(c),1);coach.cur=c=null;coachHide();coach.gap=1.1;sfx('tap');vib(15);
+      if(!coach.left.length){coachEnd(false);return;}}
+    else if(!c.when()&&ev.shown>1.5){coach.cur=c=null;coachHide();coach.gap=0.4;}}
+  if(!c){if((coach.gap-=dt)>0)return;
+    // RUN comes first; after that, whichever tip fits the moment
+    // the kick off tip only makes sense at a kick off; if the ball is already in play, drop it
+    if(coach.left[0].k==='kick'&&!coach.left[0].when()&&state==='play'&&!setPiece)coach.left.shift();
+    const order=coach.left[0].k==='kick'||coach.left[0].k==='move'?[coach.left[0]]:coach.left;
+    c=order.find(s=>s.when());if(!c)return;
+    coach.cur=c;ev.shown=0;ev.pass=ev.shot=ev.tackle=false;if(c.k==='move')ev.moved=0;
+    const n=COACH.length-coach.left.length+1;
+    coachEl.innerHTML='<div class="ck">TIP '+n+' / '+COACH.length+'<i>FIRST MATCH</i></div><b>'+c.t+'</b><p>'+(COARSE?c.tch:c.key).replace(/<b-i>/g,'<strong style="color:var(--neon)">').replace(/<\/b-i>/g,'</strong>')+'</p><button type="button" class="skip">SKIP TIPS</button>';
+    coachEl.querySelector('.skip').onclick=()=>coachEnd(true);
+    coachEl.hidden=false;coachEl.style.animation='none';void coachEl.offsetWidth;coachEl.style.animation='';
+    if(COARSE||c.k==='fury'){coachHiEl=c.el();coachHiEl.classList.add('coach-hi');}}
+  coachPlace(c);}
+function coachPlace(c){const W2=innerWidth,H2=innerHeight,bw=coachEl.offsetWidth,bh=coachEl.offsetHeight;
+  if(!COARSE&&c.k!=='fury'){coachEl.className='coach mid';coachEl.style.left=(W2-bw)/2+'px';coachEl.style.top=(H2*0.62)+'px';return;}
+  const r=c.el().getBoundingClientRect(),cx=r.left+r.width/2,below=r.top<H2*0.4;
+  const x=clamp(cx-bw/2,12,W2-bw-12),y=below?r.bottom+16:r.top-bh-16;
+  coachEl.className='coach '+(below?'up':'dn');coachEl.style.left=x+'px';coachEl.style.top=y+'px';coachEl.style.setProperty('--ax',clamp(cx-x,22,bw-22)+'px');}
 const scoreEl=document.getElementById('score'),clockEl=document.getElementById('clock'),furyEl=document.getElementById('fury'),furyFill=document.getElementById('furyFill');
 let lastHud='';
 const pad=document.getElementById('pad'),passBtn=document.getElementById('passBtn'),shootBtn=document.getElementById('shootBtn'),skillBtn=document.getElementById('skillBtn');let lastHot=null,lastSC=-1;
@@ -1235,9 +1332,9 @@ function passTo(p,t){
   ball.passTo=t;ball.passPt={x:plan.tx,y:plan.ty};p.face=Math.atan2(dy,dx);sfx(plan.lofted?'bigkick':'kick');stat('pass'+p.team);ball.passFrom=p.team;
   if(hasCtl(p.team)&&t.role!=='GK'){HUMS[p.team]=t;CT[p.team].switchFlash=0.35;}
 }
-function doPass(p,aim){const t=bestPassTarget(p,aim,true);
+function doPass(p,aim){if(p===HUMS[0])coachNote('pass');const t=bestPassTarget(p,aim,true);
   if(t)passTo(p,t);else{const a=aim==null?p.face:aim;release(p,Math.cos(a)*420,Math.sin(a)*420,0);sfx('kick');}}
-function shoot(p,pow,aimY){
+function shoot(p,pow,aimY){if(p===HUMS[0])coachNote('shot');
   const T=TEAMS[p.team],gx=p.team===0?W+4:-4,sup=T.fury>=100;
   const ty=CY+clamp(aimY,-1,1)*(GH-10)+rand(-1,1)*(1-pow)*38+rand(-8,8);
   const dx=gx-p.x,dy=ty-p.y,d=hyp(dx,dy);let sp=430+pow*520,vz=50+pow*230+rand(-20,20);
@@ -1602,7 +1699,7 @@ const TK={slide:{dur:0.42,sp:360,drag:1.7,r:18,foul:0.38,cd:1.0,rec:0.35},
   jump:{dur:0.52,sp:330,drag:0.8,r:21,foul:0.5,cd:1.25,rec:0.42},
   dive:{dur:0.5,sp:430,drag:1.4,r:17,foul:0.28,cd:1.1,rec:0.5}};
 function startTackle(p,kind){if(p.tackleCd>0||p.down>0||p.slide>0||p.recover>0||p.barge>0||ball.owner===p||state!=='play')return;
-  const T=TK[kind];p.tk=kind;p.slide=T.dur;p.tackleCd=T.cd;p.hitSet.clear();p.landed=false;p.headed=false;p.air=0;
+  if(p===HUMS[0])coachNote('tackle');const T=TK[kind];p.tk=kind;p.slide=T.dur;p.tackleCd=T.cd;p.hitSet.clear();p.landed=false;p.headed=false;p.air=0;
   p.vx=Math.cos(p.face)*T.sp;p.vy=Math.sin(p.face)*T.sp;sfx(kind==='slide'?'slide':'whoosh');
   if(kind==='jump')burst(p.x,p.y,7,['#c9b98a','#6dbb4a'],90,90);}
 function startSlide(p){startTackle(p,'slide');}
@@ -1649,7 +1746,7 @@ function tackleKind(p){
   if(tgt>64&&tgt<135)return 'dive';
   if(CT[p.team].held.sprint||hyp(p.vx,p.vy)>RUN*1.15)return 'jump';
   return 'slide';}
-function startBarge(p){if(p.tackleCd>0||p.down>0||p.slide>0||p.recover>0||ball.owner===p||state!=='play')return;
+function startBarge(p){if(p.tackleCd>0||p.down>0||p.slide>0||p.recover>0||ball.owner===p||state!=='play')return;if(p===HUMS[0])coachNote('tackle');
   p.barge=0.22;p.tackleCd=0.6;p.hitSet.clear();p.vx=Math.cos(p.face)*300;p.vy=Math.sin(p.face)*300;sfx('tap');}
 
 // ---------- human ----------
@@ -2782,7 +2879,7 @@ function frame(now){
   let dt=Math.min(0.1,(now-last)/1000);last=now;
   const ts=slowT>0&&!NET.guest?0.33:1;slowT-=dt;hitZoom=Math.max(0,hitZoom-dt*2.2);flashA=Math.max(0,flashA-dt*1.8);goalCam=Math.max(0,goalCam-dt);acc+=dt*ts;
   while(acc>=STEP){step(STEP);acc-=STEP;}
-  render(now/1000,dt);crowdTick(dt);clipTick();hud();commTick(dt);if(NET.host&&NET.on)netHostTick(dt);requestAnimationFrame(frame);
+  render(now/1000,dt);crowdTick(dt);clipTick();hud();coachTick(dt);commTick(dt);if(NET.host&&NET.on)netHostTick(dt);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 window.__game={set showCam(v){showCam=v},set stad(v){stadOverride=v},get stadId(){return curStad()},anLoad,get ANIMSRC(){return ANIMSRC},rigLoad,RIGS,RIG_FILES,startSkill,skillKind,shoot,get lastPlan(){return lastPlan},get players(){return players},ball,TEAMS,get state(){return state},get human(){return HUMS[0]},HUMS,CT,get NET(){return NET},step,newMatch,
