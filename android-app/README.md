@@ -1,0 +1,36 @@
+# Studs Up for Android
+
+This folder turns the web game at the repo root into the Google Play app
+(`com.studsup.game`, **Studs Up: Red Card Football**). It uses
+[Capacitor](https://capacitorjs.com) 8 with these plugins:
+
+| Plugin | What it does | How the game reaches it |
+| --- | --- | --- |
+| `@capacitor-community/admob` | AdMob ads (still Google's test ids) | `monetize.js` |
+| `cordova-plugin-purchase` | Google Play Billing | `monetize.js` |
+| `@capacitor/share` + `@capacitor/filesystem` | share sheet for goal clips, room codes, the Play link | `native-share.js` |
+| `@capacitor/haptics` | vibration | the game's `vib()` |
+| `@capacitor-community/in-app-review` | Google Play's rating pop-up | `IAR()` in `index.html` |
+
+## How the build works
+
+GitHub Actions (`.github/workflows/android.yml`) builds on every push to `main`
+(and `tester-feedback` while v29 is in review):
+
+1. `npm ci` installs the pinned Capacitor packages.
+2. `sync-web.sh` copies the game into `www/`, swapping the CDN copies of three.js and the
+   Google fonts for the local ones in `web-extra/` (the app must work offline), adds
+   `monetize.js` and `native-share.js`, then runs `npx cap sync android`.
+3. Gradle builds a debug APK, and a release AAB. Without signing secrets the unsigned AAB
+   is pushed to the `build-output` branch, to be signed with the upload key.
+
+Signing: the upload key lives outside the repo (never commit `*.jks`). Sign the unsigned
+AAB with `jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore studs-up-upload.jks
+app-release-unsigned.aab upload`, or set the secrets `SU_KEYSTORE_BASE64`,
+`SU_KEYSTORE_PASSWORD`, `SU_KEY_ALIAS`, `SU_KEY_PASSWORD` to sign in CI.
+
+Bump `versionCode` (and `versionName`) in `android/app/build.gradle` for every Play upload.
+0.5.2 was versionCode 29.
+
+Icons: `python3 tools/make-icons.py` rebuilds the launcher icons and splash from
+`../icon-512.png`, `tools/icon-logo.png` and `tools/icon-background.png`.

@@ -1,0 +1,95 @@
+apply plugin: 'com.android.application'
+
+// ---------------------------------------------------------------------------
+// Release signing (optional).
+// Values come from environment variables first, then Gradle properties
+// (e.g. ~/.gradle/gradle.properties or -PSU_KEYSTORE=...):
+//   SU_KEYSTORE           path to the upload keystore (.jks)
+//   SU_KEYSTORE_PASSWORD  keystore password
+//   SU_KEY_ALIAS          key alias inside the keystore
+//   SU_KEY_PASSWORD       key password
+// If any are missing, no release signing is configured: debug builds work as
+// normal and a release build is produced unsigned.
+// ---------------------------------------------------------------------------
+def suSecret = { String name ->
+    def v = System.getenv(name)
+    if (v == null || v.trim().isEmpty()) {
+        v = project.findProperty(name)
+    }
+    return (v == null || v.toString().trim().isEmpty()) ? null : v.toString()
+}
+def suKeystore = suSecret('SU_KEYSTORE')
+def suKeystorePassword = suSecret('SU_KEYSTORE_PASSWORD')
+def suKeyAlias = suSecret('SU_KEY_ALIAS')
+def suKeyPassword = suSecret('SU_KEY_PASSWORD')
+def suCanSign = suKeystore && suKeystorePassword && suKeyAlias && suKeyPassword && file(suKeystore).exists()
+if (!suCanSign) {
+    logger.lifecycle("Studs Up: release signing not configured (SU_KEYSTORE* not set) - release output will be unsigned.")
+}
+
+android {
+    namespace = "com.studsup.game"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.studsup.game"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // Bump versionCode by 1 for every upload to Google Play; versionName is what users see.
+        versionCode 30
+        versionName "0.5.3"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (suCanSign) {
+            release {
+                storeFile file(suKeystore)
+                storePassword suKeystorePassword
+                keyAlias suKeyAlias
+                keyPassword suKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (suCanSign) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

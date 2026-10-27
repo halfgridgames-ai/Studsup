@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Game background colour (matches capacitor.config.json backgroundColor). -->
+    <color name="mm_background">#05070D</color>
+</resources>

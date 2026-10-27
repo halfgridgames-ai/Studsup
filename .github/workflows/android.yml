@@ -1,0 +1,125 @@
+# Builds the Studs Up Android app.
+#
+# Outputs (Actions -> run -> Artifacts):
+#   studs-up-debug-apk   always; install directly on a phone (sideload)
+#   studs-up-release-aab only when the signing secrets exist; upload to Google Play
+#
+# Optional repository secrets (Settings -> Secrets and variables -> Actions):
+#   SU_KEYSTORE_BASE64    base64 of the upload keystore (.jks)
+#   SU_KEYSTORE_PASSWORD  keystore password
+#   SU_KEY_ALIAS          key alias
+#   SU_KEY_PASSWORD       key password
+name: Android build
+
+on:
+  push:
+    branches: [main, tester-feedback]
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_SIGNING: ${{ secrets.SU_KEYSTORE_BASE64 != '' && secrets.SU_KEYSTORE_PASSWORD != '' && secrets.SU_KEY_ALIAS != '' && secrets.SU_KEY_PASSWORD != '' }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
+
+      # Capacitor 8 / Android Gradle Plugin 8.13 compile with Java 21.
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install npm packages
+        working-directory: android-app
+        run: npm ci
+
+      - name: Copy web game into the Android project
+        working-directory: android-app
+        run: bash ./sync-web.sh
+
+      - name: Build debug APK
+        working-directory: android-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: studs-up-debug-apk
+          path: android-app/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Decode upload keystore
+        if: env.HAS_SIGNING == 'true'
+        env:
+          SU_KEYSTORE_BASE64: ${{ secrets.SU_KEYSTORE_BASE64 }}
+        run: |
+          echo "$SU_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "SU_KEYSTORE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release AAB
+        if: env.HAS_SIGNING == 'true'
+        working-directory: android-app/android
+        env:
+          SU_KEYSTORE_PASSWORD: ${{ secrets.SU_KEYSTORE_PASSWORD }}
+          SU_KEY_ALIAS: ${{ secrets.SU_KEY_ALIAS }}
+          SU_KEY_PASSWORD: ${{ secrets.SU_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Upload release AAB
+        if: env.HAS_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: studs-up-release-aab
+          path: android-app/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Remove keystore
+        if: always() && env.HAS_SIGNING == 'true'
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks"
+
+      # Without the secrets, publish an unsigned AAB to the build-output branch
+      # so it can be signed elsewhere with the upload key (Run workflow on any branch to get one).
+      - name: Build unsigned release AAB
+        if: env.HAS_SIGNING != 'true'
+        working-directory: android-app/android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Push unsigned AAB to build-output branch
+        if: env.HAS_SIGNING != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/out" && cd "$RUNNER_TEMP/out"
+          cp "$GITHUB_WORKSPACE"/android-app/android/app/build/outputs/bundle/release/*.aab app-release-unsigned.aab
+          echo "$GITHUB_SHA" > SOURCE_COMMIT
+          git init -q -b build-output
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -qm "Unsigned AAB from $GITHUB_SHA"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" build-output
+
+      - name: Note when release signing is skipped
+        if: env.HAS_SIGNING != 'true'
+        run: echo "::notice::Signing secrets not set - built the debug APK only. See android-app/README.md to add them."
