@@ -535,7 +535,7 @@ const basePos=p=>p.team===0?{x:p.bx,y:p.by}:{x:W-p.bx,y:H-p.by};
 const live=p=>!p.off;
 const ownGoalX=t=>t===0?0:W, attackDir=t=>t===0?1:-1;
 
-function resetBodies(){CT[0].oneTouch=CT[1].oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.skill=0;p.gkDive=null;p.gkLand=p.catchT=p.diveCd=0;p.hitSet.clear();});}
+function resetBodies(){CT[0].oneTouch=CT[1].oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.skill=0;p.gkDive=null;p.gkLand=p.catchT=p.diveCd=p.trapT=p.stagger=0;p.hitSet.clear();});}
 function kickoff(team){
   resetBodies();
   players.forEach(p=>{if(p.off)return;const b=basePos(p);p.x=b.x;p.y=b.y;p.face=p.team?PI:0;});
@@ -1271,7 +1271,8 @@ function playClip(evt){const L=CLIPS[evt];if(muted||!L||!L.length)return;
 function burst(x,y,n,cols,sp,up,z0){netEv('u',r1(x),r1(y),n,cols,sp,up,z0);for(let i=0;i<n;i++){const a=rand(0,PI*2),s=rand(0.3,1)*sp;parts.push({x,y,z:(z0||0)+rand(0,6),vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:rand(0.3,1)*up,life:rand(0.4,0.9),col:cols[i%cols.length],r:rand(1.2,2.8)});}}
 
 // ---------- ball control ----------
-function gain(p,silent){ball.protect=0;ball.holdT=0;ball.holdBy=null;ball.holdSfx=null;ball.protectBy=null;if(ball.passFrom!=null&&!silent){stat((ball.passFrom===p.team?'pok':'pcut')+ball.passFrom);}ball.passFrom=null;
+function gain(p,silent){if(!silent&&!ball.owner&&p.role!=='GK'&&(ball.z>5||hyp(ball.vx,ball.vy)>360))p.trapT=0.45;  // a high or hard ball is brought down with a first touch
+  ball.protect=0;ball.holdT=0;ball.holdBy=null;ball.holdSfx=null;ball.protectBy=null;if(ball.passFrom!=null&&!silent){stat((ball.passFrom===p.team?'pok':'pcut')+ball.passFrom);}ball.passFrom=null;
   ball.owner=p;ball.lastBy=p;ball.super=false;ball.shot=false;ball.pen=false;ball.lastTeam=p.team;ball.passTo=null;ball.passPt=null;p.hold=0;ball.z=0;ball.vz=0;
   if(p.role==='GK'&&!silent)p.catchT=0.35;
   if(hasCtl(p.team)&&p.role!=='GK')HUMS[p.team]=p;
@@ -1380,10 +1381,10 @@ function hit(a,q,kind){
   // The carrier's counter: a hurdle beats slides and dives, a juke beats barges and jump kicks.
   if(q.skill>0&&(ball.owner===q||ball.protectBy===q)){const beat=q.sk==='hurdle'?(kind==='slide'||kind==='dive'):q.sk==='flick'?kind!=='dive':(kind==='barge'||kind==='jump');
     if(beat){popup(q.x,q.y-40,{hurdle:'HURDLED!',spin:'SPUN!',flick:'OVER THE TOP!',nutmeg:'NUTMEGGED!',stepover:'SOLD!'}[q.sk]||'JUKED!',SKCOL[q.sk]||'#5ff2e0');comm(COMM[q.sk]?q.sk:'juke',{a:q,v:a},2);sfx('ooh');if(q.team===0)vib(15);
-      TEAMS[q.team].fury=Math.min(100,TEAMS[q.team].fury+10);if(kind==='barge'){a.barge=0;a.recover=0.6;}
+      TEAMS[q.team].fury=Math.min(100,TEAMS[q.team].fury+10);if(kind==='barge'){a.barge=0;a.recover=0.6;}a.stagger=0.45;
       burst(q.x,q.y,10,['#5ff2e0','#ffffff'],160,90,q.air||0);slowmo(0.18);return;}}
   const had=ball.owner===q,near=had||(!ball.owner&&hyp(ball.x-q.x,ball.y-q.y)<32);
-  if(kind==='barge'&&had&&Math.random()<0.5){gain(a);q.kickCd=0.5;popup(q.x,q.y-34,'STRIPPED!');comm('steal',{a,v:q},1);TEAMS[a.team].fury=Math.min(100,TEAMS[a.team].fury+10);return;}
+  if(kind==='barge'&&had&&Math.random()<0.5){gain(a);q.stagger=0.45;q.kickCd=0.5;popup(q.x,q.y-34,'STRIPPED!');comm('steal',{a,v:q},1);TEAMS[a.team].fury=Math.min(100,TEAMS[a.team].fury+10);return;}
   knockDown(q,a,null,kind);comm(kind==='jump'||kind==='dive'||kind==='barge'?kind:'hit',{a,v:q},had?2:1);
   if(had){ball.owner=null;ball.vx=Math.cos(a.face)*170+q.vx*0.2;ball.vy=Math.sin(a.face)*170+q.vy*0.2;ball.vz=120;ball.z=2;ball.lastTeam=a.team;ball.tried=new Set();q.kickCd=0.7;}
   TEAMS[a.team].fury=Math.min(100,TEAMS[a.team].fury+(had?22:13));
@@ -1703,7 +1704,7 @@ const TK={slide:{dur:0.42,sp:360,drag:1.7,r:18,foul:0.38,cd:1.0,rec:0.35},
   jump:{dur:0.52,sp:330,drag:0.8,r:21,foul:0.5,cd:1.25,rec:0.42},
   dive:{dur:0.5,sp:430,drag:1.4,r:17,foul:0.28,cd:1.1,rec:0.5}};
 function startTackle(p,kind){if(p.tackleCd>0||p.down>0||p.slide>0||p.recover>0||p.barge>0||ball.owner===p||state!=='play')return;
-  if(p===HUMS[0])coachNote('tackle');const T=TK[kind];p.tk=kind;p.slide=T.dur;p.tackleCd=T.cd;p.hitSet.clear();p.landed=false;p.headed=false;p.air=0;
+  if(p===HUMS[0])coachNote('tackle');const T=TK[kind];p.tk=kind;p.slide=T.dur;p.tackleCd=T.cd;p.hitSet.clear();p.landed=false;p.headed=false;p.headHigh=false;p.air=0;
   p.vx=Math.cos(p.face)*T.sp;p.vy=Math.sin(p.face)*T.sp;sfx(kind==='slide'?'slide':'whoosh');
   if(kind==='jump')burst(p.x,p.y,7,['#c9b98a','#6dbb4a'],90,90);}
 function startSlide(p){startTackle(p,'slide');}
@@ -1841,7 +1842,7 @@ function step(dt){
   // integrate
   for(const p of players){if(p.off)continue;
     if(p.kickAnim>0&&p.kickFace!=null&&!(p.down>0||p.slide>0))p.face=p.kickFace;  // no steering mid-kick: the body stays on the ball's line
-    p.kickCd-=dt;p.stealCd-=dt;p.tackleCd-=dt;p.skillCd-=dt;if(p.catchT>0)p.catchT-=dt;if(p.gkLand>0)p.gkLand-=dt;if(p.diveCd>0)p.diveCd-=dt;if(p.kickAnim>0)p.kickAnim-=dt;if(p.throwAnim>0)p.throwAnim-=dt;
+    p.kickCd-=dt;p.stealCd-=dt;p.tackleCd-=dt;p.skillCd-=dt;if(p.catchT>0)p.catchT-=dt;if(p.gkLand>0)p.gkLand-=dt;if(p.diveCd>0)p.diveCd-=dt;if(p.kickAnim>0)p.kickAnim-=dt;if(p.trapT>0)p.trapT-=dt;if(p.stagger>0)p.stagger-=dt;if(p.throwAnim>0)p.throwAnim-=dt;
     if(p.down>0){p.down-=dt;const k=Math.exp((p.lz>0?-1:-4)*dt);p.vx*=k;p.vy*=k;
       if(p.lz>0){p.lvz-=900*dt;p.lz+=p.lvz*dt;if(p.lz<=0){p.lz=0;burst(p.x,p.y,8,['#c9b98a','#6dbb4a','#3f8a2f'],120,80);scuff(p.x,p.y,Math.atan2(p.vy,p.vx),12);
         if(p.lvz<-160){p.lvz=-p.lvz*0.3;p.lz=0.1;sfx('land');}else p.lvz=0;}}}
@@ -1937,37 +1938,51 @@ function anBake(rig){if(!ANIMSRC||!rig||rig.clips)return;const src=ANIMSRC.scene
   // mirrored copies (left/right swapped) of clips listed in ANIM_MIRROR, so a move done one way exists both ways
   const tn=new Map(tb.map(b=>[anNorm(b.name),b])),src4=new Map([...map].map(e=>[e[1],e[0]])),swap=n=>n.replace(/left|right/g,x=>x==='left'?'right':'left');
   const twin=new Map(tb.map(b=>[b,tn.get(swap(anNorm(b.name)))||b]));
+  // rest-pose fix: the team models rest in all sorts of poses (arms out front, arms down, A-pose) while the clips start from a T-pose.
+  // Before a clip's turn is put on a limb, first swing that limb so it points the same way the source limb does at rest.
+  const LIMB=/^(shoulder|arm|forearm|hand|upleg|leg|foot)$/,bdir=b=>{const k=b.children.find(c=>c.isBone);if(!k)return null;
+    return k.getWorldPosition(new THREE.Vector3()).sub(b.getWorldPosition(new THREE.Vector3())).normalize();};
+  const corrOf=mir=>new Map(tb.map(b=>{const s0=src4.get(mir?twin.get(b):b),k=anNorm(b.name).replace(/left|right/,'');
+    if(!s0||!LIMB.test(k))return [b,null];const dt=bdir(b),ds=bdir(s0);if(!dt||!ds)return [b,null];if(mir)ds.x=-ds.x;if(fl)ds.applyQuaternion(flipQ);
+    return [b,new THREE.Quaternion().setFromUnitVectors(dt,ds)];}));
+  const corrs=[corrOf(false),corrOf(true)].map(m=>{for(const b of tb)if(/hand$/.test(anNorm(b.name))&&!m.get(b)&&b.parent)m.set(b,m.get(b.parent)||null);return m;});
+  const sFeet=['leftfoot','rightfoot'].map(n=>sb.find(b=>anNorm(b.name)===n)).filter(Boolean);
   const jobs=ANIMSRC.animations.map(c=>[c,false]).concat(ANIMSRC.animations.filter(c=>ANIM_MIRROR.includes(c.name)).map(c=>[c,true]));
   const Yax=new THREE.Vector3(0,1,0),hd=mir=>{const d=wq(sH).multiply(restS.get(sH).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}const v=new THREE.Vector3(0,0,1).applyQuaternion(d);return Math.atan2(v.x,v.z);},
     wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
   for(const [clip,mir] of jobs){const act=mixer.clipAction(clip);act.reset().play();const fps=30,n=Math.max(2,Math.ceil(clip.duration*fps)+1),times=[];
     const yf=ANIM_YAWFIX[clip.name];let href=0;if(yf){mixer.setTime(yf[0]);src.updateMatrixWorld(true);href=hd(mir);}
-    const qv=new Map(order.map(b=>[b,[]])),pv=[];let dist=0,last=null;
+    const qv=new Map(order.map(b=>[b,[]])),pv=[],ft=[];let dist=0,last=null;
     for(let f=0;f<n;f++){const t=Math.min(clip.duration,f/fps);times.push(t);mixer.setTime(t);src.updateMatrixWorld(true);
       let yq=null;if(yf){const h=hd(mir);yq=new THREE.Quaternion().setFromAxisAngle(Yax,yf[1]*wrap(h-href)-h);}
       for(const b of order){const par=b.parent&&b.parent.isBone?cur.get(b.parent):b.parent.getWorldQuaternion(tmpq).clone();
         let w;const sb0=src4.get(mir?twin.get(b):b);
-        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);if(yq)d.premultiply(yq);w=d.multiply(restT.get(b));}
+        if(sb0){const d=wq(sb0).multiply(restS.get(sb0).clone().invert());if(mir){d.y=-d.y;d.z=-d.z;}if(fl)d.premultiply(flipQ).multiply(fi);if(yq)d.premultiply(yq);const cq=corrs[mir?1:0].get(b);if(cq)d.multiply(cq);w=d.multiply(restT.get(b));}
         else w=par.clone().multiply(restL.get(b));
         cur.set(b,w);const l=par.clone().invert().multiply(w);qv.get(b).push(l.x,l.y,l.z,l.w);}
-      const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
+      ft.push(sFeet.map(b=>b.getWorldPosition(new THREE.Vector3())));const hp=sH.getWorldPosition(new THREE.Vector3());if(last)dist+=Math.hypot(hp.x-last.x,hp.z-last.z);last=hp;
       const y=tHp.y+(hp.y-sHrest.y)*ratio,lp=new THREE.Vector3(tHp.x,y,tHp.z).applyMatrix4(inv);pv.push(lp.x,lp.y,lp.z);}
     act.stop();const tracks=order.map(b=>new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,qv.get(b)));
     tracks.push(new THREE.VectorKeyframeTrack(tH.name+'.position',times,pv));
-    const nm=clip.name+(mir?'_m':''),c=new THREE.AnimationClip(nm,clip.duration,tracks);c.speed=dist*ratio*rig.scale/Math.max(0.01,clip.duration);clips[nm]=c;}
+    const nm=clip.name+(mir?'_m':''),c=new THREE.AnimationClip(nm,clip.duration,tracks);c.speed=dist*ratio*rig.scale/Math.max(0.01,clip.duration);
+    // how fast a planted foot slides back under the body: the ground speed this clip's steps cover when played at 1x
+    if(ft.length>2&&ft[0].length===2){const lo=Math.min(...ft.map(f=>Math.min(f[0].y,f[1].y))),tol=(sHrest.y-lo)*0.06;let sum=0,cnt=0;
+      for(let f=1;f<ft.length;f++)for(const j of [0,1])if(ft[f][j].y<lo+tol){sum+=Math.hypot(ft[f][j].x-ft[f-1][j].x,ft[f][j].z-ft[f-1][j].z)*fps;cnt++;}
+      c.ground=cnt?sum/cnt*ratio*rig.scale:0;}
+    clips[nm]=c;}
   rig.clips=clips;}
 // which clip (if any) a player should be showing right now; null = the hand-made pose runs the limbs
 const ANIM_PICK={idle:['soccer_idle','offensive_idle','idle','breathing_idle','standing_idle'],gkidle:['goalkeeper_idle','soccer_idle','idle'],
-  jog:['jog','jogging','soccer_run','running','run'],sprint:['fast_run','sprint','running','run'],
+  walk:['walk'],jog:['jog','jogging','soccer_run','running','run'],sprint:['fast_run','sprint','running','run'],
   fly:['flying_back_death','falling_back','falling_down','dying_backwards'],fall:['falling_down','dying_backwards','fall','hit_reaction'],
-  win:['victory','cheering','knee_slide','samba_dancing'],dance:['samba_dancing','samba_dance','hip_hop_dancing','dance'],
+  win:['victory','cheering','knee_slide','samba_dancing'],dance:['chicken_dance','samba_dancing','samba_dance','hip_hop_dancing','dance'],pump:['fist_pump'],
   kick:['soccer_kick','strike_forward','kick','soccer_pass'],pass:['soccer_pass','pass','soccer_kick'],header:['header','soccer_header'],
   slide:['soccer_tackle','slide_tackle','tackle'],jumpk:['flying_kick'],gkdive:['goalkeeper_diving_save','diving_save'],
   throw:['throw_in','soccer_throw_in'],spin:['spin','soccer_spin'],
   jogback:['jog_back'],strafeL:['strafe_a'],strafeR:['strafe_b'],gkstepL:['gk_step_a'],gkstepR:['gk_step_b'],turnstep:['jog_forward','jog'],
   roll:['sprinting_forward_roll'],boxer:['punching'],gkmiss:['goalkeeper_miss'],shout:['goalkeeper_directing']};
 // one-shot moves: [clip, from, to] seconds of the source clip, stretched over the game's own timer for that move
-const ANIM_MIRROR=['gk_dive_a'];
+const ANIM_MIRROR=['gk_dive_a','gk_block'];
 // kick clips twist the whole body round a long way (a shot ends 50 degrees off its line): [contact time, share of the twist kept].
 // The body is squared to the ball's line at contact and only part of the twist is kept, so a kick never reads as a turn.
 const ANIM_YAWFIX={kick_shot:[0.47,0.45],kick_pass:[0.26,0.5],kick_pen:[0.8,0.45],gk_punt:[2.17,0.45],gk_throw:[1.6,0.4]};
@@ -1976,7 +1991,8 @@ const ANIM_SEG={pose_win:['victory',1.0,1.0],pose_idle:['soccer_idle',2.0,2.0],p
   kick_punt:['gk_punt',1.75,2.17,2.75],kick_roll:['gk_throw',1.25,1.6,2.2],slide:['soccer_tackle',0.2,0.8],slideR:['soccer_tackle',1.0,1.8],
   jump:['scissor_kick',0.45,1.3],jumpR:['scissor_kick',2.2,2.8],dive:['soccer_trip',0.3,0.75],diveR:['standing_up',0.6,1.7],
   gkdiveA:['gk_dive_a',0.45,1.45],gkdiveB:['gk_dive_a_m',0.45,1.45],gklandA:['gk_dive_a',1.45,1.95],gklandB:['gk_dive_a_m',1.45,1.95],gkroll:['sprinting_forward_roll',0.66,1.2],
-  catch:['gk_catch',0.2,0.8],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
+  catch:['gk_catch',0.2,0.8],header:['header',0.55,1.05,1.7],trap:['receive_ball',0.25,1.0],stagger:['hit_stagger',0,0.43],
+  gkblockA:['gk_block',0.45,1.5],gkblockB:['gk_block_m',0.45,1.5],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
 function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
   for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
 // which clip (if any) a player shows now, and for one-shot moves how far through it they are (0..1)
@@ -1985,27 +2001,29 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   if(p.down>0)return p.down<0.45?one('getup',1-p.down/0.45):[(p.lz>0||p.downFly)?'fly':'fall'];
   if(state==='goal'&&p!==ref&&celeb){const c=celeb;
     if(c.team===p.team){if(p===c.by){const k={roll:'roll',boxer:'boxer',pile:'win'}[c.type];return [k||null];}
-      if(p.role==='GK')return ['shout'];if(spd>60)return [spd>SPRINT*0.8?'sprint':'jog'];return [['win','boxer','win','shout'][p.i%4]];}
+      if(p.role==='GK')return ['shout'];if(spd>60)return [spd>SPRINT*0.8?'sprint':'jog'];return [['win','pump','boxer','dance','shout'][p.i%5]];}
     if(p.role==='GK'&&spd<60&&!p.gkDive&&!(p.gkLand>0))return ['gkmiss'];}
   if(p.dance>0)return ['dance'];
   // keeper dives: pick the clip whose dive goes the same way as the game's dive, from the keeper's own point of view
   const side=d=>Math.cos(p.face)*d>0?'B':'A';
-  if(p.gkDive&&p.gkDive.dir){const D=p.gkDive;return one('gkdive'+side(D.dir),1-D.t/(D.T||0.55));}
+  if(p.gkDive&&p.gkDive.dir){const D=p.gkDive;return one((D.sp&&D.sp<260?'gkblock':'gkdive')+side(D.dir),1-D.t/(D.T||0.55));}
   if(p.gkLand>0&&p.gkLandDir){const u=1-p.gkLand/GK_LAND;return u<GK_LIE?one('gkland'+side(p.gkLandDir),u/GK_LIE):one('gkroll',(u-GK_LIE)/(1-GK_LIE));}
-  if(p.slide>0&&TK[p.tk])return one(p.tk,1-p.slide/TK[p.tk].dur);
+  if(p.slide>0&&TK[p.tk])return one(p.tk==='dive'&&p.headHigh?'header':p.tk,1-p.slide/TK[p.tk].dur);
+  if(p.stagger>0)return one('stagger',1-p.stagger/0.45);
   if(p.recover>0&&TK[p.tk]&&ANIM_SEG[p.tk+'R'])return one(p.tk+'R',1-p.recover/TK[p.tk].rec);
   if(p.barge>0||p.skill>0||p.gkDive)return [null];
   if(setPiece&&setPiece.taker===p&&setPiece.kind==='throw')return one('throwHold',0);
   if(p.throwAnim>0)return one('throw',1-p.throwAnim/0.3);
   if(p.kickAnim>0){const T=p.kickT||KICK_T;return [p.kickK?'kick_'+p.kickK:'kick',clamp(1-p.kickAnim/T,0,1),(p.kickW||0)/T];}
   if(p.role==='GK'&&p.catchT>0)return one('catch',1-p.catchT/0.35);
+  if(p.trapT>0)return one('trap',1-p.trapT/0.45);
   // moving against the way they face: backpedal or shuffle sideways (keepers use their own side-step)
   if(spd>22){const c=Math.cos(p.face),s=Math.sin(p.face),fw=(c*p.vx+s*p.vy)/spd,lf=(s*p.vx-c*p.vy)/spd;
     if(fw<-0.55&&spd<SPRINT*0.8)return ['jogback'];
     if(Math.abs(lf)>0.75&&spd<SPRINT*0.8)return [(p.role==='GK'?'gkstep':'strafe')+(lf>0?'L':'R')];}
   if(spd<22&&Math.abs(p.turnW||0)>2.5)return ['turnstep'];  /* turning on the spot: step round instead of spinning on the feet */
   if(p.role==='GK'&&spd<60)return ['gkidle'];
-  return [spd>SPRINT*0.8?'sprint':spd>22?'jog':'idle'];}
+  return [spd>SPRINT*0.8?'sprint':spd>75?'jog':spd>22?'walk':'idle'];}
 function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const [k,pr,cut]=anState(p),seg=k&&ANIM_SEG[k];
   const clip=!k?null:seg?rig.clips[seg[0]]||null:anFind(rig,k);
   if(clip!==m.clip||(clip&&!!seg!==!!m.seg)){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;m.seg=!!seg;
@@ -2015,7 +2033,9 @@ function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;co
   if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);
     if(seg){a.timeScale=0;const c=cut||0;a.time=Math.min(clip.duration-0.001,seg.length>3?(pr<c?seg[1]+(seg[2]-seg[1])*pr/c:seg[2]+(seg[3]-seg[2])*(pr-c)/Math.max(0.01,1-c)):seg[1]+(seg[2]-seg[1])*pr);}
     else if(k==='turnstep')a.timeScale=1.3;
-    else a.timeScale=(k==='jog'||k==='sprint'||k==='jogback'||k.startsWith('strafe')||k.startsWith('gkstep'))?clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6):1;/* in-place clips: one cycle matches a jog-to-sprint pace */}
+    else a.timeScale=(k==='jog'||k==='walk'||k==='sprint'||k==='jogback'||k.startsWith('strafe')||k.startsWith('gkstep'))?(clip.ground>5?clamp(Math.sqrt(spd/clip.ground),0.7,1.9):clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6)):1;
+    /* in-place clips: quicker steps the faster they go, so the feet slide far less. Players cover ground about 4x faster than the mocap runner,
+       so matching exactly would mean a blur of legs; the square root keeps the cadence believable (a sprint tops out near 5 steps a second) */}
   m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*(seg?30:12));return clip?k:0;}
 // ---------- rigged models ----------
 // A team can use a real skinned 3D model (glTF/GLB from Meshy, Mixamo, Blender...) instead of the built-in block figure.
@@ -2032,7 +2052,12 @@ function rigFind(root){const all=[];root.traverse(o=>{if(o.isBone)all.push(o);})
   const pick=re=>all.filter(b=>{const k=norm(b.name);return re.test(k)||re.test(k.replace(/[lr]$/,''));});
   const ul=pick(/^(upleg|upperleg|thigh|leg?up)\d*$/),ll=pick(/^(leg|lowerleg|calf|shin|knee)\d*$/),ua=pick(/^(arm|upperarm)\d*$/),la=pick(/^(forearm|lowerarm|elbow)\d*$/);
   return {all,ul,ll,ua,la};}
-function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);
+// A soft rim light on the players' edges, so they stand out from the grass at phone size.
+function charLook(mat){if(!mat||mat.userData.look)return;mat.userData.look=1;
+  mat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <output_fragment>',
+    'float rimF=1.0-max(dot(normalize(normal),normalize(vViewPosition)),0.0);outgoingLight+=vec3(1.0,0.96,0.88)*pow(rimF,3.0)*0.32;\n#include <output_fragment>');};
+  mat.needsUpdate=true;}
+function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);root.traverse(o=>{if(o.isMesh)charLook(o.material);});
   const box=new THREE.Box3();const v=new THREE.Vector3();root.traverse(o=>{if(!o.isMesh)return;const pos=o.geometry.attributes.position,st=Math.max(1,pos.count/400|0);  // skinned vertices as actually drawn
     if(o.isSkinnedMesh)o.skeleton.update();for(let i=0;i<pos.count;i+=st){if(o.isSkinnedMesh){o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);}else v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld);box.expandByPoint(v);}});
   const f=rigFind(root);if(f.ul.length<2||f.ll.length<2||f.ua.length<2||f.la.length<2){console.warn('rig: limb bones not found',f);return null;}
@@ -2051,7 +2076,7 @@ function makeRigged(p,rig,TT){
   const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
   const inner=new THREE.Group();inner.scale.setScalar(rig.scale);inner.rotation.y=rig.flip?PI:0;inner.position.y=-rig.minY*rig.scale;body.add(inner);
   const sc=THREE.SkeletonUtils.clone(rig.gltf.scene);inner.add(sc);
-  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
+  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){const ob=o.material.onBeforeCompile;o.material=o.material.clone();o.material.onBeforeCompile=ob;o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
   g.updateMatrixWorld(true);const f=rigFind(sc),bodyInv=body.getWorldQuaternion(rigQ()).invert();
   const bq=b=>bodyInv.clone().multiply(b.getWorldQuaternion(rigQ())),bp=b=>body.worldToLocal(b.getWorldPosition(new THREE.Vector3()));
   const bySide=a=>a.slice().sort((x,y)=>bp(x).x-bp(y).x).slice(0,1).concat(a.slice().sort((x,y)=>bp(y).x-bp(x).x).slice(0,1));
@@ -2128,7 +2153,7 @@ function replayStep(dt){const rp=replay;if(!rp||!rp.frames.length){replay=null;k
   if(ball.super&&Math.random()<0.9)parts.push({x:ball.x,y:ball.y,z:ball.z+4,vx:rand(-20,20),vy:rand(-20,20),vz:rand(10,40),life:rand(0.2,0.45),col:Math.random()<0.5?'#ffc23a':'#ff5a14',r:rand(2,4)});
   if(rp.f>=fr.length-1||(rp.f>12&&(CT[0].pressed.pass||CT[0].pressed.shoot||CT[0].pressed.skill||CT[0].pressed.dance||CT[0].pressed.tackle||(NET.host&&(CT[1].pressed.pass||CT[1].pressed.shoot))))){replay=null;kickoff(nextKick);}}
 // A diving player meets a loose ball with the head: it flies on along the dive, bent toward goal when it is close.
-function diveHeader(a){a.headed=true;const b=ball;b.lastBy=a;let ang=a.face;const gx=a.team===0?W:0;
+function diveHeader(a){a.headed=true;a.headHigh=ball.z>16;const b=ball;b.lastBy=a;let ang=a.face;const gx=a.team===0?W:0;
   if(Math.abs(gx-a.x)<340){const ga=Math.atan2(CY-a.y,gx-a.x),d=Math.atan2(Math.sin(ga-ang),Math.cos(ga-ang));if(Math.abs(d)<1)ang=ga+rand(-0.18,0.18);}
   const sp=Math.max(480,hyp(b.vx,b.vy)*0.6);b.vx=Math.cos(ang)*sp;b.vy=Math.sin(ang)*sp;b.vz=70;b.z=Math.max(b.z,4);
   b.lastTeam=a.team;b.tried=new Set();b.passTo=null;b.passPt=null;b.super=false;
@@ -2796,7 +2821,7 @@ function render(t,dt){
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
   if(R.venue)for(const f of R.venue.userData.anim)f(t,dt);
-  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
+  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
