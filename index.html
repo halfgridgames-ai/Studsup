@@ -891,6 +891,8 @@ const lnk=(k,ic,t,c)=>'<button type="button" class="lnk'+(c?' '+c:'')+'" data-l=
 const GAME_V=29,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),
   SITE='https://halfgridgames-ai.github.io/Studsup/',PLAY='https://play.google.com/store/apps/details?id=com.studsup.game',
   LINKS={rate:NATIVE?'market://details?id=com.studsup.game':PLAY,privacy:SITE+'privacy.html',terms:SITE+'terms.html',contact:'mailto:halfgridgames@gmail.com?subject=Studs%20Up'};
+// Google Play's in-app review pop-up (@capacitor-community/in-app-review), only inside the Android app
+const IAR=()=>NATIVE&&Capacitor.Plugins&&Capacitor.Plugins.InAppReview||null;
 function openLink(url){if(NATIVE||url.startsWith('mailto:'))location.href=url;else window.open(url,'_blank','noopener');}
 function shareGame(){const text='Football with no rules except don\'t hit the ref. Play Studs Up with me!',d={title:'Studs Up: Red Card Football',text,url:PLAY};
   if(navigator.share)navigator.share(d).catch(()=>{});
@@ -1074,8 +1076,8 @@ function fullTime(){
     endTour();}
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits+tourWin;addCoins(earned);
   const row=(l,v)=>'<div><span>'+l+'</span><b>+'+v+'</b></div>';
-  const canAd=!!MZ()&&wallet.ads.rewarded<6,askRate=a>b&&!NET.on&&(wallet.matches||0)>=2&&!loadOpt('studsRateAsked');
-  if(askRate)saveOpt('studsRateAsked','1');
+  let askRate=a>b&&!NET.on&&(wallet.matches||0)>=2&&!loadOpt('studsRateAsked');const canAd=!!MZ()&&wallet.ads.rewarded<6;
+  if(askRate){saveOpt('studsRateAsked','1');if(IAR()){askRate=false;setTimeout(()=>IAR().requestReview().catch(()=>{}),1200);}}   // Google's own pop-up when the app has it, our strip otherwise
   sheet.innerHTML='<h1>FULL<br><em>TIME</em></h1><div class="final">'+TEAMS[0].name+' '+a+' – '+b+' '+TEAMS[1].name+'</div><p>'+verdict+'</p>'+tourMsg+
     '<div class="earn">'+row(a>b?'Win':a===b?'Draw':'Loss',res)+(gl?row('Goals ×'+a,gl):'')+(cs?row('Clean sheet',cs):'')+(hits?row('Big hits',hits):'')+(tourWin?row('Tour win',tourWin):'')+
     '<div class="tot"><span>COINS</span><b id="earnTot">+'+earned+'</b></div></div>'+
@@ -1106,12 +1108,14 @@ const COACH=[
     when:()=>state==='play'&&ball.owner&&ball.owner===HUMS[0],done:e=>e.shot},
   {k:'tackle',t:'TAKE THEM OUT',tch:'They have the ball. Tap the big button to hit them, ball or no ball. <b-i>SWITCH</b-i> jumps to your closest player.',key:'They have the ball. Press <b-i>K</b-i> to hit them, ball or no ball. <b-i>J</b-i> switches player.',el:()=>shootBtn,
     when:()=>state==='play'&&!setPiece&&!atkMode(0)&&HUMS[0]&&!HUMS[0].down,done:e=>e.tackle},
+  {k:'ref',t:'THE REF',tch:'The ref only sees some of it. Get caught and it is a free kick, a yellow or a red. Flatten the ref and nobody sees a thing, until he gets back up. Change how strict he is in Settings.',key:'The ref only sees some of it. Get caught and it is a free kick, a yellow or a red. Flatten the ref and nobody sees a thing, until he gets back up. Change how strict he is in Settings.',el:()=>null,
+    when:()=>state==='play'&&!setPiece&&(coach.ev.fouled||coach.ev.refhit||(coach.ev.tackleN||0)>=3),done:e=>e.shown>7},
   {k:'fury',t:'FURY',tch:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>DANCE</b-i> fills it fast.',key:'Big hits fill this bar. When it is full, your next shot is a fireball nobody can stop. <b-i>B</b-i> dances to fill it fast.',el:()=>furyEl,
     when:()=>coach.left.length===1,done:e=>e.shown>7||TD[0]}];
 let coach=null;
 function coachReset(){saveOpt('studsCoach','');}
 function coachStart(){coach=null;coachHide();if(loadOpt('studsCoach')==='1'||NET.on||AUTO)return;coach={left:COACH.slice(),cur:null,ev:{},gap:0.6};}
-function coachNote(k){if(coach)coach.ev[k]=true;}
+function coachNote(k){if(coach){coach.ev[k]=true;coach.ev[k+'N']=(coach.ev[k+'N']||0)+1;}}
 function coachEnd(skipped){coachHide();coach=null;saveOpt('studsCoach','1');if(!skipped)toast("YOU'RE READY. GO GET 'EM",2.4);}
 let coachHiEl=null;
 function coachHide(){coachEl.hidden=true;if(coachHiEl){coachHiEl.classList.remove('coach-hi');coachHiEl=null;}}
@@ -1136,10 +1140,10 @@ function coachTick(dt){if(!coach)return;
     coachEl.innerHTML='<div class="ck">TIP '+n+' / '+COACH.length+'<i>FIRST MATCH</i></div><b>'+c.t+'</b><p>'+(COARSE?c.tch:c.key).replace(/<b-i>/g,'<strong style="color:var(--neon)">').replace(/<\/b-i>/g,'</strong>')+'</p><button type="button" class="skip">SKIP TIPS</button>';
     coachEl.querySelector('.skip').onclick=()=>coachEnd(true);
     coachEl.hidden=false;coachEl.style.animation='none';void coachEl.offsetWidth;coachEl.style.animation='';
-    if(COARSE||c.k==='fury'){coachHiEl=c.el();coachHiEl.classList.add('coach-hi');}}
+    if((COARSE||c.k==='fury')&&c.el()){coachHiEl=c.el();coachHiEl.classList.add('coach-hi');}}
   coachPlace(c);}
 function coachPlace(c){const W2=innerWidth,H2=innerHeight,bw=coachEl.offsetWidth,bh=coachEl.offsetHeight;
-  if(!COARSE&&c.k!=='fury'){coachEl.className='coach mid';coachEl.style.left=(W2-bw)/2+'px';coachEl.style.top=(H2*0.62)+'px';return;}
+  if((!COARSE&&c.k!=='fury')||!c.el()){coachEl.className='coach mid';coachEl.style.left=(W2-bw)/2+'px';coachEl.style.top=(COARSE?H2*0.4:H2*0.62)+'px';return;}
   const r=c.el().getBoundingClientRect(),cx=r.left+r.width/2,below=r.top<H2*0.4;
   const x=clamp(cx-bw/2,12,W2-bw-12),y=below?r.bottom+16:r.top-bh-16;
   coachEl.className='coach '+(below?'up':'dn');coachEl.style.left=x+'px';coachEl.style.top=y+'px';coachEl.style.setProperty('--ax',clamp(cx-x,22,bw-22)+'px');}
@@ -1386,7 +1390,7 @@ function hit(a,q,kind){
   const foulP=(near?({jump:0.22,dive:0.1,barge:0.06}[kind]||0.08):(TK[kind]?TK[kind].foul:0.22))*REFMUL[refMode];
   if(state==='play'&&Math.random()<foulP){if(ref.down>0&&!ref.off)popup(q.x,q.y-52,'NO REF TO SEE IT!','#9fd8a8');else foul(a,q,kind);}
 }
-function foul(a,q,kind){
+function foul(a,q,kind){if(a.team===0)coachNote('fouled');
   sfx('whistle');const r=Math.random(),redP=(kind==='jump'?0.16:0.05)*[0,0.4,0.7,1.2][refMode],cardP=[0,0.3,0.45,0.65][refMode];let card='',html='';
   if(r<cardP)CROWD.want='chant_ref',CROWD.next=Math.min(CROWD.next,2.5);
   if(r<redP||(r<cardP&&a.yellow>=1)){card='RED CARD';html='<span class="card rc"></span>';a.off=true;flash(0.35,'232,50,43');shake=Math.max(shake,6);vib(120);}
@@ -2080,7 +2084,7 @@ function refStep(dt){const r=ref;if(r.off)return;r.cardT=Math.max(0,r.cardT-dt);
     for(const p of players){if(p.off||p.down>0)continue;const ex=r.x-p.x,ey=r.y-p.y,e=hyp(ex,ey);if(e>0&&e<14){r.x+=ex/e*(14-e);r.y+=ey/e*(14-e);}}}
   else{r.vx*=0.9;r.vy*=0.9;}
   r.x=clamp(r.x+r.vx*dt,-20,W+20);r.y=clamp(r.y+r.vy*dt,-20,H+20);r.phase+=hyp(r.vx,r.vy)*dt*0.09;}
-function refHit(a,kind){if(!a||ref.off||ref.down>0)return;if(a.hitSet)a.hitSet.add(ref);
+function refHit(a,kind){if(!a||ref.off||ref.down>0)return;if(a.team===0)coachNote('refhit');if(a.hitSet)a.hitSet.add(ref);
   const f=kind==='fireball'?Math.atan2(ball.vy,ball.vx):a.face,hv=kind==='jump'?330:kind==='barge'?200:270;
   Object.assign(ref,{down:3,lz:0.1,lvz:kind==='jump'||kind==='fireball'?320:230,vx:Math.cos(f)*hv,vy:Math.sin(f)*hv,cardT:0});
   shake=Math.max(shake,14);slowmo(0.7);hitZoom=1;flash(0.35,'255,255,255');rings.push({x:ref.x,y:ref.y,life:0.6,big:1});
