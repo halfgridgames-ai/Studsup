@@ -5,18 +5,19 @@
   var Cap = window.Capacitor;
   if (!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform() || !Cap.isPluginAvailable('AdMob')) return;
 
-  // AdMob IDs. Google's test IDs until Joseph's AdMob account is set up (TEST = true shows test ads).
+  // AdMob IDs. Android uses the real Studs Up units (Half Grid Games AdMob account); iOS keeps
+  // Google's test units until the iPhone app has its own. TEST = true shows test ads everywhere.
   var IDS = {
     android: {
-      interstitial: 'ca-app-pub-3940256099942544/1033173712',
-      rewarded: 'ca-app-pub-3940256099942544/5224354917'
+      interstitial: 'ca-app-pub-4390358547833612/1920589232',
+      rewarded: 'ca-app-pub-4390358547833612/1321823432'
     },
     ios: {
       interstitial: 'ca-app-pub-3940256099942544/4411468910',
       rewarded: 'ca-app-pub-3940256099942544/1712485313'
     }
   };
-  var TEST = true;
+  var TEST = false;
 
   var PRODUCTS = [
     { id: 'coins_1000', consumable: true },
@@ -52,6 +53,9 @@
   }
 
   // ---------- Ads ----------
+  // privacyOptions: true when Google's consent rules (UK/EU and some US states) need an
+  // "Ad privacy choices" button in Settings so players can change their answer.
+  var privacyOptions = false;
   var adsReady = (async function () {
     try {
       await AdMob.initialize({ initializeForTesting: TEST });
@@ -59,6 +63,7 @@
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) {
         info = await AdMob.showConsentForm();
       }
+      privacyOptions = info.privacyOptionsRequirementStatus === 'REQUIRED';
       // iPhone: Apple's "Allow tracking?" prompt, asked once, after the consent form
       if (platform === 'ios') {
         try {
@@ -181,8 +186,14 @@
     });
   }
 
+  async function showPrivacyOptions() {
+    try { await AdMob.showPrivacyOptionsForm(); } catch (e) { console.warn('Monetize: privacy options failed', e); }
+  }
+
   window.Monetize = {
     ready: function () { return Promise.all([adsReady, storeReady]).then(function () {}); },
+    privacyOptionsRequired: function () { return privacyOptions; },
+    showPrivacyOptions: showPrivacyOptions,
     showInterstitial: showInterstitial,
     showRewarded: showRewarded,
     products: products,

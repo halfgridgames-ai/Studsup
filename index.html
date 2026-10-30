@@ -450,6 +450,9 @@ const CLUBS=[
     names:['Zorp','Probe','Glorbo','Xenon Xavi','Beam Me Up','Little Green Lad']}];
 // ---------- wallet, shop catalogue (see mobile/SHOP-SPEC.md) ----------
 const MZ=()=>window.Monetize||null;
+// Firebase Analytics in the phone app (analytics.js); does nothing on the web.
+const track=(name,params)=>{if(AUTO)return;try{window.Analytics&&window.Analytics.track(name,params);}catch(e){}};
+const matchMode=()=>NET.on?'online':tourMatch?'career':'single';
 const dayStr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const TODAY=()=>dayStr(new Date());
 const KITS={alt1:{n:'AWAY WHITE',col:'#f3efe2',dark:'#9a968a',shorts:'#16191f',price:600},alt2:{n:'NIGHT KIT',col:'#1c1f26',dark:'#000000',shorts:'#b6ff3a',price:600},
@@ -552,6 +555,7 @@ function newMatch(){CLIP.blob=null;
   matchHits=0;TD[0]=TD[1]=null;applyTeams();makeTeams();celeb=null;if(R)buildModels();clock=0;HUMS[0]=HUMS[1]=null;CT[0]=mkCtl();CT[1]=mkCtl();NET.seen={};
   parts.length=0;pops.length=0;Object.assign(ref,{down:0,lz:0,lvz:0,vx:0,vy:0,revenge:null,cardT:0,off:refMode===0});replay=null;replayOn=false;
   kickoff(0);sfx('whistle');comm('kickoff',{t:0},2);coachStart();
+  track('match_start',{mode:matchMode(),difficulty:NET.on?'':tourMatch?'career_'+(tourMatch.r+1)+'_'+(tourMatch.m+1):DIFFS[diff][0].toLowerCase()});
 }
 
 // ---------- input ----------
@@ -881,15 +885,15 @@ function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();s
 function openSettings(){showMenu(subHead('SETTINGS')+'<div class="setlist">'+quickRows()+setRow('REFEREE','ref',REFS,refMode)+setRow('VIBRATE','buzz',['ON','OFF'],buzzOn?0:1)+'</div>'+
   '<div class="brow"><button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button></div>'+
   '<div class="links">'+lnk('rate','★','RATE STUDS UP','star')+lnk('share','📤','SHARE WITH A FRIEND')+lnk('coach','🎓','REPLAY THE TUTORIAL')+
-  lnk('privacy','🔒','PRIVACY POLICY')+lnk('terms','📄','TERMS OF SERVICE')+lnk('contact','✉','CONTACT US')+'</div>'+
+  lnk('privacy','🔒','PRIVACY POLICY')+(MZ()&&MZ().privacyOptionsRequired&&MZ().privacyOptionsRequired()?lnk('adprivacy','🛡️','AD PRIVACY CHOICES'):'')+lnk('terms','📄','TERMS OF SERVICE')+lnk('contact','✉','CONTACT US')+'</div>'+
   '<p class="foot">Studs Up: Red Card Football · Half Grid Games · v'+GAME_V+'</p>');bindSegs();
   document.getElementById('fsBtn2').onclick=()=>{initAudio();toggleFull();};
   sheet.querySelectorAll('.lnk').forEach(b=>b.onclick=()=>{initAudio();const k=b.dataset.l;
     if(k==='rate'&&IOS&&IAR()){IAR().requestReview().catch(()=>{});return;}   // no App Store page link yet, so use Apple's review pop-up
-    if(k==='share')shareGame();else if(k==='coach'){coachReset();toast('TIPS ARE BACK FOR YOUR NEXT MATCH',2.5);}else openLink(LINKS[k]);});}
+    if(k==='share')shareGame();else if(k==='coach'){coachReset();toast('TIPS ARE BACK FOR YOUR NEXT MATCH',2.5);}else if(k==='adprivacy')MZ().showPrivacyOptions();else openLink(LINKS[k]);});}
 const lnk=(k,ic,t,c)=>'<button type="button" class="lnk'+(c?' '+c:'')+'" data-l="'+k+'"><span aria-hidden="true">'+ic+'</span>'+t+'</button>';
 // Links out of the game. In the phone app, navigating to an outside page opens it in the browser, the Play app or the mail app.
-const GAME_V=29,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),IOS=NATIVE&&Capacitor.getPlatform()==='ios',
+const GAME_V=30,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),IOS=NATIVE&&Capacitor.getPlatform()==='ios',
   SITE='https://halfgridgames-ai.github.io/Studsup/',PLAY='https://play.google.com/store/apps/details?id=com.studsup.game',
   LINKS={rate:NATIVE?'market://details?id=com.studsup.game':PLAY,privacy:SITE+'privacy.html',terms:SITE+'terms.html',contact:'mailto:halfgridgames@gmail.com?subject=Studs%20Up'};
 // The store's own review pop-up (@capacitor-community/in-app-review), only inside the phone apps
@@ -1017,7 +1021,7 @@ function shopAction(it){
 function coinItems(){const mz=MZ(),list=[],price=id=>prodInfo[id]?prodInfo[id].price:'…';
   const left=3-wallet.ads.free;
   list.push({id:'free_coins',name:'FREE 100 COINS',icon:'📺',label:left>0?'WATCH AD ('+left+' LEFT)':'BACK TOMORROW',act:()=>{if(left<=0)return;
-    mz.showRewarded('free_coins').then(ok=>{if(ok){wallet.ads.free++;addCoins(100);shopMsg.textContent='+100 COINS';}renderShop();}).catch(()=>{});}});
+    mz.showRewarded('free_coins').then(ok=>{if(ok){track('rewarded_ad_watched',{placement:'free_coins'});wallet.ads.free++;addCoins(100);shopMsg.textContent='+100 COINS';}renderShop();}).catch(()=>{});}});
   if(!safeOwns('starter_pack'))list.push({id:'starter_pack',name:'STARTER PACK: 3000 + GORILLAS',icon:'🎁',label:price('starter_pack'),act:()=>realBuy('starter_pack')});
   for(const p of COIN_PACKS)list.push({id:p.id,name:p.coins.toLocaleString()+' COINS',icon:p.icon,label:price(p.id),act:()=>realBuy(p.id)});
   if(!safeOwns('remove_ads'))list.push({id:'remove_ads',name:'REMOVE ADS',icon:'🚫',label:price('remove_ads'),act:()=>realBuy('remove_ads')});
@@ -1070,6 +1074,7 @@ document.addEventListener('fullscreenchange',fsSync);document.addEventListener('
 function fullTime(){
   stopDance(true);state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;comm('full',{},3);
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
+  track('match_end',{mode:matchMode(),result:a>b?'win':a<b?'loss':'draw',goals_for:a,goals_against:b,big_hits:matchHits,matches_played:(wallet.matches||0)+1});
   const wasTour=tourMatch;let tourWin=0,tourMsg='';
   if(wasTour){const ts=tourState();if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);ts.m++;
       if(ts.m>=3){const RG=TOUR[ts.r];RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
@@ -1091,7 +1096,7 @@ function fullTime(){
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
-    if(ok){wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
+    if(ok){track('rewarded_ad_watched',{placement:'double_coins'});wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
   wallet.matches=(wallet.matches||0)+1;saveWallet();
   if(MZ()&&wallet.matches%2===0)setTimeout(()=>{try{MZ().showInterstitial().catch(()=>{});wallet.lastInterstitialAt=Date.now();saveWallet();}catch(e){}},600);
@@ -1115,9 +1120,9 @@ const COACH=[
     when:()=>coach.left.length===1,done:e=>e.shown>7||TD[0]}];
 let coach=null;
 function coachReset(){saveOpt('studsCoach','');}
-function coachStart(){coach=null;coachHide();if(loadOpt('studsCoach')==='1'||NET.on||AUTO)return;coach={left:COACH.slice(),cur:null,ev:{},gap:0.6};}
+function coachStart(){coach=null;coachHide();if(loadOpt('studsCoach')==='1'||NET.on||AUTO)return;coach={left:COACH.slice(),cur:null,ev:{},gap:0.6};track('tutorial_begin');}
 function coachNote(k){if(coach){coach.ev[k]=true;coach.ev[k+'N']=(coach.ev[k+'N']||0)+1;}}
-function coachEnd(skipped){coachHide();coach=null;saveOpt('studsCoach','1');if(!skipped)toast("YOU'RE READY. GO GET 'EM",2.4);}
+function coachEnd(skipped){coachHide();coach=null;saveOpt('studsCoach','1');track('tutorial_complete',{skipped:skipped?1:0});if(!skipped)toast("YOU'RE READY. GO GET 'EM",2.4);}
 let coachHiEl=null;
 function coachHide(){coachEl.hidden=true;if(coachHiEl){coachHiEl.classList.remove('coach-hi');coachHiEl=null;}}
 function coachTick(dt){if(!coach)return;

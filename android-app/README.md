@@ -6,11 +6,12 @@ This folder turns the web game at the repo root into the Google Play app
 
 | Plugin | What it does | How the game reaches it |
 | --- | --- | --- |
-| `@capacitor-community/admob` | AdMob ads (still Google's test ids) | `monetize.js` |
+| `@capacitor-community/admob` | AdMob ads (real Studs Up ids on Android) | `monetize.js` |
 | `cordova-plugin-purchase` | Google Play Billing | `monetize.js` |
 | `@capacitor/share` + `@capacitor/filesystem` | share sheet for goal clips, room codes, the Play link | `native-share.js` |
 | `@capacitor/haptics` | vibration | the game's `vib()` |
 | `@capacitor-community/in-app-review` | Google Play's rating pop-up | `IAR()` in `index.html` |
+| `@capacitor-firebase/analytics` | Firebase Analytics (match, tutorial and ad events) | `analytics.js` -> `track()` in `index.html` |
 
 ## How the build works
 
@@ -34,3 +35,19 @@ Bump `versionCode` (and `versionName`) in `android/app/build.gradle` for every P
 
 Icons: `python3 tools/make-icons.py` rebuilds the launcher icons and splash from
 `../icon-512.png`, `tools/icon-logo.png` and `tools/icon-background.png`.
+
+## Analytics (Firebase)
+
+`web-extra/analytics.js` sends play events (`match_start`, `match_end`, `tutorial_begin`,
+`tutorial_complete`, `rewarded_ad_watched`) through `@capacitor-firebase/analytics`.
+It only switches on when `android/app/google-services.json` is committed: download it from
+the "Half Grid Games" Firebase project (Android app `com.studsup.game`). The file is not secret.
+
+## Ads
+
+Android uses the real Studs Up AdMob ids: the app id in `android/app/src/main/AndroidManifest.xml`
+and the unit ids (`IDS.android`) in `web-extra/monetize.js`, with `TEST = false`. iOS still uses
+Google's test units until the iPhone app is registered in AdMob. To test ads on a phone, add it as a
+test device in AdMob (Settings -> Test devices); never tap real ads on your own phone.
+
+Settings shows "Ad privacy choices" when Google's consent rules require it (UK/EU, some US states).
