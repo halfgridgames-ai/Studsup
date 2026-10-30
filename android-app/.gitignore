@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Generated web bundle (copied from ../web by sync-web.sh)
+www/
+
+# Android build outputs / local state (android/ source itself IS committed)
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/local.properties
+android/.idea/
+*.iml
+.DS_Store
+
+# Signing material - never commit
+*.jks
+*.keystore
