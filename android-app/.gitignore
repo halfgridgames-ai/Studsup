@@ -17,3 +17,8 @@ android/.idea/
 # Signing material - never commit
 *.jks
 *.keystore
+
+# Apple signing material - never commit
+*.p8
+*.p12
+*.mobileprovision
