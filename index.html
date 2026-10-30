@@ -885,16 +885,17 @@ function openSettings(){showMenu(subHead('SETTINGS')+'<div class="setlist">'+qui
   '<p class="foot">Studs Up: Red Card Football · Half Grid Games · v'+GAME_V+'</p>');bindSegs();
   document.getElementById('fsBtn2').onclick=()=>{initAudio();toggleFull();};
   sheet.querySelectorAll('.lnk').forEach(b=>b.onclick=()=>{initAudio();const k=b.dataset.l;
+    if(k==='rate'&&IOS&&IAR()){IAR().requestReview().catch(()=>{});return;}   // no App Store page link yet, so use Apple's review pop-up
     if(k==='share')shareGame();else if(k==='coach'){coachReset();toast('TIPS ARE BACK FOR YOUR NEXT MATCH',2.5);}else openLink(LINKS[k]);});}
 const lnk=(k,ic,t,c)=>'<button type="button" class="lnk'+(c?' '+c:'')+'" data-l="'+k+'"><span aria-hidden="true">'+ic+'</span>'+t+'</button>';
 // Links out of the game. In the phone app, navigating to an outside page opens it in the browser, the Play app or the mail app.
-const GAME_V=29,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),
+const GAME_V=29,NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),IOS=NATIVE&&Capacitor.getPlatform()==='ios',
   SITE='https://halfgridgames-ai.github.io/Studsup/',PLAY='https://play.google.com/store/apps/details?id=com.studsup.game',
   LINKS={rate:NATIVE?'market://details?id=com.studsup.game':PLAY,privacy:SITE+'privacy.html',terms:SITE+'terms.html',contact:'mailto:halfgridgames@gmail.com?subject=Studs%20Up'};
-// Google Play's in-app review pop-up (@capacitor-community/in-app-review), only inside the Android app
+// The store's own review pop-up (@capacitor-community/in-app-review), only inside the phone apps
 const IAR=()=>NATIVE&&Capacitor.Plugins&&Capacitor.Plugins.InAppReview||null;
 function openLink(url){if(NATIVE||url.startsWith('mailto:'))location.href=url;else window.open(url,'_blank','noopener');}
-function shareGame(){const text='Football with no rules except don\'t hit the ref. Play Studs Up with me!',d={title:'Studs Up: Red Card Football',text,url:PLAY};
+function shareGame(){const text='Football with no rules except don\'t hit the ref. Play Studs Up with me!',d={title:'Studs Up: Red Card Football',text,url:IOS?SITE:PLAY};
   if(navigator.share)navigator.share(d).catch(()=>{});
   else{try{navigator.clipboard.writeText(text+' '+PLAY).then(()=>toast('LINK COPIED. PASTE IT TO A FRIEND',2.5),()=>toast(PLAY,4));}catch(e){toast(PLAY,4);}}}
 let pickSlot=0;

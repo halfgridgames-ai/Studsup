@@ -2,7 +2,7 @@
 # Build the app copy of the web game into www/ and sync it into the Android project.
 # The game at the repo root loads three.js and fonts from CDNs; the app gets local copies
 # (web-extra/) so it works offline, plus monetize.js (ads + purchases) and native-share.js.
-# Run from anywhere:  bash android-app/sync-web.sh
+# Run from anywhere:  bash android-app/sync-web.sh [android|ios]   (default android)
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$HERE/.."
@@ -33,4 +33,4 @@ open(sys.argv[2], 'w', encoding='utf-8').write(s)
 PY
 
 cd "$HERE"
-npx cap sync android
+npx cap sync "${1:-android}"

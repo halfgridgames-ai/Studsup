@@ -59,6 +59,13 @@
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) {
         info = await AdMob.showConsentForm();
       }
+      // iPhone: Apple's "Allow tracking?" prompt, asked once, after the consent form
+      if (platform === 'ios') {
+        try {
+          var t = await AdMob.trackingAuthorizationStatus();
+          if (t.status === 'notDetermined') await AdMob.requestTrackingAuthorization();
+        } catch (e) {}
+      }
       return info.canRequestAds !== false;
     } catch (e) {
       console.warn('Monetize: ads unavailable', e);
