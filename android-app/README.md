@@ -11,6 +11,7 @@ This folder turns the web game at the repo root into the Google Play app
 | `@capacitor/share` + `@capacitor/filesystem` | share sheet for goal clips, room codes, the Play link | `native-share.js` |
 | `@capacitor/haptics` | vibration | the game's `vib()` |
 | `@capacitor-community/in-app-review` | Google Play's rating pop-up | `IAR()` in `index.html` |
+| `@capacitor-firebase/analytics` | Firebase Analytics (match, tutorial and ad events) | `analytics.js` -> `track()` in `index.html` |
 
 ## How the build works
 
@@ -34,3 +35,19 @@ Bump `versionCode` (and `versionName`) in `android/app/build.gradle` for every P
 
 Icons: `python3 tools/make-icons.py` rebuilds the launcher icons and splash from
 `../icon-512.png`, `tools/icon-logo.png` and `tools/icon-background.png`.
+
+## Analytics (Firebase)
+
+`web-extra/analytics.js` sends play events (`match_start`, `match_end`, `tutorial_begin`,
+`tutorial_complete`, `rewarded_ad_watched`) through `@capacitor-firebase/analytics`.
+It only switches on when `android/app/google-services.json` is committed: download it from
+the "Half Grid Games" Firebase project (Android app `com.studsup.game`). The file is not secret.
+
+## Real ads (before launch)
+
+`monetize.js` still uses Google's test ids. To earn money, swap three things for the ids from AdMob:
+1. `com.google.android.gms.ads.APPLICATION_ID` in `android/app/src/main/AndroidManifest.xml`.
+2. `IDS.android` (interstitial + rewarded unit ids) in `web-extra/monetize.js`.
+3. `TEST = false` in `web-extra/monetize.js`.
+
+Settings shows "Ad privacy choices" when Google's consent rules require it (UK/EU, some US states).

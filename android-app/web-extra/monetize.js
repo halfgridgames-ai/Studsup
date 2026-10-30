@@ -52,6 +52,9 @@
   }
 
   // ---------- Ads ----------
+  // privacyOptions: true when Google's consent rules (UK/EU and some US states) need an
+  // "Ad privacy choices" button in Settings so players can change their answer.
+  var privacyOptions = false;
   var adsReady = (async function () {
     try {
       await AdMob.initialize({ initializeForTesting: TEST });
@@ -59,6 +62,7 @@
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) {
         info = await AdMob.showConsentForm();
       }
+      privacyOptions = info.privacyOptionsRequirementStatus === 'REQUIRED';
       return info.canRequestAds !== false;
     } catch (e) {
       console.warn('Monetize: ads unavailable', e);
@@ -174,8 +178,14 @@
     });
   }
 
+  async function showPrivacyOptions() {
+    try { await AdMob.showPrivacyOptionsForm(); } catch (e) { console.warn('Monetize: privacy options failed', e); }
+  }
+
   window.Monetize = {
     ready: function () { return Promise.all([adsReady, storeReady]).then(function () {}); },
+    privacyOptionsRequired: function () { return privacyOptions; },
+    showPrivacyOptions: showPrivacyOptions,
     showInterstitial: showInterstitial,
     showRewarded: showRewarded,
     products: products,
