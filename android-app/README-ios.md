@@ -79,9 +79,8 @@ Use Safari or Chrome on the phone. Where a site looks cramped, choose
    The settings Rate link uses Apple's review pop-up on iPhone, and Share links to the Pages site
    until the App Store page exists.
 2b. **Firebase (iPhone)**: add an iOS app in the Firebase console with the bundle id above, download
-   `GoogleService-Info.plist` into `ios/App/App/` (and the Xcode target), and drop
-   `@capacitor-firebase/analytics` from the `ios.includePlugins` filter's absence: remove the filter in
-   `capacitor.config.json`. Until then the iPhone app runs without analytics.
+   `GoogleService-Info.plist` into `ios/App/App/` (and the Xcode target), and remove
+   the `ios.includePlugins` filter in `capacitor.config.json`. Until then the iPhone app runs without analytics.
 3. **In-app purchases**: App Store Connect -> the app -> **Monetization -> In-App Purchases**.
    Same ids as Play (`PRODUCTS` in `web-extra/monetize.js`): coin packs as Consumable, `remove_ads` and `starter_pack` as Non-Consumable. Each needs a display name, description and a review
    screenshot of the shop. Add them to the first app version when you submit it.
