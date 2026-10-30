@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "692880722911",
+    "project_id": "half-grid-games-d15fb",
+    "storage_bucket": "half-grid-games-d15fb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692880722911:android:b4de97cef924372ad3526a",
+        "android_client_info": {
+          "package_name": "com.halfgridgames.marblemayhem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDU42D2NH1Eun7kWuB2r2W7Midp76yUn_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692880722911:android:92608daa72654cecd3526a",
+        "android_client_info": {
+          "package_name": "com.studsup.game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDU42D2NH1Eun7kWuB2r2W7Midp76yUn_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
