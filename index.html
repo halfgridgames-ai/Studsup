@@ -885,7 +885,7 @@ function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();s
 function openSettings(){showMenu(subHead('SETTINGS')+'<div class="setlist">'+quickRows()+setRow('REFEREE','ref',REFS,refMode)+setRow('VIBRATE','buzz',['ON','OFF'],buzzOn?0:1)+'</div>'+
   '<div class="brow"><button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button></div>'+
   '<div class="links">'+lnk('rate','★','RATE STUDS UP','star')+lnk('share','📤','SHARE WITH A FRIEND')+lnk('coach','🎓','REPLAY THE TUTORIAL')+
-  lnk('privacy','🔒','PRIVACY POLICY')+(MZ()&&MZ().privacyOptionsRequired&&MZ().privacyOptionsRequired()?lnk('adprivacy','🛡','AD PRIVACY CHOICES'):'')+lnk('terms','📄','TERMS OF SERVICE')+lnk('contact','✉','CONTACT US')+'</div>'+
+  lnk('privacy','🔒','PRIVACY POLICY')+(MZ()&&MZ().privacyOptionsRequired&&MZ().privacyOptionsRequired()?lnk('adprivacy','🛡️','AD PRIVACY CHOICES'):'')+lnk('terms','📄','TERMS OF SERVICE')+lnk('contact','✉','CONTACT US')+'</div>'+
   '<p class="foot">Studs Up: Red Card Football · Half Grid Games · v'+GAME_V+'</p>');bindSegs();
   document.getElementById('fsBtn2').onclick=()=>{initAudio();toggleFull();};
   sheet.querySelectorAll('.lnk').forEach(b=>b.onclick=()=>{initAudio();const k=b.dataset.l;
