@@ -5,16 +5,16 @@
   var Cap = window.Capacitor;
   if (!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform() || !Cap.isPluginAvailable('AdMob')) return;
 
-  // AdMob IDs. Android uses the real Studs Up units (Half Grid Games AdMob account); iOS keeps
-  // Google's test units until the iPhone app has its own. TEST = true shows test ads everywhere.
+  // AdMob IDs: the real Studs Up units (Half Grid Games AdMob account), one AdMob app per platform.
+  // TEST = true shows test ads everywhere.
   var IDS = {
     android: {
       interstitial: 'ca-app-pub-4390358547833612/1920589232',
       rewarded: 'ca-app-pub-4390358547833612/1321823432'
     },
     ios: {
-      interstitial: 'ca-app-pub-3940256099942544/4411468910',
-      rewarded: 'ca-app-pub-3940256099942544/1712485313'
+      interstitial: 'ca-app-pub-4390358547833612/9923715686',
+      rewarded: 'ca-app-pub-4390358547833612/6966379851'
     }
   };
   var TEST = false;
