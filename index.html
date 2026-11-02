@@ -1909,8 +1909,9 @@ function humanThink(t,dt){
       return;}}
   if(pressed.dance&&state==='play'){CROWD.want='chant_ole';CROWD.next=Math.min(CROWD.next,0.6);TD[t]={t:0,maxed:TEAMS[t].fury>=100};p.dance=0.001;p.dvx=p.dvy=0;C.charging=false;C.charge=0;popup(p.x,p.y-34,'DANCE PARTY!','#d63cc0');sfx('ooh');comm('dance',{a:p},2);return;}
   const has=ball.owner===p,sp=has?SPRINT*0.93:(held.sprint?SPRINT:RUN);
-  p.dvx=inp.x*sp;p.dvy=inp.y*sp;if(inp.x||inp.y)p.face=Math.atan2(inp.y,inp.x);
-  else if(ball.passTo===p&&!ball.owner){const q=receivePt(p);moveTo(p,q.x,q.y,SPRINT);}
+  // A pass is on its way to you: run onto it automatically. The stick takes over again once you have the ball.
+  if(ball.passTo===p&&!ball.owner){const q=receivePt(p);moveTo(p,q.x,q.y,SPRINT);}
+  else{p.dvx=inp.x*sp;p.dvy=inp.y*sp;if(inp.x||inp.y)p.face=Math.atan2(inp.y,inp.x);}
   const atk=atkMode(t);
   // tap pass or shoot while our pass is on its way and it is played first time on arrival
   if(!has&&atk&&ball.passTo===p){if(pressed.pass)C.oneTouch={k:'pass',t:0.7};else if(pressed.shoot)C.oneTouch={k:'shoot',t:0.7};}
