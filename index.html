@@ -136,6 +136,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .comm{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top,0px));transform:translateX(-50%) skewX(-8deg);max-width:min(560px,80vw);background:var(--panel);border-left:5px solid var(--flare);
   padding:6px 14px;font-family:var(--display);font-size:clamp(12px,2.2vw,17px);line-height:1.15;letter-spacing:.02em;text-align:center;pointer-events:none;transition:opacity .35s;box-shadow:0 4px 0 rgba(0,0,0,.35)}
 .comm.hide{opacity:0}
+.comm.co{border-left-color:#ffc23a;font-style:italic}
 .comm::before{content:'🎙 '}
 .opts{display:flex;gap:6px;flex-wrap:wrap}
 .opts button{font-family:var(--display);font-size:11px;background:var(--panel);color:var(--chalk);border:2px solid rgba(243,239,226,.5);padding:6px 9px;cursor:pointer}
@@ -554,7 +555,7 @@ let matchHits=0;
 function newMatch(){CLIP.blob=null;
   matchHits=0;TD[0]=TD[1]=null;applyTeams();makeTeams();celeb=null;if(R)buildModels();clock=0;HUMS[0]=HUMS[1]=null;CT[0]=mkCtl();CT[1]=mkCtl();NET.seen={};
   parts.length=0;pops.length=0;Object.assign(ref,{down:0,lz:0,lvz:0,vx:0,vy:0,revenge:null,cardT:0,off:refMode===0});replay=null;replayOn=false;
-  kickoff(0);sfx('whistle');comm('kickoff',{t:0},2);coachStart();
+  kickoff(0);sfx('whistle');commReset();comm('kickoff',{t:0},2);coachStart();
   track('match_start',{mode:matchMode(),difficulty:NET.on?'':tourMatch?'career_'+(tourMatch.r+1)+'_'+(tourMatch.m+1):DIFFS[diff][0].toLowerCase()});
 }
 
@@ -1264,23 +1265,135 @@ const COMM={
   replay:['Let us see that again!','Here it is again, in glorious slow motion.','One more look at that one.'],
   replayf:['One more look at that fireball.','Here comes the fireball again!'],
   full:['That is full time! {S}.','The final whistle goes. {S}.','It is all over! {S}.']};
-const commEl=document.getElementById('comm');let commT=0,commPri=0,commCd=0;const commLast={};
+// More lines for the busiest moments, so a match doesn't repeat itself.
+for(const [k,L] of Object.entries({
+  kickoff:['{T} and {O}. Somebody is going home with a limp.','Shin pads checked, gum shields in. Let us go!','The ref blows, and the violence can begin.','Kick off! Nobody here has read the rulebook.'],
+  hit:['{v} has been folded like a deckchair.','{a} arrives a week late and twice as hard.','That will be on the highlights reel, and the X-ray.','{a} did not even look at the ball.','{v} is checking all their limbs are still attached.','Timber! {v} goes down.'],
+  jump:['{a} takes off! Feet first, brain second.','Flying boot from {a}! The crowd gasps.','{a} leaves the ground and {v} pays for it.'],
+  dive:['{a} throws the whole body in!','Head first, {a} hits {v} like a bowling ball.','{a} goes in low and hard!'],
+  barge:['{a} leans in and {v} goes flying.','Shoulder charge! {v} bounces off {a}.','{a} uses every ounce on {v}.'],
+  steal:['Lovely little nick from {a}.','{a} takes it like it was never {v}\'s.','Sneaky from {a}, {v} never saw them coming.'],
+  shot:['{a} goes for goal!','{a} hits it hard!','Here comes the shot from {a}!','{a} winds up...'],
+  save:['{k} makes it look easy.','Comfortable for {k}.','{k} just stands there and it hits them. Still counts.','{k} pats it down like a cat with a mouse.'],
+  parry:['{k} gets a big hand to it!','Brilliant reactions from {k}!','{k} palms it away, and breathes again.','Strong wrists from {k}, it stays out!'],
+  miss:['{a} has hit the car park.','Way over. {a} will hear about that.','{a} snatches at it and it flies wide.','That one is still climbing.','The ball boys are going to need a ladder.'],
+  goal:['{a} smashes it in! {S}.','In off the inside of the post! {a}!','{a} picks the corner and the keeper has no chance.','{a} scores and the place goes wild!','GET IN! {a} for {T}!','{a} with the finish! {S}.'],
+  foul:['Free kick. Somebody got carried away.','The whistle goes, the ref is not having it.','Foul given, {a} looks shocked. Nobody else is.'],
+  yellow:['{a} is booked. Careful now.','Yellow for {a}. One more and they are walking.','The ref writes {a} down in his little book.'],
+  red:['{a} is OFF! See you next week.','Red card! {a} trudges off to boos.','That is the end of {a}\'s afternoon.'],
+  half:['Half way through. {S}.','We are at the midway point. {S}.'],
+  full:['There it is. Full time. {S}.','Peep peep peeeeep. {S}.']}))COMM[k]=COMM[k].concat(L);
+// Context lines: picked instead of the plain line when the moment fits. {n} a count, {L} the team behind, {W} the team ahead, {m} the minute.
+Object.assign(COMM,{
+  'goal.first':['{a} breaks the deadlock! {S}.','The first goal of the game goes to {a}!','{T} draw first blood. {a} the scorer.'],
+  'goal.equal':['{a} levels it! {S}!','All square! {a} hauls {T} back into it!','EQUALISER! {a} for {T}!','{T} are level, and the crowd knows it. {S}.'],
+  'goal.lead':['{T} lead! {a} with the goal!','{a} puts {T} in front! {S}.','And {T} are ahead! {a}!'],
+  'goal.rout':['It is a hammering. {S}.','{a} piles on the misery. {S}.','{O} have stopped trying. {a} makes it {S}.','Another one! This is getting embarrassing for {O}.'],
+  'goal.brace':['{a} has two today!','That is a double for {a}!','{a} again! Somebody mark them!'],
+  'goal.hat':['HAT TRICK! {a} has three!','Three for {a}! Somebody fetch the match ball!','{a} completes the hat trick! What a day!'],
+  'goal.reply':['{T} hit straight back! {a}!','Straight up the other end and {a} scores!','The reply is instant! {a}!'],
+  'goal.late':['A LATE GOAL! {a}! {S}!','{a} scores in the dying seconds!','At the death! {a}!'],
+  'goal.comeback':['What a comeback! {T} were dead and buried!','From two down, {T} are back! {a}!','Never write off {T}! {a} completes the comeback!'],
+  'hit.serial':['That is {n} big hits from {a} today.','{a} is having a very violent afternoon. Number {n}.','Somebody stop {a}! That is {n} now.'],
+  'hit.keeper':['They have gone through the KEEPER! {v} is flattened!','Nobody is safe. Not even {v} in goal.','{a} takes out the keeper. Bold.'],
+  'hit.revenge':['{a} gets revenge on {v}!','{v} hit {a} earlier. {a} remembered.','Payback! {a} returns the favour.'],
+  'yellow.repeat':['{a} keeps going. That is foul number {n}.','{a} is walking a tightrope now.'],
+  'red.second':['Second yellow! {a} is OFF!','{a} could not help themselves. Two yellows, off they go!','The ref warned {a}. Now it is a red.'],
+  'miss.repeat':['{a} misses AGAIN. That is {n} today.','{a} could not hit a barn door.','Another miss from {a}. The crowd are laughing now.'],
+  'save.wall':['{k} again! That is {n} saves!','{k} is unbeatable today!','{k} is having the game of their life!'],
+  'half.lead':['{W} lead at the half way mark. {S}.','Half way, and {L} have work to do. {S}.'],
+  'half.draw':['Half way and nothing between them. {S}.','All square at the half way point. {S}.'],
+  'lastmin.close':['Final minute and one goal could swing it!','Last minute! {L} need something here!','Hold on to your seats, one minute left!'],
+  'lastmin.level':['Last minute and it is all square! Who wants it?','A minute left and nothing in it!'],
+  'full.win':['{W} win it! {S}.','Full time, and the points go to {W}. {S}.','The whistle goes. {W} take it. {S}.'],
+  'full.draw':['Full time, nothing to separate them. {S}.','A draw! Everybody limps home with something. {S}.'],
+  'full.rout':['Full time. {L} will want to forget that one. {S}.','A thrashing! {W} were brilliant. {S}.']});
+// The co-commentator, Terry, adds a reaction after the big moments (text only).
+const CO={goal:['What a finish. You do not teach that.','I would have scored that with my eyes shut, mind you.','Look at the celebration. They have practised that.','The keeper will not want to watch that back.','Clinical. Absolutely clinical.'],
+  hit:['That is going to bruise tomorrow.','I used to tackle like that. I got banned a lot.','Lovely technique on that hit. Horrible, but lovely.','Somebody check they are breathing.','In my day that was a handshake.'],
+  red:['Fair enough. Seen better tackles in a car crash.','Early shower. Lucky them, it is cold out here.'],
+  yellow:['Has to be careful now.','The ref is losing patience.'],
+  save:['Good hands. Strong wrists.','Keepers are a strange breed. That one is good though.'],
+  parry:['Top save that. Top, top save.','Never mind the shot, look at that save!'],
+  miss:['Head over the ball, son!','My nan would have scored that.','Shooting practice on Monday, I reckon.'],
+  fireball:['I have no idea how they do that.','Is that even legal? Doesn\'t matter, it is brilliant.'],
+  ref:['Somebody get the ref a cup of tea.','The ref will remember that face.'],
+  juke:['Sent them for a hot dog!','Lovely feet. Lovely, lovely feet.'],
+  owngoal:['Oh dear. Oh dear oh dear.','Wrong end, mate!']};
+// Each team gets a few lines of its own, used in quiet spells and now and then on a goal.
+const TEAM_LINES={hooligans:['The {T} fans have been singing since breakfast.','{T} came here for a scrap, the football is a bonus.','Rumour is the {T} warm up by headbutting a wall.'],
+  penguins:['The {T} are waddling with real purpose today.','The {T} train on an ice floe, apparently.','Fish for the {T} at half time, I am told.'],
+  polar_bears:['The {T} could hug you to death.','The {T} hibernated through pre-season.','Enormous paws on the {T}. Not great for passing.'],
+  kangaroos:['The {T} are bouncing about like it is a trampoline.','Never get into a boxing match with the {T}.','The {T} keep snacks in their pouches.'],
+  gorillas:['The {T} are thumping their chests again.','Banana break for the {T} soon, surely.','Nobody argues with the {T}. Nobody.'],
+  grannies:['The {T} have their handbags on the touchline.','The {T} are faster than they look. Much faster.','Bingo is at seven, so the {T} want this done quickly.'],
+  ninjas:['You cannot hear the {T} coming.','Did a {T} player just vanish? I think they did.','The {T} wear black. Very hard to referee.'],
+  riot:['The {T} have brought the shields again.','The {T} are trying to kettle the ball.','Never seen the {T} lose a scuffle.'],
+  dolphins:['The {T} are clicking to each other. A secret code.','Very slippery, the {T}. Hard to tackle.','The {T} would rather be in the sea, you can tell.'],
+  aliens:['The {T} might be probing the opposition.','Some say the {T} came here just for this match.','The {T} are a long way from home.']};
+const STAD_LINES={stadium_home:['Welcome to Brawl Park, under the lights.'],
+  home_penguins:['We are out on the Iceberg. Mind your footing.'],home_polar_bears:['Under the aurora at Aurora Glacier. What a sky.'],home_kangaroos:['Red dust and blue skies at the Outback.'],home_gorillas:['Deep in the jungle at the Temple. Watch for snakes.'],
+  home_grannies:['Tea and biscuits at Bingo Gardens.'],home_ninjas:['Lanterns lit at the Shadow Dojo.'],home_riot:['Searchlights on at Lockdown Yard. Nobody leaves.'],home_dolphins:['Sun, sand and palm trees at Paradise Island.'],home_aliens:['Low gravity at the Moon Base, apparently.']};
+const FILL_LINES=['{W} lead by {n}. {L} need to wake up.','{L} have it all to do. {S}.','Still goalless. Somebody do something.','Nobody can find a way through.','Big crowd in today, and loud.','You could cut the tension with a shin pad.','The managers are shouting, nobody is listening.','{m} minutes gone. {S}.'];
+const commEl=document.getElementById('comm');let commT=0,commPri=0,commCd=0,commQuiet=0,coNext=null,lastGoal=null;const commLast={};
 const tcase=s=>String(s||'').toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
-function comm(evt,c,pri){const L=COMM[evt];if(!L||NET.guest||state==='title')return;pri=pri||1;c=c||{};
+function commReset(){commQuiet=-4;coNext=null;lastGoal=null;TEAMS[0].maxDef=TEAMS[1].maxDef=0;}
+// Keep a tally per player (goals, hits, fouls, misses, saves) so the commentator can remember them.
+function commCount(evt,c){const a=c.a,k=c.k,inc=(p,f)=>{if(p)p[f]=(p[f]||0)+1;};
+  if(evt==='goal'||evt==='penscore')inc(a,'goals');
+  else if(evt==='hit'||evt==='jump'||evt==='dive'||evt==='barge'){inc(a,'hits');if(c.v)c.v.hitBy=a;}
+  else if(evt==='foul'||evt==='yellow'||evt==='red'||evt==='penalty')inc(a,'fouls');
+  else if(evt==='miss')inc(a,'misses');
+  else if(evt==='save'||evt==='parry'||evt==='pensave')inc(k,'saves');}
+// Pick a line that fits the moment (equaliser, hat trick, second yellow...), or null for a plain one.
+function commVariant(evt,c,t){const a=c.a,k=c.k,s0=TEAMS[0].score,s1=TEAMS[1].score,late=clock>=MATCH*0.92,r=Math.random();
+  if(evt==='goal'||evt==='penscore'||evt==='owngoal'){const T=TEAMS[t],O=TEAMS[1-t],s=T.score,o=O.score;O.maxDef=Math.max(O.maxDef||0,o<s?s-o:0);let v=null;
+    if(a&&a.goals===3)v='goal.hat';else if((T.maxDef||0)>=2&&s>=o)v='goal.comeback';else if(late&&Math.abs(s-o)<=1)v='goal.late';
+    else if(s+o===1)v='goal.first';else if(s===o)v='goal.equal';else if(lastGoal&&lastGoal.t!==t&&clock-lastGoal.c<12)v='goal.reply';
+    else if(s-o>=3)v='goal.rout';else if(s===o+1)v='goal.lead';else if(a&&a.goals===2)v='goal.brace';
+    lastGoal={t,c:clock};return evt==='goal'&&r<0.85?v:null;}
+  if(evt==='hit'||evt==='jump'||evt==='dive'||evt==='barge'){if(c.v&&c.v.role==='GK'&&r<0.8)return 'hit.keeper';if(a&&c.v&&a.hitBy===c.v&&r<0.6)return 'hit.revenge';
+    if(a&&a.hits>=3&&r<0.5){c.n=a.hits;return 'hit.serial';}return null;}
+  if(evt==='yellow'&&a&&a.fouls>=3){c.n=a.fouls;return 'yellow.repeat';}
+  if(evt==='red'&&a&&a.yellow>=1)return 'red.second';
+  if(evt==='miss'&&a&&a.misses>=2&&r<0.6){c.n=a.misses;return 'miss.repeat';}
+  if((evt==='save'||evt==='parry')&&k&&k.saves>=3&&r<0.5){c.n=k.saves;return 'save.wall';}
+  if(evt==='half')return s0===s1?'half.draw':'half.lead';
+  if(evt==='lastmin')return s0===s1?'lastmin.level':Math.abs(s0-s1)===1?'lastmin.close':null;
+  if(evt==='full')return s0===s1?'full.draw':Math.abs(s0-s1)>=3?'full.rout':'full.win';
+  return null;}
+function commFill(line,c,t){const nm=p=>p&&p.name?p.name:'',s0=TEAMS[0].score,s1=TEAMS[1].score,w=s0>=s1?0:1;
+  return line.replace(/\{a\}/g,nm(c.a)||'They').replace(/\{v\}/g,nm(c.v)||'the defender').replace(/\{k\}/g,nm(c.k)||'the keeper')
+    .replace(/\{T\}/g,tcase(TEAMS[t].name)).replace(/\{O\}/g,tcase(TEAMS[1-t].name)).replace(/\{W\}/g,tcase(TEAMS[w].name)).replace(/\{L\}/g,tcase(TEAMS[1-w].name))
+    .replace(/\{n\}/g,c.n!=null?c.n:Math.abs(s0-s1)).replace(/\{m\}/g,Math.max(1,Math.round(clock/MATCH*90)))
+    .replace(/\{S\}/g,tcase(TEAMS[0].name)+' '+s0+', '+tcase(TEAMS[1].name)+' '+s1);}
+function pickLine(key,L){const last=commLast[key]||(commLast[key]=[]);let i=Math.random()*L.length|0,n=0;while(last.includes(i)&&n++<20)i=Math.random()*L.length|0;
+  last.push(i);if(last.length>Math.max(1,L.length-1))last.shift();return L[i];}
+function comm(evt,c,pri){if(!COMM[evt]||NET.guest||state==='title')return;pri=pri||1;c=c||{};commCount(evt,c);
+  const t=c.t!=null?c.t:c.a&&c.a.team!=null?c.a.team:c.k?1-c.k.team:0;
+  const v=commVariant(evt,c,t);   // always run, it keeps the score story up to date
   if(commT>0&&pri<commPri)return;if(pri<2&&commCd>0)return;
-  const last=commLast[evt]||(commLast[evt]=[]);let i=Math.random()*L.length|0,n=0;while(last.includes(i)&&n++<20)i=Math.random()*L.length|0;
-  last.push(i);if(last.length>Math.max(1,L.length-1))last.shift();
-  const t=c.t!=null?c.t:c.a&&c.a.team!=null?c.a.team:c.k?1-c.k.team:0,nm=p=>p&&p.name?p.name:'';
-  const s=L[i].replace(/\{a\}/g,nm(c.a)||'They').replace(/\{v\}/g,nm(c.v)||'the defender').replace(/\{k\}/g,nm(c.k)||'the keeper')
-    .replace(/\{T\}/g,tcase(TEAMS[t].name)).replace(/\{O\}/g,tcase(TEAMS[1-t].name)).replace(/\{S\}/g,tcase(TEAMS[0].name)+' '+TEAMS[0].score+', '+tcase(TEAMS[1].name)+' '+TEAMS[1].score);
-  netEv('c',s,evt,pri);commShow(s,evt,pri);}
-function commShow(s,evt,pri){if(commMode==='off')return;commEl.textContent=s;commEl.classList.remove('hide');commT=2.8;commPri=pri;commCd=pri>=2?1.4:2.4;
+  let key=v&&COMM[v]?v:evt,line=pickLine(key,COMM[key]);
+  if(evt==='kickoff'&&STAD_LINES[curStad()]&&Math.random()<0.6)line=pickLine('stad',STAD_LINES[curStad()]);
+  const s=commFill(line,c,t);netEv('c',s,key,pri);commShow(s,key,pri);
+  if(CO[evt]&&pri>=2&&Math.random()<0.45)coNext={t:2.9,evt};}
+function commShow(s,evt,pri){if(commMode==='off')return;commEl.textContent=s;commEl.classList.toggle('co',evt==='co');commEl.classList.remove('hide');commT=2.8;commPri=pri;commCd=pri>=2?1.4:2.4;commQuiet=0;
   if(commMode==='voice'&&pri>=2)playClip(evt);}
-function commTick(dt){commCd-=dt;if(commT>0){commT-=dt;if(commT<=0){commEl.classList.add('hide');commPri=0;}}}
+// Quiet spells: a line about the score, a player, or one of the teams. Then Terry, if he has something to add.
+function commIdle(){const s0=TEAMS[0].score,s1=TEAMS[1].score,ps=players.filter(p=>!p.off),hitter=ps.reduce((b,p)=>(p.hits||0)>(b?b.hits||0:1)?p:b,null),r=Math.random();
+  let line,c={},t=Math.random()<0.5?0:1;
+  if(hitter&&r<0.3){c={a:hitter,n:hitter.hits};t=hitter.team;line=pick(['{a} has made {n} big hits already.','{a} is up to {n} hits. Somebody book them.','{n} hits from {a}. The physio is exhausted.']);}
+  else if(r<0.65&&TEAM_LINES[TEAMS[t].key])line=pick(TEAM_LINES[TEAMS[t].key]);
+  else line=pick(FILL_LINES.filter(l=>s0===s1?!/\{[WL]\}/.test(l):!/goalless|through/.test(l)).filter(l=>s0+s1===0||!/goalless/.test(l)));
+  const s=commFill(line,c,t);netEv('c',s,'filler',1);commShow(s,'filler',1);}
+function commTick(dt){commCd-=dt;if(commT>0){commT-=dt;if(commT<=0){commEl.classList.add('hide');commPri=0;}}
+  if(NET.guest||state==='title')return;
+  if(coNext){coNext.t-=dt;if(coNext.t<=0&&commT<=0.6){const s='TERRY: '+pickLine('co_'+coNext.evt,CO[coNext.evt]);coNext=null;netEv('c',s,'co',1);commShow(s,'co',1);}else if(coNext.t<-3)coNext=null;}
+  if(state==='play'&&commT<=0){commQuiet+=dt;if(commQuiet>9){commIdle();commQuiet=-rand(0,5);}}}
 // Voice: recorded commentator clips listed in comm/clips.json ({"goal":["goal_1.mp3",...]}). No clips, no voice: the ticker still shows every line.
 let CLIPS={},clipNow=null;const clipLast={};
 try{fetch('comm/clips.json').then(r=>r.ok?r.json():{}).then(j=>{CLIPS=j||{};}).catch(()=>{});}catch(e){}
-function playClip(evt){const L=CLIPS[evt];if(muted||!L||!L.length)return;
+function playClip(evt){const L=CLIPS[evt]||CLIPS[String(evt).split('.')[0]];if(muted||!L||!L.length)return;
   const last=clipLast[evt];let i=Math.random()*L.length|0;if(L.length>1&&i===last)i=(i+1)%L.length;clipLast[evt]=i;
   try{if(clipNow){clipNow.pause();clipNow=null;}const a=new Audio('comm/'+L[i]);a.volume=0.95;a.play().catch(()=>{});clipNow=a;}catch(e){}}
 function burst(x,y,n,cols,sp,up,z0){netEv('u',r1(x),r1(y),n,cols,sp,up,z0);for(let i=0;i<n;i++){const a=rand(0,PI*2),s=rand(0.3,1)*sp;parts.push({x,y,z:(z0||0)+rand(0,6),vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:rand(0.3,1)*up,life:rand(0.4,0.9),col:cols[i%cols.length],r:rand(1.2,2.8)});}}
