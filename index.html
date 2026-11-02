@@ -543,7 +543,7 @@ const ownGoalX=t=>t===0?0:W, attackDir=t=>t===0?1:-1;
 function resetBodies(){CT[0].oneTouch=CT[1].oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.skill=0;p.gkDive=null;p.gkLand=p.catchT=p.diveCd=p.trapT=p.stagger=0;p.hitSet.clear();});}
 function kickoff(team){
   resetBodies();
-  players.forEach(p=>{if(p.off)return;const b=basePos(p);p.x=b.x;p.y=b.y;p.face=p.team?PI:0;});
+  players.forEach(p=>{if(p.off)return;const b=basePos(p);p.x=b.x;p.y=b.y;p.face=p.team?PI:0;p.gkTx=null;});
   const taker=players.find(p=>p.team===team&&p.role==='FWD'&&live(p))||players.find(p=>p.team===team&&p.role!=='GK'&&live(p));
   taker.face=team===0?PI:0;taker.x=CX-Math.cos(taker.face)*11;taker.y=CY;
   Object.assign(ball,{x:CX,y:CY,z:0,vx:0,vy:0,vz:0,owner:null,super:false,inNet:false,passTo:null});
@@ -1786,8 +1786,12 @@ function gkThink(p,dt){
   if(gkAirStep(p,dt))return;
   if(ball.owner===p){p.hold+=dt;p.dvx=p.dvy=0;p.face=dir>0?0:PI;
     if(p.hold>0.9){const t=bestPassTarget(p,p.face,false);if(t)passTo(p,t);else release(p,dir*500,rand(-100,100),280);}return;}
-  const bd=hyp(ball.x-own,ball.y-CY);
-  let tx=own+dir*(14+clamp((bd-140)*0.06,0,26)),ty=CY+(ball.y-CY)*0.6,spd=RUN*1.05;
+  const bx=ball.x+ball.vx*0.15,by=ball.y+ball.vy*0.15,bd=hyp(bx-own,by-CY),central=1-clamp(Math.abs(by-CY)/(H/2),0,1);
+  // Narrow the angle: follow the ball across more as it gets closer, step off the line when it is far and central.
+  let tx=own+dir*(12+clamp((bd-120)*0.06,0,28)*(0.4+0.6*central)),ty=CY+(by-CY)*clamp(0.85-bd/1400,0.32,0.8),spd=RUN*1.1;
+  // One on one: an attacker through on goal with nobody near him, so come out and close him down.
+  {const c=ball.owner;if(c&&c.team!==p.team&&!c.off){const cd=hyp(c.x-own,c.y-CY),toward=(c.vx*-dir)>20,help=players.some(q=>q.team===p.team&&q!==p&&!q.off&&q.down<=0&&dist(q,c)<45);
+    if(cd<260&&Math.abs(c.y-CY)<BOX_H&&toward&&!help){const k=clamp(0.62-cd/700,0.2,0.5);tx=own+(c.x-own)*k;ty=CY+(c.y-CY)*k;spd=SPRINT*1.1;}}}
   if(!ball.owner&&ball.vx*-dir>160){const t=(own-ball.x)/ball.vx;if(t>0&&t<1.3){ty=ball.y+ball.vy*t;spd=330;}
     // a shot about to arrive out of reach: dive for it
     if(t>0.05&&t<0.42&&ball.lastTeam!==p.team&&ball.vx*-dir>300&&!(p.diveCd>0)){const ly=ball.y+ball.vy*t,lz=Math.max(0,ball.z+ball.vz*t-450*t*t),d=ly-p.y;
@@ -1796,7 +1800,9 @@ function gkThink(p,dt){
   const inBox=Math.abs(ball.x-own)<BOX_D&&Math.abs(ball.y-CY)<BOX_H;
   if(inBox&&!ball.owner&&ball.z<30&&hyp(ball.vx,ball.vy)<320){const [,od]=nearestOpp({x:ball.x,y:ball.y,team:p.team});if(dist(p,ball)<od*1.2){tx=ball.x;ty=ball.y;spd=RUN*1.2;}}
   else if(inBox&&ball.owner&&ball.owner.team!==p.team&&dist(p,ball)<110){tx=(tx+ball.x)/2;ty=(ty+ball.y)/2;spd=RUN*1.1;}
-  moveTo(p,tx,ty,spd);
+  // glide to the spot instead of twitching after every touch of the ball
+  {const k=1-Math.exp(-(spd>RUN*1.15?14:7)*dt);if(p.gkTx==null||spd>=330){p.gkTx=tx;p.gkTy=ty;}p.gkTx+=(tx-p.gkTx)*k;p.gkTy+=(ty-p.gkTy)*k;
+   const far=hyp(p.gkTx-p.x,p.gkTy-p.y);moveTo(p,p.gkTx,p.gkTy,far>40?Math.max(spd,SPRINT):spd);}
   // keepers never turn their back on the pitch: face the ball, within a forward arc
   {const fw=dir>0?0:PI,a=Math.atan2(ball.y-p.y,ball.x-p.x),off=Math.atan2(Math.sin(a-fw),Math.cos(a-fw));p.face=fw+clamp(off,-1.25,1.25);}
 }
