@@ -603,6 +603,15 @@ document.querySelectorAll('.pad button').forEach(b=>{const k=b.dataset.b;
   b.addEventListener('contextmenu',e=>e.preventDefault());});
 
 // ---------- audio ----------
+// Leaving the app (home button, app switcher, screen off): silence everything and pause an offline match.
+function appAway(on){
+  try{if(AC){if(on)AC.suspend();else AC.resume();}}catch(e){}
+  if(on){try{if(clipNow){clipNow.pause();clipNow=null;}}catch(e){}
+    if(!NET.on&&!paused&&state!=='title'&&state!=='full')togglePause();}
+}
+document.addEventListener('visibilitychange',()=>appAway(document.hidden));
+document.addEventListener('pause',()=>appAway(true));      // Capacitor app going to the background
+document.addEventListener('resume',()=>appAway(document.hidden));
 let AC=null,master=null,crowdGain=null,muted=false,nbuf=null;
 function initAudio(){
   if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
