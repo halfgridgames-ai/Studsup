@@ -2130,7 +2130,7 @@ const ANIM_PICK={idle:['soccer_idle','offensive_idle','idle','breathing_idle','s
   slide:['soccer_tackle','slide_tackle','tackle'],jumpk:['flying_kick'],gkdive:['goalkeeper_diving_save','diving_save'],
   throw:['throw_in','soccer_throw_in'],spin:['spin','soccer_spin'],
   jogback:['jog_back'],strafeL:['strafe_a'],strafeR:['strafe_b'],gkstepL:['gk_step_a'],gkstepR:['gk_step_b'],turnstep:['jog_forward','jog'],
-  roll:['sprinting_forward_roll'],boxer:['punching'],gkmiss:['goalkeeper_miss'],shout:['goalkeeper_directing']};
+  roll:['sprinting_forward_roll'],spinrun:['jog_forward','jog'],boxer:['punching'],gkmiss:['goalkeeper_miss'],shout:['goalkeeper_directing']};
 // one-shot moves: [clip, from, to] seconds of the source clip, stretched over the game's own timer for that move
 const ANIM_MIRROR=['gk_dive_a','gk_block'];
 // kick clips twist the whole body round a long way (a shot ends 50 degrees off its line): [contact time, share of the twist kept].
@@ -2161,7 +2161,18 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   if(p.slide>0&&TK[p.tk])return one(p.tk==='dive'&&p.headHigh?'header':p.tk,1-p.slide/TK[p.tk].dur);
   if(p.stagger>0)return one('stagger',1-p.stagger/0.45);
   if(p.recover>0&&TK[p.tk]&&ANIM_SEG[p.tk+'R'])return one(p.tk+'R',1-p.recover/TK[p.tk].rec);
-  if(p.barge>0||p.skill>0||p.gkDive)return [null];
+  // shoulder barge: keep the legs running, the body lean comes from the game's own pose
+  if(p.barge>0)return ['sprint'];
+  // skill moves use the mocap clips that fit them, so the legs and body move like a footballer instead of a stiff puppet
+  if(p.skill>0){const S=SK[p.sk]||SK.juke,pr=clamp(1-p.skill/S.dur,0,1),c=Math.cos(p.face),s=Math.sin(p.face),
+      lat=(s*p.vx-c*p.vy)>0?'strafeL':'strafeR',sd=(p.skSide||1)>0?'strafeR':'strafeL',od=sd==='strafeR'?'strafeL':'strafeR';
+    if(p.sk==='flick')return pr<0.4?['kick_pass',pr/0.4,0.5]:['sprint'];  // quick touch, then chase it
+    if(p.sk==='nutmeg')return pr<0.35?['kick_pass',pr/0.35,0.5]:['sprint'];
+    if(p.sk==='juke')return [lat];                                      // side-step off the line
+    if(p.sk==='stepover')return [pr<0.3?od:pr<0.6?sd:lat];              // sway one way, then the other, then burst away
+    if(p.sk==='spin')return ['spinrun'];                                // running steps while the body turns round
+    return [null];}                                                     // hurdle: the knees-up jump pose (no mocap clip tucks the legs like that)
+  if(p.gkDive)return [null];
   if(setPiece&&setPiece.taker===p&&setPiece.kind==='throw')return one('throwHold',0);
   if(p.throwAnim>0)return one('throw',1-p.throwAnim/0.3);
   if(p.kickAnim>0){const T=p.kickT||KICK_T;return [p.kickK?'kick_'+p.kickK:'kick',clamp(1-p.kickAnim/T,0,1),(p.kickW||0)/T];}
@@ -2182,7 +2193,7 @@ function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;co
     else if(prev)prev.fadeOut(0.15);}
   if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);
     if(seg){a.timeScale=0;const c=cut||0;a.time=Math.min(clip.duration-0.001,seg.length>3?(pr<c?seg[1]+(seg[2]-seg[1])*pr/c:seg[2]+(seg[3]-seg[2])*(pr-c)/Math.max(0.01,1-c)):seg[1]+(seg[2]-seg[1])*pr);}
-    else if(k==='turnstep')a.timeScale=1.3;
+    else if(k==='turnstep'||k==='spinrun')a.timeScale=1.3;
     else a.timeScale=(k==='jog'||k==='walk'||k==='sprint'||k==='jogback'||k.startsWith('strafe')||k.startsWith('gkstep'))?(clip.ground>5?clamp(Math.sqrt(spd/clip.ground),0.7,1.9):clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6)):1;
     /* in-place clips: quicker steps the faster they go, so the feet slide far less. Players cover ground about 4x faster than the mocap runner,
        so matching exactly would mean a blur of legs; the square root keeps the cadence believable (a sprint tops out near 5 steps a second) */}
@@ -2242,7 +2253,16 @@ function makeRigged(p,rig,TT){
                {j:[arms[i]],L:limb(ua[i],kid(ua[i],f.la))},{j:[arms[i],elbows[i]],L:limb(la[i],kid(la[i],[])),up:chain.length+2});}
   // the proxy's arms hang at the sides; keep a little gap so a T-posed mesh doesn't push the hands into the hips
   const mixer=rig.clips&&Object.keys(rig.clips).length?new THREE.AnimationMixer(sc):null;
-  return {g,body,legs,arms,knees,elbows,kind:'human',rigRef:rig,mixer,procW:1,rig:{chain,acc:rigQ(),d:chain.map(()=>rigQ()),tq:rigQ()}};}
+  const head=f.all.find(b=>anNorm(b.name)==='head')||null;
+  return {g,body,legs,arms,knees,elbows,head,kind:'human',rigRef:rig,mixer,procW:1,rig:{chain,acc:rigQ(),d:chain.map(()=>rigQ()),tq:rigQ()}};}
+// Players turn their heads to keep an eye on the ball (on top of whatever the body is doing), so they look switched on.
+const HL={q:rigQ(),pq:rigQ(),pi:rigQ(),up:new THREE.Vector3(0,1,0),v:new THREE.Vector3()};
+function headLook(p,m,k,dt){const h=m.head;if(!h||!h.parent||!k)return;  // only on top of a playing clip, which resets the head each frame
+  const busy=p.down>0||p.slide>0||p.recover>0||p.gkDive||p.gkLand>0||p.skill>0||p.barge>0||p.dance>0||state==='goal'||state==='full'||k==='win'||k==='pump'||k==='dance'||k==='boxer'||k==='roll';
+  let want=0;if(!busy&&ball.owner!==p){h.getWorldPosition(HL.v);const a=Math.atan2(ball.x-HL.v.x,ball.y-HL.v.z)-m.g.rotation.y;want=clamp(Math.atan2(Math.sin(a),Math.cos(a)),-1.1,1.1);}
+  m.look=(m.look||0)+(want-(m.look||0))*Math.min(1,(dt||0.016)*7);if(Math.abs(m.look)<0.01)return;
+  h.parent.updateWorldMatrix(true,false);h.parent.getWorldQuaternion(HL.pq);HL.pi.copy(HL.pq).invert();
+  HL.q.setFromAxisAngle(HL.up,m.look);h.quaternion.premultiply(HL.pq).premultiply(HL.q).premultiply(HL.pi);}
 // Copy the proxy pose onto the bones: wanted = proxy joint turn * straighten-to-down * rest pose, then made local to the parent bone.
 function rigApply(m){const r=m.rig;if(!r)return;
   r.chain.forEach((c,k)=>{const acc=r.acc.copy(c.j[0].quaternion);for(let i=1;i<c.j.length;i++)acc.multiply(c.j[i].quaternion);
@@ -3289,7 +3309,7 @@ function render(t,dt){
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
   if(R.venue)for(const f of R.venue.userData.anim)f(t,dt);
-  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);};
+  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);if(m.head)headLook(p,m,k,adt);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
