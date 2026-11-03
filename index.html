@@ -1862,7 +1862,7 @@ function startSkill(p,k){if(p.skillCd>0||p.skill>0||p.down>0||ball.owner!==p||st
   fxFlash(p.x,10,p.y,SKCOL[k],1.1);if(p.team===0||!cpu(p.team))popup(p.x,p.y-38,SKNAME[k]+'!',SKCOL[k]);
   if(k==='juke'){const a=threat(p)||nearestOpp(p)[0];let side=Math.random()<0.5?1:-1;
     if(a){const cr=Math.cos(p.face)*(a.y-p.y)-Math.sin(p.face)*(a.x-p.x);side=cr>0?-1:1;}
-    const sa=p.face+side*PI/2*0.85;p.skSide=side;p.vx=Math.cos(sa)*330+Math.cos(p.face)*90;p.vy=Math.sin(sa)*330+Math.sin(p.face)*90;
+    const sa=p.face+side*1.0;p.skSide=side;p.vx=Math.cos(sa)*300+Math.cos(p.face)*110;p.vy=Math.sin(sa)*300+Math.sin(p.face)*110;
     burst(p.x,p.y,8,['#c9b98a','#6dbb4a'],110,60);scuff(p.x,p.y,sa,12);}
   else if(k==='spin'){const a=threat(p)||p.skVs;let side=Math.random()<0.5?1:-1;if(a){const cr=Math.cos(p.face)*(a.y-p.y)-Math.sin(p.face)*(a.x-p.x);side=cr>0?-1:1;}
     p.skSide=side;const sa=p.face+side*0.75;p.vx=Math.cos(sa)*260;p.vy=Math.sin(sa)*260;burst(p.x,p.y,10,['#b58cff','#ffffff'],120,70);}
@@ -1875,7 +1875,7 @@ function startSkill(p,k){if(p.skillCd>0||p.skill>0||p.down>0||ball.owner!==p||st
     ball.protect=0.7;ball.protectBy=p;ball.lastBy=p;ball.lastTeam=p.team;ball.tried=new Set();ball.passTo=null;ball.trailT=0.5;ball.trailCol=SKCOL.nutmeg;p.kickCd=0.3;
     let side=Math.random()<0.5?1:-1;p.skSide=side;const sa=p.face+side*0.9;p.vx=Math.cos(sa)*sp;p.vy=Math.sin(sa)*sp;
     if(o&&p.skVs){o.recover=Math.max(o.recover||0,0.75);o.vx*=0.2;o.vy*=0.2;popup(o.x,o.y-36,'NUTMEGGED!',SKCOL.nutmeg);comm('nutmeg',{a:p,v:o},2);sfx('ooh');TEAMS[p.team].fury=Math.min(100,TEAMS[p.team].fury+12);}}
-  else if(k==='stepover'){p.vx*=0.45;p.vy*=0.45;let side=Math.random()<0.5?1:-1;const a=p.skVs;if(a){const cr=Math.cos(p.face)*(a.y-p.y)-Math.sin(p.face)*(a.x-p.x);side=cr>0?-1:1;}p.skSide=side;}
+  else if(k==='stepover'){p.vx*=0.7;p.vy*=0.7;let side=Math.random()<0.5?1:-1;const a=p.skVs;if(a){const cr=Math.cos(p.face)*(a.y-p.y)-Math.sin(p.face)*(a.x-p.x);side=cr>0?-1:1;}p.skSide=side;}
   else{const sp=Math.max(210,hyp(p.vx,p.vy));p.vx=Math.cos(p.face)*sp;p.vy=Math.sin(p.face)*sp;burst(p.x,p.y,8,['#c9b98a','#6dbb4a'],100,90);}
   sfx('whoosh');CT[p.team].charging=false;CT[p.team].charge=0;return true;}
 // Which tackle the button will do right now: a header at a dropping ball, a dive from range, a jump kick at full sprint, else a slide.
@@ -1994,17 +1994,21 @@ function step(dt){
       if(p.sk==='hurdle')p.air=Math.sin(pr*PI)*17;
       else if(p.sk==='spin'){const a=p.face+p.skSide*(0.75-pr*1.5),sp=250;p.vx=Math.cos(a)*sp;p.vy=Math.sin(a)*sp;  // arc round the man
         if(!p.skHit&&pr>0.5){p.skHit=true;const o=p.skVs;if(o&&dist(o,p)<70&&!(o.slide>0)){o.recover=Math.max(o.recover||0,0.45);popup(o.x,o.y-34,'SPUN!',SKCOL.spin);comm('spin',{a:p,v:o},2);TEAMS[p.team].fury=Math.min(100,TEAMS[p.team].fury+8);}}}
-      else if(p.sk==='stepover'){if(pr<0.6){const k=Math.exp(-6*dt);p.vx*=k;p.vy*=k;}
+      else if(p.sk==='stepover'){if(pr<0.6){const k=Math.exp(-3*dt);if(hyp(p.vx,p.vy)>RUN*0.45){p.vx*=k;p.vy*=k;}}
         else if(!p.skHit){p.skHit=true;const sa=p.face+p.skSide*0.95;p.vx=Math.cos(sa)*340+Math.cos(p.face)*80;p.vy=Math.sin(sa)*340+Math.sin(p.face)*80;scuff(p.x,p.y,sa,12);burst(p.x,p.y,8,['#7dff8a','#c9b98a'],120,60);
           const o=p.skVs;if(o&&dist(o,p)<110){o.recover=Math.max(o.recover||0,0.55);const oa=p.face-p.skSide*1.2;o.vx=Math.cos(oa)*120;o.vy=Math.sin(oa)*120;popup(o.x,o.y-34,'SOLD!',SKCOL.stepover);comm('stepover',{a:p,v:o},2);TEAMS[p.team].fury=Math.min(100,TEAMS[p.team].fury+8);}}}
-      else if(p.sk==='flick'||p.sk==='nutmeg'){if(ball.protectBy===p&&!ball.owner){const ex=ball.x+ball.vx*0.12,ey=ball.y+ball.vy*0.12,d=hyp(ex-p.x,ey-p.y)||1,sp=pr>0.3?340:Math.max(220,hyp(p.vx,p.vy));
-          const want=p.sk==='nutmeg'&&pr<0.35?p.face+p.skSide*0.9:Math.atan2(ey-p.y,ex-p.x);p.vx=Math.cos(want)*sp;p.vy=Math.sin(want)*sp;}}
+      else if(p.sk==='flick'||p.sk==='nutmeg'){if(ball.protectBy===p&&!ball.owner){const ex=ball.x+ball.vx*0.12,ey=ball.y+ball.vy*0.12,bsp=hyp(ball.vx,ball.vy),
+            ahead=(p.x-ball.x)*Math.cos(p.face)+(p.y-ball.y)*Math.sin(p.face);
+          let want=p.sk==='nutmeg'&&pr<0.35?p.face+p.skSide*0.9:Math.atan2(ey-p.y,ex-p.x);
+          // never double back for the ball: stay roughly on the line of the move, and once level with it just match its pace
+          const off=Math.atan2(Math.sin(want-p.face),Math.cos(want-p.face));want=p.face+clamp(off,-1.1,1.1);
+          const sp=ahead>-8?Math.max(110,bsp*0.95):pr>0.3?Math.min(340,bsp+130):Math.max(220,hyp(p.vx,p.vy));p.vx=Math.cos(want)*sp;p.vy=Math.sin(want)*sp;}}
       else{const k=Math.exp(-2.5*dt);p.vx*=k;p.vy*=k;}
       {const c=SKCOL[p.sk]||'#5ff2e0';if(Math.random()<0.8)parts.push({x:p.x-p.vx*0.03,y:p.y-p.vy*0.03,z:(p.air||0)+rand(4,22),vx:-p.vx*0.15,vy:-p.vy*0.15,vz:0,life:0.3,col:c,r:2});}
-      if(p.skill<=0){p.skill=0;p.air=0;if(p.sk==='hurdle'){burst(p.x,p.y,8,['#c9b98a','#6dbb4a','#3f8a2f'],110,60);sfx('land');}}}
+      if(p.skill<=0){p.skill=0;p.air=0;p.skExit=0.3;if(p.sk==='hurdle'){burst(p.x,p.y,8,['#c9b98a','#6dbb4a','#3f8a2f'],110,60);sfx('land');}}}
     else if(p.recover>0){p.recover-=dt;const k=Math.exp(-9*dt);p.vx*=k;p.vy*=k;}
     else if(ball.holdT>0&&ball.holdBy===p){const k=Math.exp(-5*dt);p.vx*=k;p.vy*=k;}
-    else{const k=1-Math.exp(-stad().grip*dt),sm=cpu(p.team)?clamp(1+(AIDIFF-1)*0.35,0.92,1.1):1;p.vx+=(p.dvx*sm-p.vx)*k;p.vy+=(p.dvy*sm-p.vy)*k;}
+    else{if(p.skExit>0)p.skExit-=dt;const k=1-Math.exp(-stad().grip*(p.skExit>0?0.35:1)*dt),sm=cpu(p.team)?clamp(1+(AIDIFF-1)*0.35,0.92,1.1):1;p.vx+=(p.dvx*sm-p.vx)*k;p.vy+=(p.dvy*sm-p.vy)*k;}
     {const px=p.x,py=p.y;p.x=clamp(p.x+p.vx*dt,-24,W+24);p.y=clamp(p.y+p.vy*dt,-24,H+24);netWall(p,px,py);}p.phase+=hyp(p.vx,p.vy)*dt*0.09;
   }
   // separation
