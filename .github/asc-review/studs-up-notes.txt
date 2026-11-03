@@ -1,0 +1,20 @@
+Screen recording: attached below in the App Review Information attachment. Recorded on an iPhone running the latest iOS, starting from launching the app.
+
+1. Purpose and audience
+Studs Up: Red Card Football is an arcade football (soccer) game for casual players aged 9 and up. It is football with no rules: players slide, tackle and fire fireball shots to score. Matches last a few minutes, so it suits short play sessions. The value is quick, funny, action-packed fun on a phone.
+
+2. How to use the app
+No account, login or setup is needed. Open the app, tap Play, pick a team and a pitch, and play a match with the on-screen joystick and buttons. Career mode, penalties, online 1v1 with a friend (by sharing a room code) and the Shop are on the main menu. All features are available straight away.
+
+3. External services
+- Apple In-App Purchase for the optional purchases (coins, Starter Pack, Remove Ads).
+- Google AdMob for optional rewarded ads and occasional interstitial ads, with Google's consent message and Apple's App Tracking Transparency prompt.
+- Google Firebase Analytics for anonymous usage statistics.
+- PeerJS public signalling server, only to connect two players for online 1v1. Gameplay data goes directly between the two phones.
+No login, AI service or other data provider is used.
+
+4. Regional differences
+None. The app works the same in every region where it is available.
+
+5. Regulated industry or third-party material
+The app is not in a regulated industry. All teams, players, stadiums and names are fictional and made by us. It uses no real clubs, leagues, players or trademarks. Player animations come from Adobe Mixamo under its royalty-free licence.

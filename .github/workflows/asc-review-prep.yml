@@ -1,0 +1,21 @@
+# One-off: writes App Review notes and sets up internal TestFlight for all three iOS apps.
+# Runs only when this branch is pushed. It never submits anything for review.
+name: App Store review prep
+on:
+  push:
+    branches: [asc-review-prep]
+permissions:
+  contents: read
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: pip install pyjwt cryptography
+      - name: Update App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: python3 .github/asc-review/asc_review.py

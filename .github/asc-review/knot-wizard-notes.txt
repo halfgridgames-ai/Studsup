@@ -1,0 +1,18 @@
+Screen recording: attached below in the App Review Information attachment. Recorded on an iPhone running the latest iOS, starting from launching the app.
+
+1. Purpose and audience
+Knot Wizard is a calm puzzle game for all ages (4+). Ropes are tangled between wooden pins, and the player drags the pins until no two ropes cross. It has 150 levels across 5 worlds plus a new Daily Knot every day. It offers relaxing, satisfying brain-teasers that can be played in short sessions and offline.
+
+2. How to use the app
+No account, login or setup is needed. Open the app, tap Play and drag the pins with one finger until every crossing is gone. Hints, undo, the Daily Knot, the Spellbook and the Shop are on screen. The app may ask permission to send one daily reminder for the Daily Knot; this is optional. All features are available straight away.
+
+3. External services
+- Apple In-App Purchase for the optional purchases (Remove Ads, 10 hints, 40 hints).
+- Google AdMob for optional rewarded ads (for free hints) and occasional interstitial ads between levels, with Google's consent message and Apple's App Tracking Transparency prompt.
+No login, AI service, analytics or other data provider is used.
+
+4. Regional differences
+None. The app works the same in every region where it is available.
+
+5. Regulated industry or third-party material
+The app is not in a regulated industry and contains no third-party protected material. All levels, artwork and music are our own.

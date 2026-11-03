@@ -1,0 +1,20 @@
+Screen recording: attached below in the App Review Information attachment. Recorded on an iPhone running the latest iOS, starting from launching the app.
+
+1. Purpose and audience
+Marble Mayhem: Downhill Dash is a casual racing game for players aged 9 and up. You steer a marble down twisting downhill courses against seven other marbles, pick up item boxes, and win coins to unlock new marbles and upgrades. It offers quick, colourful races for short play sessions.
+
+2. How to use the app
+No account, login or setup is needed. Open the app, choose a mode (Single Race, Grand Prix, Survival or Online), pick a course and race using the on-screen joystick and buttons. Online races are joined by sharing a room code with a friend. The Shop is on the main menu. All features are available straight away.
+
+3. External services
+- Apple In-App Purchase for the optional purchases (coin packs, marbles, packs, Remove Ads).
+- Google AdMob for optional rewarded ads and occasional interstitial ads, with Google's consent message and Apple's App Tracking Transparency prompt.
+- Google Firebase Analytics for anonymous usage statistics.
+- PeerJS public signalling server, only to connect friends for online races. Race data goes directly between the players' phones.
+No login, AI service or other data provider is used.
+
+4. Regional differences
+None. The app works the same in every region where it is available. The Mystery Box is bought only with in-game coins (900 coins), never directly with money, and its odds are shown in the app before opening (52/26/14/6/2%).
+
+5. Regulated industry or third-party material
+The app is not in a regulated industry and contains no third-party protected material. All courses, marbles and characters are our own.
