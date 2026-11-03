@@ -1196,6 +1196,8 @@ function setBtn(b,ic,lb,pop){const k=ic+lb;if(btnKey.get(b)===k)return;btnKey.se
   if(pop){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}}
 let lastMode='',lastP1=-1,lastP2=-1,lastDP=-1,lastFull=null;const danceBtn=document.getElementById('danceBtn');
 function hud(){
+  // During a goal, its replay and at full time the buttons stay as they were: the ball bouncing in the net and the replay used to flip them every frame.
+  if(state!=='goal'&&state!=='replay'&&state!=='full'){
   const atk=atkMode(),mode=atk?'atk':'def',flip=mode!==lastMode;
   if(flip){lastMode=mode;pad.classList.toggle('atk',atk);pad.classList.toggle('def',!atk);}
   const me=HUMS[0]&&!HUMS[0].off?HUMS[0]:null;
@@ -1214,6 +1216,7 @@ function hud(){
    if(dp!==lastDP){lastDP=dp;danceBtn.style.setProperty('--p',dp);}
    const go=!!TD[0];if(go!==lastFull){lastFull=go;danceBtn.classList.toggle('going',go);danceBtn.querySelector('.lb').textContent=go?'STOP':'DANCE';}}
   if((cd>0)!==(lastP2===1)){lastP2=cd>0?1:0;shootBtn.classList.toggle('cool',cd>0);}
+  }
   const s=TEAMS[0].score+' – '+TEAMS[1].score,c=Math.min(90,Math.floor(clock/MATCH*90))+"'",f=Math.round(TEAMS[0].fury);
   const key=s+c+f;if(key===lastHud)return;lastHud=key;scoreEl.textContent=s;clockEl.textContent=c;furyFill.style.width=f+'%';furyEl.classList.toggle('full',f>=100);}
 
