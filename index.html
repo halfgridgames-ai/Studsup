@@ -2142,7 +2142,7 @@ const ANIM_SEG={pose_win:['victory',1.0,1.0],pose_idle:['soccer_idle',2.0,2.0],p
   jump:['scissor_kick',0.45,1.3],jumpR:['scissor_kick',2.2,2.8],dive:['soccer_trip',0.3,0.75],diveR:['standing_up',0.6,1.7],
   gkdiveA:['gk_dive_a',0.45,1.45],gkdiveB:['gk_dive_a_m',0.45,1.45],gklandA:['gk_dive_a',1.45,1.95],gklandB:['gk_dive_a_m',1.45,1.95],gkroll:['sprinting_forward_roll',0.66,1.2],
   catch:['gk_catch',0.2,0.8],header:['header',0.55,1.05,1.7],trap:['receive_ball',0.25,1.0],stagger:['hit_stagger',0,0.43],
-  gkblockA:['gk_block',0.45,1.5],gkblockB:['gk_block_m',0.45,1.5],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7],hurdle:['header',0.6,1.45]};
+  gkblockA:['gk_block',0.45,1.5],gkblockB:['gk_block_m',0.45,1.5],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
 function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
   for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
 // which clip (if any) a player shows now, and for one-shot moves how far through it they are (0..1)
@@ -2166,12 +2166,12 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   // skill moves use the mocap clips that fit them, so the legs and body move like a footballer instead of a stiff puppet
   if(p.skill>0){const S=SK[p.sk]||SK.juke,pr=clamp(1-p.skill/S.dur,0,1),c=Math.cos(p.face),s=Math.sin(p.face),
       lat=(s*p.vx-c*p.vy)>0?'strafeL':'strafeR',sd=(p.skSide||1)>0?'strafeR':'strafeL',od=sd==='strafeR'?'strafeL':'strafeR';
-    if(p.sk==='hurdle')return one('hurdle',pr);                          // crouch, spring over the tackle, land
     if(p.sk==='flick')return pr<0.4?['kick_pass',pr/0.4,0.5]:['sprint'];  // quick touch, then chase it
     if(p.sk==='nutmeg')return pr<0.35?['kick_pass',pr/0.35,0.5]:['sprint'];
     if(p.sk==='juke')return [lat];                                      // side-step off the line
     if(p.sk==='stepover')return [pr<0.3?od:pr<0.6?sd:lat];              // sway one way, then the other, then burst away
-    if(p.sk==='spin')return ['spinrun'];}                               // running steps while the body turns round
+    if(p.sk==='spin')return ['spinrun'];                                // running steps while the body turns round
+    return [null];}                                                     // hurdle: the knees-up jump pose (no mocap clip tucks the legs like that)
   if(p.gkDive)return [null];
   if(setPiece&&setPiece.taker===p&&setPiece.kind==='throw')return one('throwHold',0);
   if(p.throwAnim>0)return one('throw',1-p.throwAnim/0.3);
@@ -3309,9 +3309,7 @@ function render(t,dt){
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
   if(R.venue)for(const f of R.venue.userData.anim)f(t,dt);
-  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}
-    if(k==='hurdle')m.body.position.y=-5*Math.sin(clamp(1-p.skill/SK.hurdle.dur,0,1)*PI);  // the clip jumps by itself: take that off so the hurdle is no higher than before
-    rigApply(m);if(m.head)headLook(p,m,k,adt);};
+  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);if(m.head)headLook(p,m,k,adt);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
