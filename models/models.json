@@ -1,9 +1,9 @@
 {
  "human": "models/human.glb",
- "penguin": "models/penguin.glb",
- "bear": "models/bear.glb",
- "roo": "models/roo.glb",
- "gorilla": "models/gorilla.glb",
+ "penguin": "models/penguin_v3.glb",
+ "bear": "models/bear_v3.glb",
+ "roo": "models/roo_v3.glb",
+ "gorilla": "models/gorilla_v3.glb",
  "granny": "models/granny_v3.glb",
  "ninja": "models/ninja_v3.glb",
  "riot": "models/riot_v3.glb",
