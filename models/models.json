@@ -7,8 +7,8 @@
  "granny": "models/granny.glb",
  "ninja": "models/ninja.glb",
  "riot": "models/riot.glb",
- "alien": "models/alien.glb",
- "dolphin": "models/dolphin.glb",
+ "alien": "models/alien_v3.glb",
+ "dolphin": "models/dolphin_v3.glb",
  "referee": "models/referee.glb",
  "_anims": "models/anims.glb"
 }

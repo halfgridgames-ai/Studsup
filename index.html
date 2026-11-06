@@ -2221,19 +2221,19 @@ function charLook(mat){if(!mat||mat.userData.look)return;mat.userData.look=1;
 function rigPrepare(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);root.traverse(o=>{if(o.isMesh)charLook(o.material);});
   const box=new THREE.Box3();const v=new THREE.Vector3();root.traverse(o=>{if(!o.isMesh)return;const pos=o.geometry.attributes.position,st=Math.max(1,pos.count/400|0);  // skinned vertices as actually drawn
     if(o.isSkinnedMesh)o.skeleton.update();for(let i=0;i<pos.count;i+=st){if(o.isSkinnedMesh){o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);}else v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld);box.expandByPoint(v);}});
-  const f=rigFind(root);if(f.ul.length<2||f.ll.length<2||f.ua.length<2||f.la.length<2){console.warn('rig: limb bones not found',f);return null;}
+  const f=rigFind(root),an=animalKind(f.all);if(!an&&(f.ul.length<2||f.ll.length<2||f.ua.length<2||f.la.length<2)){console.warn('rig: limb bones not found',f);return null;}
   const wp=b=>b.getWorldPosition(new THREE.Vector3());
   // which way the model faces: toes point forward if there are toe bones, otherwise trust glTF (+Z) unless told to flip
   let flip=!!(opt&&opt.flip);const toe=f.all.find(b=>/toe/i.test(b.name)&&!/end/i.test(b.name)),foot=toe&&toe.parent;
   if(toe&&foot&&!(opt&&'flip' in opt))flip=wp(toe).z<wp(foot).z;
   let by0=1e9,by1=-1e9;for(const b of f.all){const y=wp(b).y;by0=Math.min(by0,y);by1=Math.max(by1,y);}
   let h=box.max.y-box.min.y,y0=box.min.y;const span=(by1-by0)||1;if(!(h>span*0.95&&h<span*1.7)){h=span*1.15;y0=by0-span*0.03;}  // odd skins: size from the skeleton instead
-  return {gltf,flip,scale:RIG_H/h,minY:y0,anims:gltf.animations||[]};}
+  return an?{gltf,flip,scale:RIG_H/h*(ANIMAL[an].size||1),minY:y0,anims:[],animal:an,clips:{}}:{gltf,flip,scale:RIG_H/h,minY:y0,anims:gltf.animations||[]};}
 function rigLoad(kind,url,opt){if(RIGS[kind])return RIGS[kind];
   const U=rigLoad.urls||(rigLoad.urls={});U[url]=U[url]||rigLoadLibs().then(()=>new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,null,no)));
   RIGS[kind]=U[url].then(g=>{const r=rigPrepare(g,opt);RIGS[kind]=r;if(r)anBake(r);if(r&&R)buildModels();return r;})
     .catch(e=>{console.warn('rig load failed',url,e);RIGS[kind]=null;});return RIGS[kind];}
-function makeRigged(p,rig,TT){
+function makeRigged(p,rig,TT){if(rig.animal)return makeAnimal(p,rig,TT);
   const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
   const inner=new THREE.Group();inner.scale.setScalar(rig.scale);inner.rotation.y=rig.flip?PI:0;inner.position.y=-rig.minY*rig.scale;body.add(inner);
   const sc=THREE.SkeletonUtils.clone(rig.gltf.scene);inner.add(sc);
@@ -2268,6 +2268,59 @@ function rigApply(m){const r=m.rig;if(!r)return;
   r.chain.forEach((c,k)=>{const acc=r.acc.copy(c.j[0].quaternion);for(let i=1;i<c.j.length;i++)acc.multiply(c.j[i].quaternion);
     const d=r.d[k].copy(acc).multiply(c.L.align).multiply(c.L.rest);
     const par=c.up!=null?r.d[c.up]:c.L.parentRest;const w=m.mixer?m.procW:1;if(w>=0.999)c.L.b.quaternion.copy(par).invert().multiply(d);else if(w>0.001){r.tq.copy(par).invert().multiply(d);c.L.b.quaternion.slerp(r.tq,w);}});}
+// ---------- animal players ----------
+// Animal teams are the whole animal, not an animal head on a human body. Their skeletons have tails, flippers or four legs,
+// so the human mocap clips don't fit them: animalPose moves their bones straight from the game state the clips read (anState),
+// and each body has its own way of running, kicking, sliding and celebrating. Body lean, falls and dives still come from poseModel.
+const ANIMAL={
+  dolphin:{size:1,test:h=>h('Tail1')&&h('Fluke')&&!h('LeftUpLeg')}};
+function animalKind(bones){const h=n=>bones.some(b=>b.name===n);for(const k in ANIMAL)if(ANIMAL[k].test(h))return k;return null;}
+const AN_RUN=/^(walk|jog|sprint|jogback|strafe|gkstep|turnstep|spinrun)/,AN_CELEB=/^(win|pump|dance|boxer|shout|roll|gkmiss)$/,
+  AQ={a:new THREE.Quaternion(),b:new THREE.Quaternion(),e:new THREE.Euler()};
+function makeAnimal(p,rig,TT){
+  const T=TT||TEAMS[p.team],gk=p.role==='GK',g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const inner=new THREE.Group();inner.scale.setScalar(rig.scale);inner.rotation.y=rig.flip?PI:0;inner.position.y=-rig.minY*rig.scale;body.add(inner);
+  const sc=THREE.SkeletonUtils.clone(rig.gltf.scene);inner.add(sc);
+  sc.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;if(gk&&o.material){const ob=o.material.onBeforeCompile;o.material=o.material.clone();o.material.onBeforeCompile=ob;o.material.color.multiply(new THREE.Color(T.gk||'#ffffff').lerp(new THREE.Color('#ffffff'),0.45));}}});
+  sc.updateMatrixWorld(true);const scInv=sc.getWorldQuaternion(new THREE.Quaternion()).invert(),bones={};
+  sc.traverse(o=>{if(o.isBone)bones[o.name]={b:o,restL:o.quaternion.clone(),restW:scInv.clone().multiply(o.getWorldQuaternion(new THREE.Quaternion())),cur:{x:0,y:0,z:0}};});
+  for(const k in bones){const B=bones[k];B.restWi=B.restW.clone().invert();}
+  // poseModel still poses these stand-in joints; nothing reads them for an animal
+  const P=()=>new THREE.Object3D(),legs=[P(),P()],knees=[P(),P()],arms=[P(),P()],elbows=[P(),P()];legs.forEach((l,i)=>{l.add(knees[i]);body.add(l);});arms.forEach((a,i)=>{a.add(elbows[i]);body.add(a);});
+  return {g,body,inner,innerY:inner.position.y,legs,arms,knees,elbows,head:bones.Head?bones.Head.b:null,kind:'human',animal:rig.animal,bones,fw:rig.flip?-1:1,ph:Math.random(),rigRef:rig,mixer:null,procW:1,rig:null};}
+// turn a bone about the model's own axes (x = side, y = up, z = forward), easing towards the wanted angles
+function anTurn(m,n,x,y,z,k){const B=m.bones[n];if(!B)return;const c=B.cur;c.x+=(x-c.x)*k;c.y+=(y-c.y)*k;c.z+=(z-c.z)*k;
+  AQ.a.setFromEuler(AQ.e.set(c.x*m.fw,c.y,c.z*m.fw,'YXZ'));AQ.b.copy(B.restWi).multiply(AQ.a).multiply(B.restW);B.b.quaternion.copy(B.restL).multiply(AQ.b);}
+function animalPose(p,m,dt){dt=dt||0.016;const st=anState(p),k=st[0]||'',pr=st[1]||0,spd=hyp(p.vx,p.vy),s=clamp(spd/SPRINT,0,1.2),e=Math.min(1,dt*22);
+  ANIMAL_POSE[m.animal](p,m,dt,k,pr,st[2],spd,s,e);if(m.head)headLook(p,m,k||'idle',dt);}
+const ANIMAL_POSE={
+  // Dolphins stand on their tails and bounce along on them. They shoot with a tail flick, head with the nose and slide on their bellies.
+  dolphin(p,m,dt,k,pr,cut,spd,s,e){const t=m.ph,A={Hips:[0,0,0],Spine:[0,0,0],Chest:[0,0,0],Head:[0,0,0],Tail1:[0,0,0],Tail2:[0,0,0],Tail3:[0,0,0],Fluke:[0,0,0],Flipper_L:[0,0,0.15],FlipperTip_L:[0,0,0],Flipper_R:[0,0,-0.15],FlipperTip_R:[0,0,0]};
+    let h=0;const fl=(a,b)=>{A.Flipper_L[2]=a;A.Flipper_R[2]=-a;A.FlipperTip_L[2]=b;A.FlipperTip_R[2]=-b;},tail=(a,b,c,d)=>{A.Tail1[0]=a;A.Tail2[0]=b;A.Tail3[0]=c;A.Fluke[0]=d;};
+    const slideK=k==='slide'||k==='dive'||k==='header'&&p.slide>0,run=AN_RUN.test(k)||(!k&&spd>22)||k==='sprint';
+    if(slideK){// belly slide: tip forward onto the tummy, tail up, flippers swept back
+      const u=clamp(pr/0.25,0,1)*clamp((1-pr)/0.2,0,1),ease=u*u*(3-2*u);m.body.rotation.x=ease*1.45;m.body.position.y+=ease*5;
+      tail(-0.5*ease,-0.3*ease,-0.2*ease+0.15*Math.sin(pr*30),0.2*Math.sin(pr*40));fl(-0.6*ease,-0.2*ease);A.Head[0]=-0.6*ease;}
+    else if(k.startsWith('kick')){// tail flick: curl the tail back, hop, then whip it through the ball
+      const w=cut>0.05&&cut<0.95?cut:0.45;if(pr<w){const a=pr/w;tail(0.5*a,0.6*a,0.5*a,0.3*a);A.Spine[0]=-0.15*a;A.Chest[0]=-0.1*a;h=3*Math.sin(PI*a*0.5);fl(0.5*a,0.2*a);}
+      else{const b=(pr-w)/(1-w),q=b<0.25?b/0.25:1-(b-0.25)/0.75,ang=b<0.25?0.5-1.3*q:-0.8*q;tail(ang,ang*1.2,ang,ang*0.6);A.Spine[0]=-0.15*(1-b)+0.12*q;h=3*(1-b);fl(0.5*(1-b),0.2);}}
+    else if(k==='header'||k==='trap'){const a=Math.sin(PI*pr);A.Spine[0]=0.25*a;A.Chest[0]=0.2*a;A.Head[0]=0.45*a;h=4*a;fl(0.6*a,0.2*a);tail(0.2*a,0.2*a,0.1*a,0);}
+    else if(k==='throwHold'||k==='throw'){const a=k==='throw'?1-pr:1;fl(1.3*a,0.3*a);A.Chest[0]=-0.25*a+(k==='throw'?0.3*pr:0);}
+    else if(k==='catch'){fl(0.9,0.4);A.Chest[0]=0.15;}
+    else if(AN_CELEB.test(k)){// happy bounces on the tail, clapping flippers
+      m.ph+=dt*2.2;const u=m.ph%1;h=5*Math.abs(Math.sin(PI*u));fl(0.5+0.6*Math.abs(Math.sin(PI*u*2)),0.3);tail(0.25*Math.cos(2*PI*u),0.2,0.1,0.15*Math.sin(2*PI*u));A.Head[0]=-0.2;}
+    else if(k==='stagger'){const w=Math.sin(pr*PI*4)*(1-pr);A.Spine[2]=0.3*w;A.Chest[2]=0.2*w;fl(0.8,0.3);tail(0.2,0.1,0,0);}
+    else if(k.startsWith('gk')&&k!=='gkidle'||k==='fall'||k==='fly'||k==='getup'||p.down>0){fl(1.0,0.3);tail(0.1*Math.sin(m.ph*20),0.2,0.2*Math.sin(m.ph*25),0.3*Math.sin(m.ph*30));m.ph+=dt;}
+    else if(run){// bounce gait: hop on the tail, land and squash, push off again; faster = quicker, higher hops and more lean
+      const f=1.5+2.0*s;m.ph+=dt*f;const u=m.ph%1,air=0.62;
+      if(u<air){const a=u/air;h=(3+6.5*s)*Math.sin(PI*a);tail(-0.08,-0.15*Math.sin(PI*a),0.1,0.2*Math.cos(PI*a));}
+      else{const c=Math.sin(PI*(u-air)/(1-air));h=-1.2*c;tail(0.35*c,-0.5*c,0.35*c,0.3*c);}
+      A.Spine[0]=0.1+0.2*s;A.Chest[0]=0.06*s;A.Head[0]=-0.12*s;fl(0.25+0.3*Math.sin(2*PI*u),0.15*Math.sin(2*PI*u-1));
+      if(/^strafe|^gkstep/.test(k)){A.Spine[2]=(k.endsWith('L')?1:-1)*0.15;}if(k==='jogback')A.Spine[0]=-0.1;}
+    else{// standing: gentle breathing bob and a lazy tail sway
+      m.ph+=dt*0.7;const u=m.ph%1;h=0.5*Math.sin(2*PI*u);A.Tail2[1]=0.08*Math.sin(2*PI*u);A.Fluke[0]=0.1*Math.sin(2*PI*u);fl(0.15+0.08*Math.sin(2*PI*u),0.05);
+      if(k==='gkidle'){fl(0.7,0.2);A.Spine[0]=0.12;}}
+    m.inner.position.y=m.innerY+h;for(const n in A)anTurn(m,n,A[n][0],A[n][1],A[n][2],e);}};
 // ---------- referee ----------
 function refStep(dt){const r=ref;if(r.off)return;r.cardT=Math.max(0,r.cardT-dt);
   if(r.down>0){r.down-=dt;const k=Math.exp((r.lz>0?-1:-4)*dt);r.vx*=k;r.vy*=k;
@@ -3309,7 +3362,7 @@ function render(t,dt){
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
   if(R.venue)for(const f of R.venue.userData.anim)f(t,dt);
-  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);if(m.head)headLook(p,m,k,adt);};
+  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);if(m.animal){animalPose(p,m,adt);return;}const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}rigApply(m);if(m.head)headLook(p,m,k,adt);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
