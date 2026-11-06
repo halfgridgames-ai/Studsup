@@ -1,6 +1,6 @@
 {
  "human": "models/human.glb",
- "penguin": "models/penguin.glb",
+ "penguin": "models/penguin_v4.glb",
  "bear": "models/bear_v3.glb",
  "roo": "models/roo_v3.glb",
  "gorilla": "models/gorilla_v3.glb",
