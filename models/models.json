@@ -1,14 +1,14 @@
 {
  "human": "models/human.glb",
  "penguin": "models/penguin.glb",
- "bear": "models/bear.glb",
- "roo": "models/roo.glb",
- "gorilla": "models/gorilla.glb",
- "granny": "models/granny.glb",
- "ninja": "models/ninja.glb",
- "riot": "models/riot.glb",
- "alien": "models/alien.glb",
- "dolphin": "models/dolphin.glb",
+ "bear": "models/bear_v3.glb",
+ "roo": "models/roo_v3.glb",
+ "gorilla": "models/gorilla_v3.glb",
+ "granny": "models/granny_v3.glb",
+ "ninja": "models/ninja_v3.glb",
+ "riot": "models/riot_v3.glb",
+ "alien": "models/alien_v3.glb",
+ "dolphin": "models/dolphin_v3.glb",
  "referee": "models/referee.glb",
  "_anims": "models/anims.glb"
 }
