@@ -3049,6 +3049,23 @@ function drawWeather(dt){const S=stad();if(!S.wx)return;const w=R.wx,n=S.wx==='r
     else{q.y-=70*q.v*dt;q.x+=Math.sin(q.ph+=dt*3)*25*dt;ctx.fillStyle='rgba(255,'+(110+((q.ph*40)%80|0))+',30,'+(0.5+Math.sin(q.ph*4)*0.3)+')';ctx.beginPath();ctx.arc(q.x,q.y,1.2+q.v*1.4,0,PI*2);ctx.fill();}
     if(q.y>VH+20||q.y<-30||q.x<-30||q.x>VW+30){q.x=rand(0,VW);q.y=S.wx==='embers'||S.wx==='bubbles'?VH+10:-10;if(S.wx==='dust'){q.x=-20;q.y=rand(0,VH);}else if(S.wx==='fireflies')q.y=rand(0,VH);}}}const V3=new THREE.Vector3();
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;}
+// Classic 32-panel football (truncated icosahedron), drawn per pixel onto an equirect canvas so the
+// panels sit right on a SphereGeometry: black pentagons, white hexagons, recessed seams (+ bump map).
+function ballTexture(W){const H=W>>1,ph=(1+Math.sqrt(5))/2,N=a=>{const l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];},dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const perm=(a,b,c,o)=>{for(const s1 of [-1,1])for(const s2 of [-1,1])for(const s3 of [-1,1]){const v=[a*s1,b*s2,c*s3];o.push(v,[v[1],v[2],v[0]],[v[2],v[0],v[1]]);}};
+  const tv=[];perm(0,1,3*ph,tv);perm(1,2+ph,2*ph,tv);perm(ph,2,ph*ph*ph,tv);
+  const ico=[];perm(0,1,ph,ico);const pent=[];for(const v of ico){const n=N(v);if(!pent.some(p=>dot(p,n)>0.9999))pent.push(n);}
+  const C=pent.map(n=>({n,p:1}));
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++)for(let k=j+1;k<12;k++){const a=pent[i],b=pent[j],c=pent[k];if(dot(a,b)>0.4&&dot(b,c)>0.4&&dot(a,c)>0.4)C.push({n:N([a[0]+b[0]+c[0],a[1]+b[1]+c[1],a[2]+b[2]+c[2]]),p:0});}
+  for(const c of C)c.d=Math.max(...tv.map(v=>dot(v,c.n)));
+  const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');return {c,g,img:g.createImageData(W,H)};},M=mk(),B=mk(),D=M.img.data,E=B.img.data;
+  for(let y=0;y<H;y++){const th=(y+0.5)/H*PI,st=Math.sin(th),ct=Math.cos(th);
+    for(let x=0;x<W;x++){const f=(x+0.5)/W*PI*2,p=[-Math.cos(f)*st,ct,Math.sin(f)*st];
+      let b1=-9,b2=-9,bi=0;for(let i=0;i<32;i++){const s=dot(p,C[i].n)/C[i].d;if(s>b1){b2=b1;b1=s;bi=i;}else if(s>b2)b2=s;}
+      const sm=Math.sqrt(Math.min(1,(b1-b2)*280)),sh=0.62+0.38*sm,v=C[bi].p?[27,27,31]:[246,245,240],o=(y*W+x)*4;
+      D[o]=v[0]*sh;D[o+1]=v[1]*sh;D[o+2]=v[2]*sh;D[o+3]=255;E[o]=E[o+1]=E[o+2]=255*sm;E[o+3]=255;}}
+  M.g.putImageData(M.img,0,0);B.g.putImageData(B.img,0,0);
+  const map=new THREE.CanvasTexture(M.c),bump=new THREE.CanvasTexture(B.c);map.anisotropy=bump.anisotropy=4;return {map,bump};}
 function pitchTexture(pal){const P=pal||{};
   const S=2,c=document.createElement('canvas');c.width=(W+PIT_M*2)*S;c.height=(H+PIT_M*2)*S;const g=c.getContext('2d');g.scale(S,S);g.translate(PIT_M,PIT_M);
   if(P.draw)P.draw(g);else{
@@ -3315,8 +3332,8 @@ function init3D(){
   R.marker=mk;R.arrow=arrow;
   R.recv=new THREE.Mesh(new THREE.RingGeometry(10,12.5,32),new THREE.MeshBasicMaterial({color:0x6dff9a,transparent:true,opacity:0.9,depthWrite:false}));R.recv.rotation.x=-PI/2;R.recv.position.y=0.45;scene.add(R.recv);
   // ball
-  const bt=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#fbfbf7';g.fillRect(0,0,w,h);g.fillStyle='#1d1d1d';for(let i=0;i<14;i++){g.beginPath();const x=(i*71)%w,y=(i*37)%h;for(let k=0;k<5;k++){const a=k*PI*2/5;g.lineTo(x+Math.cos(a)*13,y+Math.sin(a)*13);}g.fill();}});
-  R.ball=ballM(4.5,Pho('#ffffff',70,{map:bt}),20,14);scene.add(R.ball);
+  const bt=ballTexture(COARSE?512:1024);
+  R.ball=ballM(4.5,new THREE.MeshPhongMaterial({color:0xffffff,map:bt.map,bumpMap:bt.bump,bumpScale:0.25,shininess:80,specular:0x4a4a4a}),40,28);scene.add(R.ball);
   R.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff8a1a,blending:THREE.AdditiveBlending,depthWrite:false}));R.glow.scale.set(46,46,1);scene.add(R.glow);fxInit(glowTex);
   sizeRenderer();
 }
