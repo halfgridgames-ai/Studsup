@@ -39,6 +39,14 @@ if holder:
 else:
     print('! could not read users'); problems += 1
 
+# REINVITE: the earlier invites were accepted on a borrowed iPhone, so Apple won't send new ones.
+# Removing the tester and adding them back makes Apple send a fresh invite for each app.
+if holder and os.environ.get('REINVITE') == '1':
+    email = holder['attributes'].get('username')
+    for t in (api('GET', f'/v1/betaTesters?filter[email]={email}') or {}).get('data', []):
+        if api('DELETE', f"/v1/betaTesters/{t['id']}") is not None:
+            print('Removed old TestFlight tester entry so fresh invites can be sent')
+
 for bundle, notes_file in APPS:
     print(f'\n=== {bundle}')
     notes = open(os.path.join(HERE, notes_file), encoding='utf-8').read().strip()
