@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
-      - name: Add the studio Apple ID as a TestFlight tester
+      - name: Outside TestFlight with a public link, sent for beta review
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TESTER_EMAIL: halfgridgames@gmail.com
-        run: python3 .github/asc-review/asc_tester.py
+          SEND_FOR_BETA_REVIEW: "1"
+        run: python3 .github/asc-review/asc_external.py
