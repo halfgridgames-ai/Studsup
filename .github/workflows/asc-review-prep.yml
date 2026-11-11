@@ -1,5 +1,5 @@
-# One-off: writes App Review notes and sets up internal TestFlight for all three iOS apps.
-# Runs only when this branch is pushed. It never submits anything for review.
+# One-off App Store helpers for the three iOS apps. Runs only when this branch is pushed.
+# It never submits anything for review.
 name: App Store review prep
 on:
   push:
@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
-      - name: Update App Store Connect
+      - name: Add the studio Apple ID as a TestFlight tester
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          REINVITE: "1"
-        run: python3 .github/asc-review/asc_review.py
+          TESTER_EMAIL: halfgridgames@gmail.com
+        run: python3 .github/asc-review/asc_tester.py
