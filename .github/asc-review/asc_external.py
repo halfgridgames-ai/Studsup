@@ -68,7 +68,12 @@ for bundle, name in APPS:
               'attributes': {'publicLinkEnabled': True, 'publicLinkLimitEnabled': True, 'publicLinkLimit': 10}}})['data']
     api('POST', f"/v1/betaGroups/{grp['id']}/relationships/builds", {'data': [{'type': 'builds', 'id': build['id']}]})
     state = (api('GET', f"/v1/builds/{build['id']}/buildBetaDetail") or {}).get('data', {}).get('attributes', {}).get('externalBuildState')
-    print(f"  build {build['attributes'].get('version')} external state: {state}")
+    print(f"  build {build['attributes'].get('version')} external state: {state}, expired={build['attributes'].get('expired')}")
+    sub = (api('GET', f"/v1/builds/{build['id']}/betaAppReviewSubmission") or {}).get('data') or {}
+    print(f"  beta review submission: {sub.get('attributes', {}).get('betaReviewState')}")
+    ga = grp['attributes']
+    gb = [b['id'] for b in (api('GET', f"/v1/betaGroups/{grp['id']}/builds?limit=20") or {}).get('data', [])]
+    print(f"  group '{ga.get('name')}': publicLinkEnabled={ga.get('publicLinkEnabled')} limit={ga.get('publicLinkLimit')} build attached={build['id'] in gb}")
     if SEND and state in ('READY_FOR_BETA_SUBMISSION', 'MISSING_EXPORT_COMPLIANCE', None):
         res = api('POST', '/v1/betaAppReviewSubmissions', {'data': {'type': 'betaAppReviewSubmissions',
               'relationships': {'build': {'data': {'type': 'builds', 'id': build['id']}}}}})
