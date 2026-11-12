@@ -19,4 +19,4 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           SEND_FOR_BETA_REVIEW: "0"
-        run: python3 .github/asc-review/asc_external.py
+        run: python3 .github/asc-review/asc_kw_link.py
