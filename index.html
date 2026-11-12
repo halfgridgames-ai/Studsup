@@ -82,7 +82,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .shophead{display:flex;align-items:center;gap:10px}
 .shophead h2{font-family:var(--display);font-size:28px;margin:0;transform:skewX(-8deg);color:#ffd84a;flex:1}
 .shophead button{font-family:var(--display);font-size:12px;background:var(--panel);color:var(--chalk);border:2px solid var(--chalk);padding:6px 10px;cursor:pointer}
-.tabs{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;flex-wrap:wrap;gap:5px}
 .tabs button{font-family:var(--display);font-size:11px;background:transparent;color:var(--chalk);border:2px solid rgba(243,239,226,.35);padding:6px 9px;cursor:pointer;white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--chalk);color:var(--night);border-color:var(--chalk)}
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;overflow:auto;min-height:0;align-content:start}
@@ -93,6 +93,16 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .item .pr{font-weight:700;font-size:15px;color:#ffd84a}
 .item.owned .pr{color:#9fd8a8}.item.eq{border-color:#ffd84a;box-shadow:0 0 0 2px #ffd84a inset}.item.eq .pr{color:#ffd84a}
 .item.poor .pr{color:#c98a8a}
+.item{position:relative}
+.item .ball{width:40px;height:40px;border-radius:50%;display:block}
+.item .tag{position:absolute;top:-1px;right:-1px;font-family:var(--display);font-size:9px;letter-spacing:.06em;background:#ff3d63;color:#fff;padding:3px 7px;border-radius:0 0 0 8px}
+.item .sub{font-size:12px;opacity:.8;line-height:1.25}
+.item.wide{grid-column:span 2;grid-template-columns:auto 1fr auto;justify-items:start;text-align:left;align-items:center;gap:4px 12px;padding:20px 14px 12px}
+.item.wide .ic{grid-row:span 2;font-size:36px}.item.wide .nm{font-size:14px}.item.wide .sub{grid-column:2}.item.wide .pr{grid-row:1/span 2;grid-column:3;font-size:17px;background:#ffd84a;color:#1a1004;padding:8px 14px;border-radius:999px}
+.item.hero{background:linear-gradient(120deg,rgba(255,61,99,.28),rgba(255,154,60,.18));border-color:rgba(255,154,60,.7)}
+.item.done .pr{background:transparent;color:#9fd8a8}
+.item.link{grid-column:1/-1;background:transparent;border:0;padding:6px;text-decoration:underline;opacity:.75}.item.link .nm{font-size:11px}
+@media (max-width:420px){.item.wide{grid-column:1/-1}}
 .shopmsg{min-height:20px;font-weight:700;font-size:16px;color:#ffd84a;text-align:center}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9;background:#ffd84a;color:var(--night);font-family:var(--display);font-size:15px;padding:10px 16px;box-shadow:5px 5px 0 var(--night);text-align:center;pointer-events:none;max-width:92vw}
 .toast small{display:block;font-family:var(--body);font-weight:700;font-size:13px;margin-top:3px}
@@ -467,15 +477,21 @@ const CATALOG={
     {id:'dance_worm',name:'THE WORM',icon:'🐛',price:1000},{id:'dance_moonwalk',name:'MOONWALK',icon:'🌙',price:1500}],
   celebrations:[{id:'celebration_classic',name:'AEROPLANE',icon:'✈️',price:0},{id:'celebration_knee_slide',name:'KNEE SLIDE',icon:'🦵',price:800},
     {id:'celebration_corner_flag',name:'CORNER FLAG',icon:'🚩',price:1000},{id:'celebration_penguin_waddle',name:'PENGUIN WADDLE',icon:'🐧',price:1500}]};
+// Ball skins: same 32-panel ball, different colours (h = hexagons, p = pentagons, sh = shininess).
+const BALLS=[{id:'ball_classic',name:'CLASSIC',h:[246,245,240],p:[27,27,31],price:0,sh:80},{id:'ball_royal',name:'ROYAL NAVY',h:[24,38,82],p:[226,178,58],price:2500,sh:90},
+  {id:'ball_hivis',name:'HI-VIS',h:[236,255,40],p:[22,26,34],price:2500,sh:70},{id:'ball_gold',name:'SOLID GOLD',h:[255,206,84],p:[178,112,20],price:8000,sh:140}];
+CATALOG.balls=BALLS;
 const TEAM_PRICE={hooligans:0,penguins:0,polar_bears:4000,kangaroos:2500,gorillas:2500,grannies:2000,ninjas:3000,riot:3000,dolphins:5000,aliens:6000};
-const COIN_PACKS=[{id:'coins_1000',coins:1000,icon:'🪙'},{id:'coins_5500',coins:5500,icon:'💰'},{id:'coins_12000',coins:12000,icon:'💰'},{id:'coins_30000',coins:30000,icon:'🏦'}];
+// Coin packs climb in coins per pound (+10%, +20%, +50% over the 99p pack), same rule as Marble Mayhem.
+const COIN_PACKS=[{id:'coins_1000',coins:1000,icon:'🪙'},{id:'coins_5500',coins:5500,icon:'💰',tag:'+10% BONUS'},{id:'coins_12000',coins:12000,icon:'💰',tag:'+20% BONUS'},{id:'coins_30000',coins:30000,icon:'🏦',tag:'BEST VALUE'}];
 const DAILY=[50,75,100,125,150,200,500];
 function loadWallet(){let w=null;try{w=JSON.parse(localStorage.getItem('studsWallet')||'null');}catch(e){}
-  if(!w||typeof w.coins!=='number')w={coins:500,owned:['team_hooligans','team_penguins','stadium_home','dance_classic','celebration_classic'],
+  if(!w||typeof w.coins!=='number')w={coins:500,owned:['team_hooligans','team_penguins','stadium_home','dance_classic','celebration_classic','ball_classic'],
     equipped:{team:'team_hooligans',kit:null,stadium:'stadium_home',dance:'dance_classic',celebration:'celebration_classic'},daily:{day:'',streak:0},matches:0,lastInterstitialAt:0};
   w.equipped=w.equipped||{};w.equipped.kits=w.equipped.kits||{};w.owned=w.owned||[];w.daily=w.daily||{day:'',streak:0};
   w.ads=w.ads&&w.ads.day===TODAY()?w.ads:{day:TODAY(),rewarded:0,free:0};
-  for(const [k,d] of [['stadium','stadium_home'],['dance','dance_classic'],['celebration','celebration_classic']])if(!w.equipped[k])w.equipped[k]=d;
+  for(const [k,d] of [['stadium','stadium_home'],['dance','dance_classic'],['celebration','celebration_classic'],['ball','ball_classic']])if(!w.equipped[k])w.equipped[k]=d;
+  if(!w.owned.includes('ball_classic'))w.owned.push('ball_classic');
   return w;}
 const wallet=loadWallet();
 // Options on the title screen: ref strictness, commentary voice, phone vibration.
@@ -731,13 +747,13 @@ function banner(txt,sub,dur,html){netEv('b',txt,sub,dur,html);bannerEl.innerHTML
 const overlay=document.getElementById('overlay'),sheet=document.getElementById('sheet');
 function bindGo(){const b=document.getElementById('goBtn');if(b)b.onclick=()=>{initAudio();b.blur();if(b.dataset.mode==='tour'){goLandscape();startTour();return;}if(b.dataset.mode==='net'){netRematch();return;}startSingle();};
   const tb=document.getElementById('teamsBtn');if(tb)tb.onclick=()=>{initAudio();if(tb.dataset.mode==='tour')openTour();else{netLeave();openHome();}};
-  const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop('teams');};refreshCoins();}
+  const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop();};refreshCoins();}
 // ---------- menus ----------
 const DIFFS=[['EASY',0.8],['NORMAL',1],['HARD',1.22]];let diff=1;try{const v=localStorage.getItem('studsDiff');if(v!==null)diff=(+v||0)%3;}catch(e){}
 const HOWTO="<p class=\"intro\">Six-a-side arcade football with no mercy. Pick your animals, then slide through anyone, ball or no ball. Big hits fill your Fury gauge, and a full gauge turns your next shot into a fireball that flattens whoever gets in its way. The ref only sees some of it, unless you flatten the ref too. Juke and hurdle past the hits, then take on the World Tour.</p><div class=\"ctl kb-only\">      <div><span>Move</span><b>WASD / ARROWS</b></div>      <div><span>Sprint</span><b>SPACE / SHIFT</b></div>      <div><span>Pass \u00b7 switch player</span><b>J / Z</b></div>      <div><span>Shoot (hold) \u00b7 tackle</span><b>K / X</b></div>      <div><span>Jump kick</span><b>SPRINT + TACKLE</b></div>      <div><span>Diving header</span><b>TACKLE FROM RANGE</b></div>      <div><span>Juke \u00b7 hurdle (on the ball)</span><b>L / C</b></div>      <div><span>Team dance (fills Fury)</span><b>B</b></div>      <div><span>Pause</span><b>P / ESC</b></div>      <div><span>Gamepad</span><b>A PASS/SWITCH \u00b7 B SHOOT/TACKLE \u00b7 X JUKE/HURDLE \u00b7 Y DANCE \u00b7 RT SPRINT</b></div>    </div><div class=\"ctl touch-only\">      <div><span>Move</span><b>LEFT THUMB</b></div>      <div><span>Sprint</span><b>AUTOMATIC ON THE BALL</b></div>      <div><span>Shoot</span><b>HOLD FOR POWER</b></div>      <div><span>Off the ball</span><b>SWITCH \u00b7 TACKLE</b></div>      <div><span>Tackle</span><b>BARGE \u00b7 SLIDE \u00b7 JUMP KICK \u00b7 DIVE</b></div>      <div><span>One-touch</span><b>TAP AS THE PASS ARRIVES</b></div>      <div><span>Teal button</span><b>JUKE \u00b7 HURDLE A TACKLE</b></div>      <div><span>Dance</span><b>WHOLE TEAM \u00b7 FILLS FURY</b></div>    </div>";
 function showMenu(html,cls){sheet.innerHTML=html;sheet.className='sheet '+(cls||'menu');overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');refreshCoins();
   sheet.querySelectorAll('[data-back]').forEach(bk=>bk.onclick=()=>{initAudio();({home:openHome,career:openTour,single:openSingle,online:openOnline,pause:openPause})[bk.dataset.back]();});
-  const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop('teams');};}
+  const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop();};}
 // ---------- 1v1 online ----------
 // The host's phone runs the match: its player is team 0, the friend steers team 1. The friend's phone only sends its pad
 // and draws what the host sends, turned round 180° so the friend also attacks left to right as team 0.
@@ -985,7 +1001,7 @@ function openTour(){const ts=tourState();endTour();applyTeams();
   const pl=document.getElementById('tourPlay');if(pl)pl.onclick=()=>{initAudio();goLandscape();startTour();};
   const rs=document.getElementById('tourReset');if(rs)rs.onclick=()=>{ts.r=0;ts.m=0;saveWallet();openTour();};
 }
-function bindPicker(){refreshCoins();bindOpts();const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop('teams');};
+function bindPicker(){refreshCoins();bindOpts();const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop();};
   const draw=()=>{for(const [id,which] of [['pickMe',0],['pickOpp',1]]){const el=document.getElementById(id);if(!el)continue;
     el.innerHTML=CLUBS.map((c,i)=>{const lock=!which&&!owned('team_'+c.key);return '<button type="button" data-i="'+i+'" style="--c:'+c.col+'" aria-pressed="'+((which?pickOpp:pickMe)===i)+'"'+((which?pickMe:pickOpp)===i?' disabled':'')+'><i>'+c.icon+'</i>'+c.name+(lock?' 🔒'+TEAM_PRICE[c.key]:'')+'</button>';}).join('');
     el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;
@@ -996,18 +1012,20 @@ function bindPicker(){refreshCoins();bindOpts();const sb=document.getElementById
 // ---------- shop ----------
 const shopEl=document.getElementById('shop'),shopGrid=document.getElementById('shopGrid'),shopTabs=document.getElementById('shopTabs'),shopMsg=document.getElementById('shopMsg');
 let shopTab='teams',prodInfo={};
-const TABS=[['teams','TEAMS'],['kits','KITS'],['stadiums','STADIUMS'],['dances','DANCES'],['celebrations','CELEBRATIONS'],['coins','COINS']];
+// OFFERS (real-money items) comes first and is where the shop opens in the phone app; the web game has no OFFERS tab.
+const TABS=[['coins','⭐ OFFERS'],['teams','TEAMS'],['kits','KITS'],['balls','BALLS'],['stadiums','STADIUMS'],['dances','DANCES'],['celebrations','CELEBRATIONS']];
+const EQ_KEY={stadiums:'stadium',dances:'dance',celebrations:'celebration',balls:'ball'};
 function kitItems(){const c=CLUBS[pickMe];return [{id:'kit_'+c.key+'_home',name:c.name+' HOME',col:c.col,sh:c.shorts,price:0}].concat(
   Object.entries(KITS).map(([k,v])=>({id:'kit_'+c.key+'_'+k,name:v.n,col:v.col,sh:v.shorts,price:v.price})));}
 function isEquipped(tab,id){if(tab==='teams')return id==='team_'+CLUBS[pickMe].key;
   if(tab==='kits'){const e=wallet.equipped.kits[CLUBS[pickMe].key];return e?e===id:/_home$/.test(id);}
-  return wallet.equipped[{stadiums:'stadium',dances:'dance',celebrations:'celebration'}[tab]]===id;}
+  return wallet.equipped[EQ_KEY[tab]]===id;}
 function equip(tab,id){
   if(tab==='teams'){const i=CLUBS.findIndex(c=>'team_'+c.key===id);pickMe=i;if(pickOpp===i)pickOpp=i===0?1:0;try{localStorage.setItem('studsTeams',JSON.stringify([pickMe,pickOpp]));}catch(e){}}
   else if(tab==='kits'){wallet.equipped.kits[CLUBS[pickMe].key]=/_home$/.test(id)?null:id;wallet.equipped.kit=wallet.equipped.kits[CLUBS[pickMe].key];}
-  else wallet.equipped[{stadiums:'stadium',dances:'dance',celebrations:'celebration'}[tab]]=id;
-  saveWallet();applyTeams();}
-function openShop(tab){shopTab=tab||shopTab;shopEl.hidden=false;shopMsg.textContent='';renderShop();}
+  else wallet.equipped[EQ_KEY[tab]]=id;
+  saveWallet();applyTeams();if(tab==='balls')applyBall();}
+function openShop(tab){shopTab=tab||(MZ()?'coins':'teams');shopEl.hidden=false;shopMsg.textContent='';renderShop();}
 function closeShop(){shopEl.hidden=true;refreshCoins();if(!overlay.hidden&&sheet.querySelector('.tgrid')){if(sheet.querySelector('#hostBtn'))openOnline();else openSingle();}}
 document.getElementById('shopClose').addEventListener('click',closeShop);
 function renderShop(){refreshCoins();const mz=MZ();
@@ -1018,9 +1036,9 @@ function renderShop(){refreshCoins();const mz=MZ();
   if(shopTab==='coins')items=coinItems();
   else items=(shopTab==='kits'?kitItems():CATALOG[shopTab]).map(it=>{const own=owned(it.id),eq=own&&isEquipped(shopTab,it.id);
     return Object.assign({},it,{own,eq,label:eq?'EQUIPPED':own?'EQUIP':'🪙 '+it.price.toLocaleString(),poor:!own&&wallet.coins<it.price});});
-  shopGrid.innerHTML=items.map((it,i)=>'<button type="button" class="item'+(it.own?' owned':'')+(it.eq?' eq':'')+(it.poor?' poor':'')+'" data-i="'+i+'">'+
-    (it.col?'<span class="sw" style="background:'+it.col+';--sh:'+it.sh+'"></span>':'<span class="ic">'+it.icon+'</span>')+
-    '<span class="nm">'+it.name+'</span><span class="pr">'+it.label+'</span></button>').join('');
+  shopGrid.innerHTML=items.map((it,i)=>'<button type="button" class="item'+(it.own?' owned':'')+(it.eq?' eq':'')+(it.poor?' poor':'')+(it.cls?' '+it.cls:'')+'" data-i="'+i+'">'+
+    (it.col?'<span class="sw" style="background:'+it.col+';--sh:'+it.sh+'"></span>':it.h?'<img class="ball" alt="" src="'+ballIcon(it)+'">':it.icon?'<span class="ic">'+it.icon+'</span>':'')+
+    '<span class="nm">'+it.name+'</span>'+(it.sub?'<span class="sub">'+it.sub+'</span>':'')+'<span class="pr">'+it.label+'</span>'+(it.tag?'<span class="tag">'+it.tag+'</span>':'')+'</button>').join('');
   shopGrid.querySelectorAll('.item').forEach(b=>b.onclick=()=>shopAction(items[+b.dataset.i]));}
 function shopAction(it){
   if(it.act){it.act();return;}
@@ -1031,11 +1049,14 @@ function shopAction(it){
 // Real-money and ad items: only when the phone app provides window.Monetize.
 function coinItems(){const mz=MZ(),list=[],price=id=>prodInfo[id]?prodInfo[id].price:'…';
   const left=3-wallet.ads.free;
+  if(!safeOwns('remove_ads'))list.push({id:'remove_ads',name:'REMOVE ADS',sub:'No more ads between matches. Forever.',icon:'🚫',cls:'wide hero',label:price('remove_ads'),act:()=>realBuy('remove_ads')});
+  else list.push({id:'remove_ads',name:'ADS REMOVED',sub:'Thanks for supporting Studs Up!',icon:'✅',cls:'wide done',label:'OWNED',act:()=>{}});
+  if(!safeOwns('starter_pack'))list.push({id:'starter_pack',name:'STARTER PACK',sub:'3,000 coins + the Gorillas team',icon:'🎁',cls:'wide',tag:'BEST DEAL',label:price('starter_pack'),act:()=>realBuy('starter_pack')});
   list.push({id:'free_coins',name:'FREE 100 COINS',icon:'📺',label:left>0?'WATCH AD ('+left+' LEFT)':'BACK TOMORROW',act:()=>{if(left<=0)return;
     mz.showRewarded('free_coins').then(ok=>{if(ok){track('rewarded_ad_watched',{placement:'free_coins'});wallet.ads.free++;addCoins(100);shopMsg.textContent='+100 COINS';}renderShop();}).catch(()=>{});}});
-  if(!safeOwns('starter_pack'))list.push({id:'starter_pack',name:'STARTER PACK: 3000 + GORILLAS',icon:'🎁',label:price('starter_pack'),act:()=>realBuy('starter_pack')});
-  for(const p of COIN_PACKS)list.push({id:p.id,name:p.coins.toLocaleString()+' COINS',icon:p.icon,label:price(p.id),act:()=>realBuy(p.id)});
-  if(!safeOwns('remove_ads'))list.push({id:'remove_ads',name:'REMOVE ADS',icon:'🚫',label:price('remove_ads'),act:()=>realBuy('remove_ads')});
+  for(const p of COIN_PACKS)list.push({id:p.id,name:p.coins.toLocaleString()+' COINS',icon:p.icon,tag:p.tag,label:price(p.id),act:()=>realBuy(p.id)});
+  if(mz.restore)list.push({id:'restore',name:'RESTORE PURCHASES',cls:'link',label:'',act:()=>{shopMsg.textContent='Restoring…';
+    mz.restore().then(()=>{shopMsg.textContent='Purchases restored';renderShop();}).catch(()=>{shopMsg.textContent='Could not restore right now';});}});
   return list;}
 function safeOwns(id){try{return !!(MZ()&&MZ().owns(id));}catch(e){return false;}}
 function realBuy(id){const mz=MZ();if(!mz)return;shopMsg.textContent='…';
@@ -3051,7 +3072,7 @@ function drawWeather(dt){const S=stad();if(!S.wx)return;const w=R.wx,n=S.wx==='r
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;}
 // Classic 32-panel football (truncated icosahedron), drawn per pixel onto an equirect canvas so the
 // panels sit right on a SphereGeometry: black pentagons, white hexagons, recessed seams (+ bump map).
-function ballTexture(W){const H=W>>1,ph=(1+Math.sqrt(5))/2,N=a=>{const l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];},dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+function ballTexture(W,skin){const HX=(skin||BALLS[0]).h,PT=(skin||BALLS[0]).p;const H=W>>1,ph=(1+Math.sqrt(5))/2,N=a=>{const l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];},dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
   const perm=(a,b,c,o)=>{for(const s1 of [-1,1])for(const s2 of [-1,1])for(const s3 of [-1,1]){const v=[a*s1,b*s2,c*s3];o.push(v,[v[1],v[2],v[0]],[v[2],v[0],v[1]]);}};
   const tv=[];perm(0,1,3*ph,tv);perm(1,2+ph,2*ph,tv);perm(ph,2,ph*ph*ph,tv);
   const ico=[];perm(0,1,ph,ico);const pent=[];for(const v of ico){const n=N(v);if(!pent.some(p=>dot(p,n)>0.9999))pent.push(n);}
@@ -3062,10 +3083,23 @@ function ballTexture(W){const H=W>>1,ph=(1+Math.sqrt(5))/2,N=a=>{const l=Math.hy
   for(let y=0;y<H;y++){const th=(y+0.5)/H*PI,st=Math.sin(th),ct=Math.cos(th);
     for(let x=0;x<W;x++){const f=(x+0.5)/W*PI*2,p=[-Math.cos(f)*st,ct,Math.sin(f)*st];
       let b1=-9,b2=-9,bi=0;for(let i=0;i<32;i++){const s=dot(p,C[i].n)/C[i].d;if(s>b1){b2=b1;b1=s;bi=i;}else if(s>b2)b2=s;}
-      const sm=Math.sqrt(Math.min(1,(b1-b2)*280)),sh=0.62+0.38*sm,v=C[bi].p?[27,27,31]:[246,245,240],o=(y*W+x)*4;
+      const sm=Math.sqrt(Math.min(1,(b1-b2)*280)),sh=0.62+0.38*sm,v=C[bi].p?PT:HX,o=(y*W+x)*4;
       D[o]=v[0]*sh;D[o+1]=v[1]*sh;D[o+2]=v[2]*sh;D[o+3]=255;E[o]=E[o+1]=E[o+2]=255*sm;E[o+3]=255;}}
   M.g.putImageData(M.img,0,0);B.g.putImageData(B.img,0,0);
   const map=new THREE.CanvasTexture(M.c),bump=new THREE.CanvasTexture(B.c);map.anisotropy=bump.anisotropy=4;return {map,bump};}
+// Small shaded picture of a ball skin for the shop grid (cached per skin).
+const ballIcons={};
+function ballIcon(sk){if(ballIcons[sk.id])return ballIcons[sk.id];const S=80,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  const t=ballTexture(256,sk).map.image,img=g.createImageData(S,S),src=t.getContext('2d').getImageData(0,0,256,128).data,d=img.data;
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const nx=(x+0.5)/S*2-1,ny=(y+0.5)/S*2-1,r2=nx*nx+ny*ny,o=(y*S+x)*4;if(r2>1)continue;
+    const nz=Math.sqrt(1-r2),a=0.35,px=nx*Math.cos(a)+nz*Math.sin(a),pz=-nx*Math.sin(a)+nz*Math.cos(a),py=-ny;
+    const th=Math.acos(py),f=Math.atan2(pz,-px),u=Math.floor(((f/(PI*2))+1)%1*256),v=Math.min(127,Math.floor(th/PI*128)),so=(v*256+u)*4;
+    const lit=0.45+0.55*Math.max(0,nx*-0.4+ny*-0.5+nz*0.77),spec=Math.pow(Math.max(0,nx*-0.4+ny*-0.5+nz*0.77),24)*(sk.sh||80)/1.4;
+    d[o]=Math.min(255,src[so]*lit+spec);d[o+1]=Math.min(255,src[so+1]*lit+spec);d[o+2]=Math.min(255,src[so+2]*lit+spec);d[o+3]=r2>0.96?255*(1-r2)/0.04:255;}
+  g.putImageData(img,0,0);return ballIcons[sk.id]=c.toDataURL();}
+function ballSkin(){return BALLS.find(b=>b.id===wallet.equipped.ball)||BALLS[0];}
+function applyBall(){if(!R||!R.ball)return;const sk=ballSkin();if(R.ballSkin===sk.id)return;const bt=ballTexture(COARSE?512:1024,sk),m=R.ball.material;
+  if(m.map)m.map.dispose();if(m.bumpMap)m.bumpMap.dispose();m.map=bt.map;m.bumpMap=bt.bump;m.shininess=sk.sh||80;m.needsUpdate=true;R.ballSkin=sk.id;}
 function pitchTexture(pal){const P=pal||{};
   const S=2,c=document.createElement('canvas');c.width=(W+PIT_M*2)*S;c.height=(H+PIT_M*2)*S;const g=c.getContext('2d');g.scale(S,S);g.translate(PIT_M,PIT_M);
   if(P.draw)P.draw(g);else{
@@ -3332,8 +3366,8 @@ function init3D(){
   R.marker=mk;R.arrow=arrow;
   R.recv=new THREE.Mesh(new THREE.RingGeometry(10,12.5,32),new THREE.MeshBasicMaterial({color:0x6dff9a,transparent:true,opacity:0.9,depthWrite:false}));R.recv.rotation.x=-PI/2;R.recv.position.y=0.45;scene.add(R.recv);
   // ball
-  const bt=ballTexture(COARSE?512:1024);
-  R.ball=ballM(4.5,new THREE.MeshPhongMaterial({color:0xffffff,map:bt.map,bumpMap:bt.bump,bumpScale:0.25,shininess:80,specular:0x4a4a4a}),40,28);scene.add(R.ball);
+  const sk=ballSkin(),bt=ballTexture(COARSE?512:1024,sk);
+  R.ball=ballM(4.5,new THREE.MeshPhongMaterial({color:0xffffff,map:bt.map,bumpMap:bt.bump,bumpScale:0.25,shininess:sk.sh||80,specular:0x4a4a4a}),40,28);R.ballSkin=sk.id;scene.add(R.ball);
   R.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff8a1a,blending:THREE.AdditiveBlending,depthWrite:false}));R.glow.scale.set(46,46,1);scene.add(R.glow);fxInit(glowTex);
   sizeRenderer();
 }

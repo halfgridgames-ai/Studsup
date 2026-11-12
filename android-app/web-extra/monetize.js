@@ -186,6 +186,17 @@
     });
   }
 
+  // "Restore purchases" button in the shop (Apple asks for one when an app sells non-consumables).
+  // Owned items come back through productUpdated/finished above, which call the game's onRestore.
+  async function restorePurchases() {
+    if (!(await storeReady)) throw new Error('store unavailable');
+    var err = await store.restorePurchases();
+    if (err) throw err;
+    ['remove_ads', 'starter_pack'].forEach(function (id) {
+      var p = store.get(id); if (p && p.owned) { markOwned(id); restore(id); }
+    });
+  }
+
   async function showPrivacyOptions() {
     try { await AdMob.showPrivacyOptionsForm(); } catch (e) { console.warn('Monetize: privacy options failed', e); }
   }
@@ -198,6 +209,7 @@
     showRewarded: showRewarded,
     products: products,
     buy: buy,
+    restore: restorePurchases,
     owns: owns,
     onRestore: function (fn) {
       restoreFns.push(fn);
