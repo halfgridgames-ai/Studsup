@@ -82,7 +82,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .shophead{display:flex;align-items:center;gap:10px}
 .shophead h2{font-family:var(--display);font-size:28px;margin:0;transform:skewX(-8deg);color:#ffd84a;flex:1}
 .shophead button{font-family:var(--display);font-size:12px;background:var(--panel);color:var(--chalk);border:2px solid var(--chalk);padding:6px 10px;cursor:pointer}
-.tabs{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;flex-wrap:wrap;gap:5px}
 .tabs button{font-family:var(--display);font-size:11px;background:transparent;color:var(--chalk);border:2px solid rgba(243,239,226,.35);padding:6px 9px;cursor:pointer;white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--chalk);color:var(--night);border-color:var(--chalk)}
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;overflow:auto;min-height:0;align-content:start}
@@ -97,7 +97,7 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .item .ball{width:40px;height:40px;border-radius:50%;display:block}
 .item .tag{position:absolute;top:-1px;right:-1px;font-family:var(--display);font-size:9px;letter-spacing:.06em;background:#ff3d63;color:#fff;padding:3px 7px;border-radius:0 0 0 8px}
 .item .sub{font-size:12px;opacity:.8;line-height:1.25}
-.item.wide{grid-column:span 2;grid-template-columns:auto 1fr auto;justify-items:start;text-align:left;align-items:center;gap:4px 12px;padding:12px 14px}
+.item.wide{grid-column:span 2;grid-template-columns:auto 1fr auto;justify-items:start;text-align:left;align-items:center;gap:4px 12px;padding:20px 14px 12px}
 .item.wide .ic{grid-row:span 2;font-size:36px}.item.wide .nm{font-size:14px}.item.wide .sub{grid-column:2}.item.wide .pr{grid-row:1/span 2;grid-column:3;font-size:17px;background:#ffd84a;color:#1a1004;padding:8px 14px;border-radius:999px}
 .item.hero{background:linear-gradient(120deg,rgba(255,61,99,.28),rgba(255,154,60,.18));border-color:rgba(255,154,60,.7)}
 .item.done .pr{background:transparent;color:#9fd8a8}
