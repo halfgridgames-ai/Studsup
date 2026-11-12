@@ -1,0 +1,19 @@
+# One-off, read-only: lists Studs Up in-app purchases on App Store Connect. Runs only on this branch.
+name: App Store IAP check
+on:
+  push:
+    branches: [asc-iap-check]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: pip install pyjwt cryptography
+      - env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: python3 .github/asc-iap/check.py
