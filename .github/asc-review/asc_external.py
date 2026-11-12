@@ -69,6 +69,13 @@ for bundle, name in APPS:
     api('POST', f"/v1/betaGroups/{grp['id']}/relationships/builds", {'data': [{'type': 'builds', 'id': build['id']}]})
     state = (api('GET', f"/v1/builds/{build['id']}/buildBetaDetail") or {}).get('data', {}).get('attributes', {}).get('externalBuildState')
     print(f"  build {build['attributes'].get('version')} external state: {state}, expired={build['attributes'].get('expired')}")
+    if state == 'BETA_APPROVED':
+        # Approved but not handed to the public-link group: take the build out of the group and put it back
+        rel = {'data': [{'type': 'builds', 'id': build['id']}]}
+        api('DELETE', f"/v1/betaGroups/{grp['id']}/relationships/builds", rel)
+        api('POST', f"/v1/betaGroups/{grp['id']}/relationships/builds", rel)
+        state = (api('GET', f"/v1/builds/{build['id']}/buildBetaDetail") or {}).get('data', {}).get('attributes', {}).get('externalBuildState')
+        print(f'  re-added build to the public group; state now {state}')
     sub = (api('GET', f"/v1/builds/{build['id']}/betaAppReviewSubmission") or {}).get('data') or {}
     print(f"  beta review submission: {sub.get('attributes', {}).get('betaReviewState')}")
     ga = grp['attributes']
