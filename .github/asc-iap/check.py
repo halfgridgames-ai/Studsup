@@ -36,5 +36,12 @@ if SWAP:
         api('PATCH', f"/v1/appStoreVersions/{ver['id']}/relationships/build", {'data': {'type': 'builds', 'id': target['id']}})
         b = api('GET', f"/v1/appStoreVersions/{ver['id']}/build")['data']; v2 = api('GET', f"/v1/appStoreVersions/{ver['id']}")['data']
         print('NOW version', v2['attributes']['versionString'], v2['attributes']['appStoreState'], 'build', b['attributes']['version'])
+        # Same build on the public TestFlight link, so the review video can be recorded from it
+        grp = next((g for g in api('GET', f'/v1/apps/{app}/betaGroups?limit=50')['data'] if not g['attributes'].get('isInternalGroup')), None)
+        if grp:
+            api('POST', f"/v1/betaGroups/{grp['id']}/relationships/builds", {'data': [{'type': 'builds', 'id': target['id']}]})
+            api('POST', '/v1/betaAppReviewSubmissions', {'data': {'type': 'betaAppReviewSubmissions', 'relationships': {'build': {'data': {'type': 'builds', 'id': target['id']}}}}})
+            st2 = (api('GET', f"/v1/builds/{target['id']}/buildBetaDetail") or {}).get('data', {}).get('attributes', {})
+            print('TestFlight external state', st2.get('externalBuildState'), 'group', grp['attributes'].get('name'), grp['attributes'].get('publicLink'))
     else:
         print('SWAP skipped')
