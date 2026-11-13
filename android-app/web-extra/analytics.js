@@ -4,8 +4,8 @@
 // the plugin or google-services.json, window.Analytics.track does nothing.
 (function () {
   var Cap = window.Capacitor;
-  var on = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.isPluginAvailable('FirebaseAnalytics'));
-  var FA = on ? Cap.registerPlugin('FirebaseAnalytics') : null;
+  var on = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.FirebaseAnalytics);
+  var FA = on ? Cap.Plugins.FirebaseAnalytics : null; // native bridge has no registerPlugin()
   window.Analytics = {
     track: function (name, params) {
       if (!FA) return;

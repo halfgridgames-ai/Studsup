@@ -3,7 +3,10 @@
 // window.Monetize is left undefined so the game hides real-money items and skips ads.
 (function () {
   var Cap = window.Capacitor;
-  if (!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform() || !Cap.isPluginAvailable('AdMob')) return;
+  // The app has no @capacitor/core bundle, only the native bridge, which has no registerPlugin():
+  // plugins are reached through Capacitor.Plugins (calling registerPlugin threw and left Monetize undefined,
+  // so the app had no ads and no paid items).
+  if (!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform() || !Cap.Plugins || !Cap.Plugins.AdMob) return;
 
   // AdMob IDs: the real Studs Up units (Half Grid Games AdMob account), one AdMob app per platform.
   // TEST = true shows test ads everywhere.
@@ -30,7 +33,7 @@
   var MIN_AD_GAP_MS = 3 * 60 * 1000;
   var STATE_KEY = 'studsMonetize';
 
-  var AdMob = Cap.registerPlugin('AdMob');
+  var AdMob = Cap.Plugins.AdMob;
   var platform = Cap.getPlatform();
   var ids = IDS[platform] || IDS.android;
   var restoreFns = [];
