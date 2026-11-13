@@ -61,7 +61,8 @@
   var privacyOptions = false;
   var adsReady = (async function () {
     try {
-      await AdMob.initialize({ initializeForTesting: TEST });
+      // Family-friendly ads only: AdMob serves nothing above a G (general audiences) rating.
+      await AdMob.initialize({ initializeForTesting: TEST, maxAdContentRating: 'General' });
       var info = await AdMob.requestConsentInfo();
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) {
         info = await AdMob.showConsentForm();
