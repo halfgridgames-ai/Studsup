@@ -533,7 +533,7 @@ const HITWORDS=['CRUNCH!','WIPED OUT!','FLATTENED!','OOF!','BOOM!','SCYTHED!','L
 
 // ---------- state ----------
 let showCam=null,camMode=0;const MENU_CAM={a:0.9};const CAMS=['PITCH','TV','BEHIND'];
-camMode=2;try{const v=localStorage.getItem('studsCam2');if(v!==null)camMode=+v%3;}catch(e){}
+camMode=1;try{const v=localStorage.getItem('studsCam2');if(v!==null)camMode=+v%3;}catch(e){}
 let hitZoom=0,setPiece=null;const scuffs=[];let slowT=0,flashA=0,flashCol='255,255,255',trail=[],rings=[],goalCam=0,players=[],state='title',paused=false,freeze=0,clock=0,nextKick=0;
 // Who is steered by a person: team 0 always (this device), team 1 too when this device hosts an online match. Each has its own controlled player and pad state.
 const HUMS=[null,null],TD=[null,null];
