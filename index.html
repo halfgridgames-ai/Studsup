@@ -1541,9 +1541,9 @@ function knockDown(q,a,word,kind){
   popup(q.x,q.y-34,word||pick(words),big?'#ff6a3a':'#ffc23a');sfx('thud');if(big||kind==='dive')sfx('crack');sfx('ooh');
   if(q.team===0||(a&&a.team===0))vib(big?55:28);
 }
-// Which way a flattened body goes over: hit from the front, they fly backwards; from behind, they pitch forwards onto their front.
-// The body is turned square to the hit (side-on hits twist them round), so the fall always goes the way they were pushed.
-function knockFall(q,ha){const d=Math.cos(ha-q.face);q.fb=d<0?1:-1;q.face=q.fb>0?ha+PI:ha;q.downT=q.down;q.downAir=Math.max(0.3,2*(q.lvz||0)/900+0.06);}
+// Which way a flattened body goes over. People are spun round to face the hit and blown over backwards (one clean mocap fall, landing on
+// the back, which is also where the get-up starts); animals hit from behind pitch forwards onto their front instead.
+function knockFall(q,ha){const d=Math.cos(ha-q.face),an=q!==ref&&TEAMS[q.team]&&ANIMAL[TEAMS[q.team].kind];q.fb=d<0||!an?1:-1;q.face=q.fb>0?ha+PI:ha;q.downT=q.down;q.downAir=Math.max(0.3,2*(q.lvz||0)/900+0.06);}
 // How hard a flattened body's limbs are still flailing: all-out in the air, then going limp once they hit the floor.
 function flail(p){if(!(p.down>0))return 1;const el=(p.downT||1.4)-p.down,A=p.downAir||0.5;return el<A?1:Math.max(0.12,Math.exp(-(el-A)*3.5));}
 function hit(a,q,kind){
@@ -2165,6 +2165,7 @@ const ANIM_PICK={idle:['soccer_idle','offensive_idle','idle','breathing_idle','s
   jogback:['jog_back'],strafeL:['strafe_a'],strafeR:['strafe_b'],gkstepL:['gk_step_a'],gkstepR:['gk_step_b'],turnstep:['jog_forward','jog'],
   roll:['sprinting_forward_roll'],spinrun:['jog_forward','jog'],boxer:['punching'],gkmiss:['goalkeeper_miss'],shout:['goalkeeper_directing']};
 // one-shot moves: [clip, from, to] seconds of the source clip, stretched over the game's own timer for that move
+const GETUP=0.8;  // seconds of the knock-down spent getting back up (people)
 const ANIM_MIRROR=['gk_dive_a','gk_block'];
 // kick clips twist the whole body round a long way (a shot ends 50 degrees off its line): [contact time, share of the twist kept].
 // The body is squared to the ball's line at contact and only part of the twist is kept, so a kick never reads as a turn.
@@ -2173,18 +2174,18 @@ const ANIM_YAWFIX={kick_shot:[0.47,0.45],kick_pass:[0.26,0.5],kick_pen:[0.8,0.45
 const ANIM_SEG={pose_win:['victory',1.0,1.0],pose_idle:['soccer_idle',2.0,2.0],pose_point:['goalkeeper_directing',1.5,1.5],pose_gk:['goalkeeper_idle',1.0,1.0],kick:['soccer_kick',0.18,0.6],kick_pass:['kick_pass',0.03,0.26,0.53],kick_shot:['kick_shot',0.2,0.47,1.05],kick_pen:['kick_pen',0.6,0.8,1.2],
   kick_punt:['gk_punt',1.75,2.17,2.75],kick_roll:['gk_throw',1.25,1.6,2.2],slide:['soccer_tackle',0.2,0.8],slideR:['soccer_tackle',1.0,1.8],
   jump:['scissor_kick',0.45,1.3],jumpR:['scissor_kick',2.2,2.8],diveR:['standing_up',0.6,1.7],
-  knockB:['flying_back_death',0.04,0.8,1.6],knockF:['soccer_trip',0.38,0.95,1.55],
+  knockB:['flying_back_death',0.04,0.8,1.6],
   gkdiveA:['gk_dive_a',0.45,1.45],gkdiveB:['gk_dive_a_m',0.45,1.45],gklandA:['gk_dive_a',1.45,1.95],gklandB:['gk_dive_a_m',1.45,1.95],gkroll:['sprinting_forward_roll',0.66,1.2],
   catch:['gk_catch',0.2,0.8],header:['header',0.55,1.05,1.7],trap:['receive_ball',0.25,1.0],stagger:['hit_stagger',0,0.43],
-  gkblockA:['gk_block',0.45,1.5],gkblockB:['gk_block_m',0.45,1.5],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['standing_up',0.9,1.7]};
+  gkblockA:['gk_block',0.45,1.5],gkblockB:['gk_block_m',0.45,1.5],throwHold:['throw_in',1.0,1.0],throw:['throw_in',1.2,1.8],getup:['sprinting_forward_roll',0.7,1.2]};
 function anFind(rig,key){const L=ANIM_PICK[key];if(!L||!rig.clips)return null;for(const n of L){if(rig.clips[n])return rig.clips[n];}
   for(const n of L)for(const k in rig.clips)if(k.startsWith(n))return rig.clips[k];return null;}
 // which clip (if any) a player shows now, and for one-shot moves how far through it they are (0..1)
 function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   if(p.forceAnim)return [p.forceAnim,p.forcePr||0];
-  if(p.down>0){if(p.down<0.45)return one('getup',1-p.down/0.45);
-    // one clip from the hit to lying still: blown off the feet in the air time, then settling on the floor
-    const D=p.downT||1.4,el=D-p.down,len=Math.max(0.2,D-0.45);return [p.fb<0?'knockF':'knockB',clamp(el/len,0,1),clamp((p.downAir||0.5)/len,0.2,0.9)];}
+  if(p.down>0){if(p.down<GETUP)return one('getup',1-p.down/GETUP);
+    // one clip from the hit to lying still: blown off the feet over the air time, then settling at real speed and staying still
+    const el=(p.downT||1.4)-p.down,air=p.downAir||0.5,c=0.5;return ['knockB',el<air?c*el/air:c+(1-c)*Math.min(1,(el-air)/0.4),c];}
   if(state==='goal'&&p!==ref&&celeb){const c=celeb;
     if(c.team===p.team){if(p===c.by){const k={roll:'roll',boxer:'boxer',pile:'win'}[c.type];return [k||null];}
       if(p.role==='GK')return ['shout'];if(spd>60)return [spd>SPRINT*0.8?'sprint':'jog'];return [['win','pump','boxer','dance','shout'][p.i%5]];}
@@ -2224,7 +2225,7 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
 function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const [k,pr,cut]=anState(p),seg=k&&ANIM_SEG[k];
   const clip=!k?null:seg?rig.clips[seg[0]]||null:anFind(rig,k);
   if(clip!==m.clip||(clip&&!!seg!==!!m.seg)){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;m.seg=!!seg;
-    if(clip){const a=m.mixer.clipAction(clip);if(a!==prev){a.reset();const xf=k==='getup'||k==='diveR'?0.3:k==='knockB'||k==='knockF'?0.06:seg?0.08:0.18;if(prev)prev.crossFadeTo(a,xf,false);else a.fadeIn(xf);}
+    if(clip){const a=m.mixer.clipAction(clip);if(a!==prev){a.reset();const xf=k==='getup'?0.2:k==='diveR'?0.3:k==='knockB'||k==='knockF'?0.06:seg?0.08:0.18;if(prev)prev.crossFadeTo(a,xf,false);else a.fadeIn(xf);}
       const once=k==='fly'||k==='fall';a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=once;a.play();}
     else if(prev)prev.fadeOut(0.15);}
   if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);
@@ -2301,12 +2302,14 @@ function headLook(p,m,k,dt){const h=m.head;if(!h||!h.parent||!k)return;  // only
   HL.q.setFromAxisAngle(HL.up,m.look);h.quaternion.premultiply(HL.pq).premultiply(HL.q).premultiply(HL.pi);}
 // The fall clips twist the body round as it goes down. Once the body is lying flat, turn it so it lies along the line it was knocked:
 // head towards where the hit sent it. That keeps a flattened player off the one who hit them, and the get-up starts from where they landed.
-const KA={h:new THREE.Vector3(),p:new THREE.Vector3()};
+const KA={h:new THREE.Vector3(),p:new THREE.Vector3(),f:new THREE.Vector3(),q:new THREE.Quaternion()};
 function knockAlign(p,m,k,dt){if(!m.head||!m.hips){m.kal=0;return;}
   m.g.updateMatrixWorld(true);m.head.getWorldPosition(KA.h);m.hips.getWorldPosition(KA.p);const vx=KA.h.x-KA.p.x,vy=KA.h.y-KA.p.y,vz=KA.h.z-KA.p.z,len=Math.hypot(vx,vy,vz)||1;
-  const lie=clamp(1.15-Math.abs(vy)/len*1.6,0,1),want=(p.fb>0?p.face+PI:p.face)+(m.kal||0),err=Math.atan2(Math.sin(want-Math.atan2(vz,vx)),Math.cos(want-Math.atan2(vz,vx)));
-  const tgt=(m.kal||0)+err*lie*(k==='getup'?0.5:1);m.kal=(m.kal||0)+Math.atan2(Math.sin(tgt-(m.kal||0)),Math.cos(tgt-(m.kal||0)))*Math.min(1,(dt||0.016)*9);
-  m.body.rotation.y=-m.kal;}
+  // how flat the body is (1 lying, 0 upright); the turn only applies while flat, so it fades out as they stand and never spins them on the floor
+  const lie=clamp(1.2-Math.abs(vy)/len*1.6,0,1),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),d=wrap(p.face+PI-Math.atan2(vz,vx));let tgt=d*lie;
+  // getting up (a rock-up from the back): as they rise, line the hips up with where they face so they come up facing their way instead of the clip's own drift
+  if(k==='getup'){m.hips.getWorldQuaternion(KA.q);KA.f.set(0,0,1).applyQuaternion(KA.q);const d2=wrap(p.face-Math.atan2(KA.f.z,KA.f.x));tgt=wrap(d2+wrap(d-d2)*lie);}
+  const c=m.kal||0;m.kal=c+wrap(tgt-c)*Math.min(1,(dt||0.016)*10);m.body.rotation.y=-m.kal;}
 // Copy the proxy pose onto the bones: wanted = proxy joint turn * straighten-to-down * rest pose, then made local to the parent bone.
 function rigApply(m){const r=m.rig;if(!r)return;
   r.chain.forEach((c,k)=>{const acc=r.acc.copy(c.j[0].quaternion);for(let i=1;i<c.j.length;i++)acc.multiply(c.j[i].quaternion);
@@ -3548,7 +3551,7 @@ function render(t,dt){
   for(const c of R.crowds){c.offset.y=goalCam>0?Math.abs(Math.sin(t*14))*0.02:0;}
   for(const b of R.boards)b.offset.x=(t*0.04)%1;
   if(R.venue)for(const f of R.venue.userData.anim)f(t,dt);
-  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);if(m.animal){animalPose(p,m,adt);return;}const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&k!=='diveR'&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}if(k==='knockB'||k==='knockF'||k==='getup'||(k==='diveR'&&m.kal))knockAlign(p,m,k,adt);else m.kal=0;rigApply(m);if(m.head)headLook(p,m,k,adt);};
+  const adt=RP&&replay?dt*(replay.rate||1):dt,anim=(p,m)=>{poseModel(p,m,t,adt);blendPose(m,adt);if(m.animal){animalPose(p,m,adt);return;}const k=m.mixer?anUpdate(p,m,adt):0;if(k==='fly'||k==='fall'||k==='win'||k==='pump'||k==='dance'||k==='roll'||k==='boxer'||k==='shout'||k==='gkmiss'||k==='jogback'||k==='turnstep'||(k&&(k.startsWith('strafe')||k.startsWith('gkstep')))||(k&&k!=='diveR'&&ANIM_SEG[k])){m.body.rotation.set(0,0,0);m.body.position.set(0,0,0);}if(k==='knockB'||k==='getup')knockAlign(p,m,k,adt);else m.kal=0;rigApply(m);if(m.head)headLook(p,m,k,adt);};
   players.forEach((p,i)=>anim(p,R.models[i]));anim(ref,R.refModel);
   const h=HUMS[0]&&!HUMS[0].off&&!RP?HUMS[0]:null;R.marker.visible=R.arrow.visible=!!h;
   if(h){R.marker.position.x=h.x;R.marker.position.z=h.y;const sc=CT[0].switchFlash>0?1+CT[0].switchFlash*2.2:1;R.marker.scale.set(sc,sc,sc);R.arrow.position.set(h.x,42+Math.sin(t*6)*2,h.y);}
