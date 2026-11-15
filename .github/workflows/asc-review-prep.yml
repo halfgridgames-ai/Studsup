@@ -20,29 +20,11 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           SEND_FOR_BETA_REVIEW: "0"
         run: python3 .github/asc-review/asc_status.py
-      - name: Download second review video from Drive, identify game by on-screen text, attach
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      - name: Content check of both attached review videos (read-only, no upload)
         run: |
           sudo apt-get -qq update >/dev/null && sudo apt-get -qq install -y ffmpeg tesseract-ocr >/dev/null
-          W=$RUNNER_TEMP/vid && mkdir -p $W && cd $W
-          curl -sSL -o v.bin "https://drive.usercontent.google.com/download?id=109kd8NwbuSbofs8aG7jDDN-m04EOhcFn&export=download&confirm=t"
-          file v.bin; ls -la v.bin
-          if file v.bin | grep -qi -E "html|text"; then echo "::error::Drive returned a web page, not the video"; exit 1; fi
-          ffprobe -v error -show_entries format=duration -of csv=p=0 v.bin
-          ffmpeg -v error -i v.bin -vf fps=1/3,scale=1280:-1 f_%03d.png
-          for f in f_*.png; do tesseract $f - 2>/dev/null; done | tr 'A-Z' 'a-z' > ocr.txt
-          for k in "studs" "red card" "kick" "goal" "match" "knot" "wizard" "hint" "rope" "level" "marble"; do echo "$k: $(grep -o "$k" ocr.txt | wc -l)"; done
-          SU=$(grep -o -E "studs|red card|kick|goal|match" ocr.txt | wc -l)
-          KW=$(grep -o -E "knot|wizard|hint|rope" ocr.txt | wc -l)
-          echo "SU=$SU KW=$KW"
-          if [ "$SU" -gt $((KW*2)) ] && [ "$SU" -ge 3 ]; then B=com.studsup.game
-          elif [ "$KW" -gt $((SU*2)) ] && [ "$KW" -ge 3 ]; then B=com.halfgridgames.knotwizard
-          else echo "::error::Could not tell which game"; exit 1; fi
-          echo "GAME=$B"
-          mkdir -p $GITHUB_WORKSPACE/.github/asc-review/videos
-          if file v.bin | grep -qi quicktime; then E=mov; else E=mp4; fi
-          mv v.bin $GITHUB_WORKSPACE/.github/asc-review/videos/$B.$E
-          cd $GITHUB_WORKSPACE && python3 .github/asc-review/asc_attach.py
+          W=$RUNNER_TEMP/vid && mkdir -p $W
+          curl -sSL -o $W/mm.bin "https://drive.usercontent.google.com/download?id=1zWy3XYX0JJhX2ugbJOjVNv8eRDj4wCEF&export=download&confirm=t"
+          curl -sSL -o $W/su.bin "https://drive.usercontent.google.com/download?id=109kd8NwbuSbofs8aG7jDDN-m04EOhcFn&export=download&confirm=t"
+          bash .github/asc-review/video_check.sh $W/mm.bin "MARBLE MAYHEM"
+          bash .github/asc-review/video_check.sh $W/su.bin "STUDS UP"
