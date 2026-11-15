@@ -17,8 +17,12 @@ for bundle, name in [('com.studsup.game', 'STUDS UP'), ('com.halfgridgames.marbl
     for v in api(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&limit=3')['data']:
         b = api(f"/v1/appStoreVersions/{v['id']}/build").get('data')
         print('VERSION', v['attributes']['versionString'], v['attributes']['appStoreState'], 'build', b and b['attributes']['version'])
+        rd = api(f"/v1/appStoreVersions/{v['id']}/appStoreReviewDetail").get('data')
+        if rd:
+            for a in api(f"/v1/appStoreReviewDetails/{rd['id']}/appStoreReviewAttachments").get('data', []):
+                aa = a['attributes']; print('  ATTACHMENT', aa.get('fileName'), aa.get('fileSize'), (aa.get('assetDeliveryState') or {}).get('state'))
     for s in api(f'/v1/reviewSubmissions?filter[app]={app}&limit=5')['data']:
-        items = api(f"/v1/reviewSubmissions/{s['id']}/items?limit=50&include=appStoreVersion,inAppPurchaseV2")['data']
+        items = api(f"/v1/reviewSubmissions/{s['id']}/items?limit=50")['data']
         kinds = {}
         for it in items:
             for k, rel in it.get('relationships', {}).items():
