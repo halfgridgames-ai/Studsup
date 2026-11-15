@@ -390,7 +390,7 @@ body{font-weight:600}
 .wt-track{position:relative;height:100%;overflow:hidden}
 .wt-z{position:absolute;top:0;height:100%;overflow:hidden;contain:paint}
 .wt-bg{position:absolute;top:0;bottom:0;left:-12%;width:124%;will-change:transform}
-.wt-bg canvas,.wt-bg img{display:block;width:100%;height:100%;object-fit:cover}
+.wt-bg canvas,.wt-bg img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 62%}
 .wt-fade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,11,24,.5),transparent 10%,transparent 90%,rgba(6,11,24,.5))}
 .wt-fog{position:absolute;inset:0;background:linear-gradient(rgba(6,11,24,.55),rgba(6,11,24,.8));transition:opacity 1.2s}
 .wt-z.open .wt-fog{opacity:0}
@@ -1097,7 +1097,7 @@ function startTour(){const ts=tourState();if(ts.r>=TOUR.length){openTour();retur
 // Side-scrolling journey through the six regions: a painted backdrop per region (career/zoneN.webp once the Midjourney
 // pictures are in, painted stand-ins from career/paint.js until then), the three opponents as gold collector cards on a trail,
 // your crest walking it, the prizes on a podium and a gate between regions that opens when you conquer the one before.
-const WT_ART=[];   // backdrop files per region, e.g. 'career/zone1.webp'; a gap = painted stand-in
+const WT_ART=[1,2,3,4,5,6].map(i=>'career/zone'+i+'.webp');   // Midjourney backdrop per region; a gap = painted stand-in
 const WT_LOW=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=3||matchMedia('(prefers-reduced-motion: reduce)').matches;
 const WT_WX=['snow','dust','rain','flies','bubbles','stars'];
 const WT_BG={};let wtView=null;
