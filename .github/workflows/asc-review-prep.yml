@@ -20,11 +20,25 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           SEND_FOR_BETA_REVIEW: "0"
         run: python3 .github/asc-review/asc_status.py
-      - name: Content check of both attached review videos (read-only, no upload)
+      - name: Check third review video (expected Knot Wizard) and attach only if it shows Knot Wizard
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           sudo apt-get -qq update >/dev/null && sudo apt-get -qq install -y ffmpeg tesseract-ocr >/dev/null
-          W=$RUNNER_TEMP/vid && mkdir -p $W
-          curl -sSL -o $W/mm.bin "https://drive.usercontent.google.com/download?id=1zWy3XYX0JJhX2ugbJOjVNv8eRDj4wCEF&export=download&confirm=t"
-          curl -sSL -o $W/su.bin "https://drive.usercontent.google.com/download?id=109kd8NwbuSbofs8aG7jDDN-m04EOhcFn&export=download&confirm=t"
-          bash .github/asc-review/video_check.sh $W/mm.bin "MARBLE MAYHEM"
-          bash .github/asc-review/video_check.sh $W/su.bin "STUDS UP"
+          W=$RUNNER_TEMP/kw && mkdir -p $W
+          curl -sSL -o $W/v.bin "https://drive.usercontent.google.com/download?id=1-jPgsZD-08dP4bUVASB9WQDY9CYbr1SZ&export=download&confirm=t"
+          if file $W/v.bin | grep -qi -E "html|text"; then echo "::error::Drive returned a web page"; exit 1; fi
+          bash .github/asc-review/video_check.sh $W/v.bin "KNOT WIZARD?" | tee $W/check.txt
+          L=$(tr 'A-Z' 'a-z' < $W/check.txt)
+          SU=$(echo "$L" | grep -o -E "studs|red card|kick|goal" | wc -l)
+          KW=$(echo "$L" | grep -o -E "knot|wizard|hint" | wc -l)
+          MM=$(echo "$L" | grep -o -E "marble|mayhem" | wc -l)
+          echo "SU=$SU KW=$KW MM=$MM"
+          if [ "$KW" -ge 3 ] && [ "$KW" -gt $((SU*2)) ] && [ "$KW" -gt $((MM*2)) ]; then
+            mkdir -p .github/asc-review/videos
+            if file $W/v.bin | grep -qi quicktime; then E=mov; else E=mp4; fi
+            mv $W/v.bin .github/asc-review/videos/com.halfgridgames.knotwizard.$E
+            python3 .github/asc-review/asc_attach.py
+          else echo "::error::Not clearly Knot Wizard, not attached"; exit 1; fi
