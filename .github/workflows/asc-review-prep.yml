@@ -20,3 +20,16 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           SEND_FOR_BETA_REVIEW: "0"
         run: python3 .github/asc-review/asc_status.py
+      - name: Download Marble Mayhem review video from Drive (shared by Joseph) and attach it
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p .github/asc-review/videos && cd .github/asc-review/videos
+          curl -sSL -o v.bin "https://drive.usercontent.google.com/download?id=1zWy3XYX0JJhX2ugbJOjVNv8eRDj4wCEF&export=download&confirm=t"
+          file v.bin; ls -la v.bin
+          if file v.bin | grep -qi -E "html|text"; then echo "::error::Drive returned a web page, not the video (sharing not open?)"; head -c 400 v.bin; exit 1; fi
+          if file v.bin | grep -qi quicktime; then mv v.bin com.halfgridgames.marblemayhem.mov; else mv v.bin com.halfgridgames.marblemayhem.mp4; fi
+          cd - && python3 .github/asc-review/asc_attach.py
+
