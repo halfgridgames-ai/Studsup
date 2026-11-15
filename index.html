@@ -150,12 +150,6 @@ body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow
 .comm::before{content:'🎙 '}
 .opts{display:flex;gap:6px;flex-wrap:wrap}
 .opts button{font-family:var(--display);font-size:11px;background:var(--panel);color:var(--chalk);border:2px solid rgba(243,239,226,.5);padding:6px 9px;cursor:pointer}
-.tour{display:grid;gap:8px}
-.reg{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:#15201a;border:2px solid rgba(243,239,226,.2);padding:8px 10px}
-.reg.lock{opacity:.45}.reg.done{border-color:#9fd8a8}.reg.cur{border-color:var(--flare);box-shadow:4px 4px 0 var(--flare)}
-.reg .ri{font-size:30px;line-height:1}.reg h3{margin:0 0 2px;font-family:var(--display);font-size:15px;letter-spacing:.03em}
-.reg .ladder{font-size:18px}.reg .pz{font-size:14px;font-weight:700;color:#ffd84a}
-.reg button{font-family:var(--display);font-size:13px;line-height:1.1;background:#e8322b;color:#fff;border:0;padding:8px 12px;cursor:pointer;transform:skewX(-8deg);box-shadow:3px 3px 0 var(--chalk)}
 .touch-only{display:none}
 @media (pointer:coarse){
   .touch-only{display:block}.ctl.touch-only{display:grid}.kb-only{display:none}
@@ -241,7 +235,7 @@ body{font-weight:600}
 .overlay::after{content:'';position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(60,240,255,.12),transparent 18%,transparent 82%,rgba(164,107,255,.12))}
 .sheet.menu{background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:18px;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
   box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);max-width:600px}
-.sheet h1,.ptitle,.subhead h2,.shophead h2,.banner,.sheet .go,.mode,.slot,.tcard,.shopbtn,.adbtn,.reg button,.clipbtn,.comm,.chips button{transform:none}
+.sheet h1,.ptitle,.subhead h2,.shophead h2,.banner,.sheet .go,.mode,.slot,.tcard,.shopbtn,.adbtn,.clipbtn,.comm,.chips button{transform:none}
 .mode .mi,.chips button i{transform:none}
 .subhead h2{font-weight:800;letter-spacing:.08em;font-size:clamp(18px,5vw,26px);text-shadow:0 0 18px rgba(60,240,255,.45);color:var(--chalk)}
 .subhead h2::after{content:'';display:block;height:2px;margin-top:6px;width:64px;background:linear-gradient(90deg,var(--neon),transparent)}
@@ -268,9 +262,7 @@ body{font-weight:600}
 .seg{gap:4px}.seg button{margin:0;border:1px solid rgba(140,220,255,.3);border-radius:999px;font-weight:700;padding:6px 11px;font-size:10.5px}
 .seg button[aria-pressed="true"]{background:var(--neon);border-color:var(--neon);color:#04121a;box-shadow:0 0 12px rgba(60,240,255,.5)}
 .hint,.sheet p,.sheet .intro{color:#b8c8dc}
-.reg,.netbox,.item{background:rgba(12,20,40,.6);border:1px solid var(--line);border-radius:12px}
-.reg.cur{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon),0 0 18px rgba(60,240,255,.25)}
-.reg button{clip-path:var(--cuts);box-shadow:none;background:linear-gradient(90deg,#ff3d63,#ff7a3c)}
+.netbox,.item{background:rgba(12,20,40,.6);border:1px solid var(--line);border-radius:12px}
 .shopbox{background:rgba(8,14,28,.88);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .shophead h2{color:var(--flare);font-weight:900;letter-spacing:.08em;text-shadow:0 0 16px rgba(255,210,74,.4)}
 .shophead button,.tabs button{border:1px solid var(--line);border-radius:999px}
@@ -384,6 +376,112 @@ body{font-weight:600}
 .ratebox button{font-family:var(--display);font-size:11px;letter-spacing:.08em;padding:8px 12px;border-radius:999px;cursor:pointer;border:1px solid var(--flare)}
 .ratebox .yes{background:var(--flare);color:#1a1200;font-weight:900}.ratebox .no{background:none;color:#cbbf95;border-color:rgba(255,210,74,.35)}
 @media (prefers-reduced-motion:reduce){.coach,.coach-hi{animation:none!important}}
+/* World Tour career map: side-scrolling journey through the six regions */
+.sheet.wt{position:fixed;inset:0;max-width:none;width:auto;margin:0;display:flex;flex-direction:column;gap:0;z-index:1;background:#060b18;overflow:hidden;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 0 env(safe-area-inset-bottom,0px)}
+.sheet.wt .subhead{padding:0 calc(14px + env(safe-area-inset-right,0px)) 8px calc(14px + env(safe-area-inset-left,0px));position:relative;z-index:3}
+.wt-strip{display:flex;gap:5px;padding:0 calc(14px + env(safe-area-inset-right,0px)) 8px calc(14px + env(safe-area-inset-left,0px));position:relative;z-index:3}
+.wt-strip button{flex:1;position:relative;border:1px solid rgba(140,220,255,.25);background:rgba(12,20,40,.75);border-radius:8px;padding:4px 0;font-size:18px;line-height:1.2;cursor:pointer;color:#fff}
+.wt-strip button.done{border-color:rgba(74,222,128,.75)}.wt-strip button.cur{border-color:var(--neon);box-shadow:0 0 10px rgba(60,240,255,.45)}.wt-strip button.lock{opacity:.45}
+.wt-strip button.done::after{content:'✓';position:absolute;right:3px;top:-5px;font-size:11px;font-weight:900;color:#4ade80}
+.wt-view{position:relative;flex:1;min-height:0}
+.wt-hs{position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x}
+.wt-hs::-webkit-scrollbar{display:none}
+.wt-track{position:relative;height:100%;overflow:hidden}
+.wt-z{position:absolute;top:0;height:100%;overflow:hidden;contain:paint}
+.wt-bg{position:absolute;top:0;bottom:0;left:-12%;width:124%;will-change:transform}
+.wt-bg canvas,.wt-bg img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 62%}
+.wt-fade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,11,24,.5),transparent 10%,transparent 90%,rgba(6,11,24,.5))}
+.wt-fog{position:absolute;inset:0;background:linear-gradient(rgba(6,11,24,.55),rgba(6,11,24,.8));transition:opacity 1.2s}
+.wt-z.open .wt-fog{opacity:0}
+.wt-plq{position:absolute;left:22px;top:12px;z-index:4;display:grid;gap:2px;max-width:70%}
+.wt-plq small{font-weight:700;letter-spacing:.2em;font-size:11px;color:var(--neon)}
+.wt-plq b{font-family:var(--display);font-weight:800;font-size:clamp(18px,5.5vh,28px);line-height:1;text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 18px rgba(0,0,0,.6)}
+.wt-plq span{font-size:13px;font-weight:700;color:#ffe9a8;text-shadow:0 1px 3px #000}
+/* opponent cards: small gold-foil collector cards */
+.wt-n{--c:#888;position:absolute;width:calc(var(--ch)*.77);height:var(--ch);border:0;border-radius:10px;padding:2px;cursor:pointer;transform:translate(-50%,-50%);z-index:3;color:#fff;font:inherit;
+  background:linear-gradient(135deg,#fff3c4,var(--flare) 22%,#8a5a12 48%,#fff0b0 62%,var(--c) 88%);box-shadow:0 6px 14px rgba(0,0,0,.55)}
+.wt-n::before{content:'';position:absolute;inset:2px;border-radius:8px;background:radial-gradient(90% 70% at 50% 30%,color-mix(in srgb,var(--c) 70%,#fff 6%),color-mix(in srgb,var(--c) 30%,#05070d) 62%,#05070d)}
+.wt-n img{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);height:74%;max-width:92%;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+.wt-n b{position:absolute;left:2px;right:2px;bottom:2px;border-radius:0 0 8px 8px;background:rgba(3,5,12,.88);font-family:var(--display);font-weight:800;font-size:calc(var(--ch)*.085);letter-spacing:.04em;text-align:center;padding:3px 0;white-space:nowrap;overflow:hidden}
+.wt-n i{position:absolute;right:-7px;top:-7px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;background:#0b1222;border:1.5px solid var(--flare);z-index:2}
+.wt-n i:empty{display:none}
+.wt-n.boss{width:calc(var(--ch)*.94);height:calc(var(--ch)*1.22)}
+.wt-n.beat i{background:#4ade80;border-color:#d6ffe4;color:#05210f;font-weight:900}
+.wt-n.beat::after{content:'WON';position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) rotate(-12deg);font-family:var(--display);font-weight:800;font-size:13px;color:#d6ffe4;background:rgba(10,90,40,.85);border:1.5px solid #d6ffe4;padding:1px 6px;border-radius:4px;z-index:2}
+.wt-n.lock{filter:brightness(.55) saturate(.6)}
+.wt-n.next{animation:wtPulse 1.6s ease-in-out infinite}
+.wt-n:focus-visible{outline:3px solid var(--flare);outline-offset:3px}
+@keyframes wtPulse{50%{box-shadow:0 0 0 5px rgba(60,240,255,.5),0 6px 14px rgba(0,0,0,.55)}}
+/* your crest, walking the trail */
+.wt-tok{position:absolute;left:0;top:0;width:44px;height:44px;z-index:5;pointer-events:none;will-change:transform}
+.wt-tok>div{position:absolute;left:-22px;top:calc(var(--ch)*-.5 - 58px);width:44px;height:44px;border-radius:50%;overflow:hidden;border:3px solid #fff;background:radial-gradient(var(--c),#05070d);box-shadow:0 0 0 2px var(--c),0 6px 12px rgba(0,0,0,.6);animation:wtBob 1.2s ease-in-out infinite}
+.wt-tok img{width:150%;margin:-2px 0 0 -25%}
+.wt-tok>div::after{content:''}
+.wt-tok>span{position:absolute;left:-7px;top:calc(var(--ch)*-.5 - 12px);border:7px solid transparent;border-top-color:#fff;animation:wtBob 1.2s ease-in-out infinite}
+@keyframes wtBob{50%{transform:translateY(-5px)}}
+.wt-trail{position:absolute;left:0;top:0;pointer-events:none;z-index:2;overflow:visible}
+.wt-trail path{fill:none;stroke-linecap:round}
+.wt-trail .sh{stroke:rgba(0,0,0,.35);stroke-width:14}.wt-trail .ba{stroke:rgba(255,255,255,.55);stroke-width:5;stroke-dasharray:2 12}
+.wt-trail .au{stroke:var(--flare);stroke-width:7;filter:drop-shadow(0 0 6px rgba(255,194,58,.8))}
+/* prizes and gates */
+.wt-pod{position:absolute;z-index:4;transform:translate(-50%,-100%);display:grid;justify-items:center;gap:4px;width:130px;text-align:center;pointer-events:none}
+.wt-pod b{font-size:34px;line-height:1;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6))}
+.wt-pod span{font-weight:700;font-size:11px;letter-spacing:.05em;background:rgba(3,5,12,.86);border:1px solid var(--flare);color:var(--flare);border-radius:8px;padding:3px 6px;line-height:1.25}
+.wt-pod.got span{border-color:#4ade80;color:#4ade80}
+.wt-gate{position:absolute;top:0;bottom:0;width:36px;margin-left:-18px;z-index:4;overflow:hidden;pointer-events:none}
+.wt-gate .bars{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 4px,#8b97ab 4px 9px,#3b4456 9px 11px,transparent 11px 14px),repeating-linear-gradient(180deg,transparent 0 30px,#6b7487 30px 34px);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.8);transition:transform 1.1s cubic-bezier(.6,0,.3,1)}
+.wt-gate.open .bars{transform:translateY(-102%)}
+.wt-lock{position:absolute;top:44%;width:46px;height:46px;margin:-23px 0 0 -23px;z-index:5;border-radius:50%;display:grid;place-items:center;font-size:20px;background:#0b1222;border:2px solid var(--flare);box-shadow:0 0 16px rgba(255,194,58,.4);transition:transform .5s,opacity .5s;pointer-events:none}
+.wt-lock small{position:absolute;top:52px;left:50%;transform:translateX(-50%);width:120px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.05em;color:#ffe9a8;text-shadow:0 1px 3px #000}
+.wt-lock.open{transform:scale(1.6) rotate(-20deg);opacity:0}
+/* zone weather (stops on slower phones and with reduced motion) */
+.wt-wx{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.wt-wx i{position:absolute;top:-10px;display:block;border-radius:50%;animation:wtFall linear infinite;animation-play-state:paused}
+.wt-z.on .wt-wx i{animation-play-state:running}
+.wt-wx.snow i{width:5px;height:5px;background:#fff;opacity:.85}
+.wt-wx.rain i{width:1.5px;height:16px;border-radius:1px;background:rgba(190,215,255,.6);animation-name:wtRain}
+.wt-wx.dust i{width:3px;height:3px;background:rgba(255,200,140,.75);animation-name:wtDust}
+.wt-wx.flies i{width:5px;height:5px;background:#e8ff7a;box-shadow:0 0 8px #e8ff7a;animation-name:wtFly}
+.wt-wx.bubbles i{top:auto;bottom:-12px;width:9px;height:9px;border:1.5px solid rgba(255,255,255,.6);animation-name:wtRise}
+.wt-wx.stars i{width:3px;height:3px;background:#fff;box-shadow:0 0 6px #fff;animation-name:wtTwinkle}
+@keyframes wtFall{to{transform:translate(30px,105vh)}}
+@keyframes wtRain{to{transform:translate(-40px,105vh)}}
+@keyframes wtDust{from{transform:translate(-60px,30vh)}to{transform:translate(260px,55vh)}}
+@keyframes wtFly{0%,100%{transform:translate(0,40vh);opacity:.2}50%{transform:translate(40px,30vh);opacity:1}}
+@keyframes wtRise{to{transform:translate(18px,-105vh)}}
+@keyframes wtTwinkle{0%,100%{transform:translateY(var(--y));opacity:.2}50%{transform:translateY(var(--y));opacity:1}}
+/* next match */
+.wt-dock{position:relative;z-index:3;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:10px calc(14px + env(safe-area-inset-right,0px)) 12px calc(14px + env(safe-area-inset-left,0px));background:linear-gradient(rgba(6,11,24,.6),#060b18 40%)}
+.wt-op{width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid var(--c);background:radial-gradient(var(--c),#05070d)}
+.wt-op img{width:130%;margin:-2px 0 0 -15%}
+.wt-dock small{display:block;font-weight:700;letter-spacing:.12em;font-size:11px;color:#b8c8dc}
+.wt-dock strong{display:block;font-family:var(--display);font-weight:800;font-size:16px;line-height:1.1;letter-spacing:.04em}
+.wt-dock button{font-family:var(--display);font-weight:900;letter-spacing:.1em;font-size:16px;color:#fff;border:0;background:linear-gradient(90deg,#ff3d63,#ff7a3c);padding:13px 20px;cursor:pointer;clip-path:var(--cuts)}
+/* tap a team: its full collector card */
+.wt-pop{position:fixed;inset:0;z-index:9;display:grid;place-items:center;align-content:center;gap:12px;background:rgba(3,5,12,.82);padding:20px;cursor:pointer}
+.wt-pop .tc{width:min(250px,62vw);flex:none;transform:none;opacity:1;aspect-ratio:4/4.9}
+.wt-pop p{margin:0;text-align:center;font-weight:700;letter-spacing:.12em;font-size:13px;color:#b8c8dc;display:block}
+.wt-pop p b{display:block;font-family:var(--display);font-size:17px;color:var(--flare);letter-spacing:.06em;margin-bottom:2px}
+/* region conquered */
+.wt-cele{position:absolute;inset:0;z-index:8;display:grid;place-items:center;align-content:center;gap:12px;text-align:center;padding:20px;overflow:hidden;
+  background:radial-gradient(circle,rgba(40,20,0,.78),rgba(3,5,12,.96));animation:wtIn .35s ease}
+.wt-cele h3{margin:0;font-family:var(--display);font-weight:900;font-size:clamp(26px,8vw,40px);line-height:1.05;color:var(--flare);text-shadow:0 0 20px rgba(255,194,58,.7)}
+.wt-cele p{margin:0;display:block;color:#b8c8dc;font-weight:700;letter-spacing:.12em;font-size:13px}
+.wt-cele .prz{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;--ch:118px}
+.wt-cele .wt-n{position:relative;transform:none;animation:wtFlip .8s cubic-bezier(.3,1.4,.5,1) both;cursor:default}
+.wt-cele .wt-n:nth-child(2){animation-delay:.15s}.wt-cele .wt-n:nth-child(3){animation-delay:.3s}
+.wt-cele .wt-n .big{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;padding-bottom:14px}
+.wt-cele button{font-family:var(--display);font-weight:900;letter-spacing:.12em;font-size:17px;border:0;color:#04121a;background:linear-gradient(90deg,#28e8ff,#7d6bff);padding:13px 30px;cursor:pointer;clip-path:var(--cut)}
+.wt-conf{position:absolute;top:-14px;width:8px;height:12px;animation:wtConf linear forwards}
+@keyframes wtIn{from{opacity:0}}
+@keyframes wtFlip{from{transform:rotateY(90deg) scale(.6);opacity:0}}
+@keyframes wtConf{to{transform:translateY(110vh) rotate(720deg)}}
+@media (orientation:landscape) and (max-height:500px){.sheet.wt .subhead{padding-bottom:4px}.wt-strip{padding-bottom:4px}.wt-strip button{font-size:14px;padding:2px 0}
+  .wt-plq span{display:none}.wt-dock{padding-top:4px;padding-bottom:6px}.wt-op{width:40px;height:40px}.wt-dock button{padding:10px 16px}}
+@media (prefers-reduced-motion:reduce){.wt-n.next,.wt-tok>div,.wt-tok>span{animation:none}.wt-wx{display:none}.wt-gate .bars,.wt-lock,.wt-fog{transition:none}.wt-conf{display:none}}
 </style>
 
 </head><body>
@@ -423,6 +521,7 @@ body{font-weight:600}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="career/paint.js" defer></script>
 <script>
 (()=>{
 'use strict';
@@ -994,19 +1093,105 @@ function endTour(){tourMatch=null;AIDIFF=1;stadOverride=null;if(savedOpp!=null){
 function startTour(){const ts=tourState();if(ts.r>=TOUR.length){openTour();return;}
   if(savedOpp==null)savedOpp=pickOpp;tourMatch={r:ts.r,m:ts.m};pickOpp=tourOpp(ts.r,ts.m);stadOverride=TOUR[ts.r].stad;AIDIFF=0.82+ts.r*0.07+ts.m*0.05;
   applyTeams();versus(TOUR[ts.r].name+' · MATCH '+(ts.m+1)+'/3',()=>{hideMenu();newMatch();banner(TOUR[ts.r].name,'MATCH '+(ts.m+1)+' OF 3'+(ts.m===2?' · BOSS':'')+' · VS '+TEAMS[1].name,2.2);});}
+// ---------- Career: World Tour map ----------
+// Side-scrolling journey through the six regions: a painted backdrop per region (career/zoneN.webp once the Midjourney
+// pictures are in, painted stand-ins from career/paint.js until then), the three opponents as gold collector cards on a trail,
+// your crest walking it, the prizes on a podium and a gate between regions that opens when you conquer the one before.
+const WT_ART=[1,2,3,4,5,6].map(i=>'career/zone'+i+'.webp');   // Midjourney backdrop per region; a gap = painted stand-in
+const WT_LOW=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=3||matchMedia('(prefers-reduced-motion: reduce)').matches;
+const WT_WX=['snow','dust','rain','flies','bubbles','stars'];
+const WT_BG={};let wtView=null;
+const prizeLine=RG=>RG.prize.map(prizeName).join(', ')+(RG.coins?' + '+RG.coins.toLocaleString()+' 🪙':'');
+const tourIdx=ts=>Math.min(ts.r*3+ts.m,TOUR.length*3);
+function wtBackdrop(i,w,h){const f=WT_ART[i];if(f){const im=new Image();im.decoding='async';im.alt='';im.src=f;return im;}
+  const k=i+'_'+w+'x'+h;if(!WT_BG[k]){if(!window.careerPaint)return document.createElement('canvas');for(const o in WT_BG)if(o.startsWith(i+'_'))delete WT_BG[o];WT_BG[k]=window.careerPaint(i,w,h);}
+  return WT_BG[k];}
+function wtSmooth(pts){const t=1/6;let d='M'+pts[0][0]+','+pts[0][1];const segs=[];
+  for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    d+=' C'+(p1[0]+(p2[0]-p0[0])*t)+','+(p1[1]+(p2[1]-p0[1])*t)+' '+(p2[0]-(p3[0]-p1[0])*t)+','+(p2[1]-(p3[1]-p1[1])*t)+' '+p2[0]+','+p2[1];segs.push(d);}
+  return {d,segs};}
 function openTour(){const ts=tourState();endTour();applyTeams();
-  const rows=TOUR.map((RG,i)=>{const st=i<ts.r?'done':i===ts.r?'cur':'lock';
-    const ladder=RG.opp.map((k,j)=>{const c=CLUBS[clubIdx(k)],beat=i<ts.r||(i===ts.r&&j<ts.m);return '<span title="'+c.name+'">'+c.icon+(beat?'✅':j===2?'👑':'')+'</span>';}).join(' › ');
-    const prize=RG.prize.map(prizeName).join(', ')+(RG.coins?' + '+RG.coins.toLocaleString()+' 🪙':'');
-    return '<div class="reg '+st+'"><span class="ri">'+RG.icon+'</span><div><h3>'+RG.name+'</h3><div class="ladder">'+ladder+'</div><div class="pz">🏆 '+prize+'</div></div>'+
-      (st==='cur'?'<button type="button" id="tourPlay">PLAY<br>'+(ts.m+1)+'/3</button>':st==='done'?'<b style="color:#9fd8a8;font-size:22px">✓</b>':'<b>🔒</b>')+'</div>';}).join('');
-  const done=ts.r>=TOUR.length;
-  showMenu(subHead('CAREER')+'<p class="intro">Conquer the world, one region at a time. Beat all three teams in a region to unlock its team and stadium for free. Every match is tougher than the last. You play as the '+TEAMS[0].name+', picked in Single Match.</p>'+
-    '<div class="tour">'+rows+'</div>'+(done?'<div class="final">🏆 WORLD CHAMPIONS!</div>':'')+
-    (done?'<button class="go" id="tourReset" type="button">PLAY IT AGAIN</button>':''));
-  const pl=document.getElementById('tourPlay');if(pl)pl.onclick=()=>{initAudio();goLandscape();startTour();};
-  const rs=document.getElementById('tourReset');if(rs)rs.onclick=()=>{ts.r=0;ts.m=0;saveWallet();openTour();};
-}
+  const n=tourIdx(ts),seen=loadOpt('studsTourSeen'),from=seen===null||isNaN(+seen)?n:Math.min(+seen,n);saveOpt('studsTourSeen',n);
+  if(wtView&&wtView.io)wtView.io.disconnect();
+  showMenu(subHead('CAREER')+'<div class="wt-strip">'+TOUR.map((RG,i)=>'<button type="button" data-z="'+i+'" aria-label="'+RG.name+'">'+RG.icon+'</button>').join('')+'</div>'+
+    '<div class="wt-view"><div class="wt-hs"><div class="wt-track"></div></div></div><div class="wt-dock"></div>','wt');
+  wtBuild(from,n);}
+function wtBuild(from,n){const ts=tourState(),hs=sheet.querySelector('.wt-hs'),tr=sheet.querySelector('.wt-track');if(!hs)return;
+  const W=hs.clientWidth||360,H=hs.clientHeight||500,ch=Math.round(Math.min(118,Math.max(62,H*.23))),PW=Math.round(Math.max(W*1.05,H*1.5,ch*4.2)),TW=PW*6+Math.max(200,W*.6);
+  const me=CLUBS[pickMe],zr=Math.floor(from/3),pts=[];let h='';
+  tr.style.width=TW+'px';tr.style.setProperty('--ch',ch+'px');
+  TOUR.forEach((RG,i)=>{const x0=i*PW;
+    h+='<div class="wt-z" data-z="'+i+'" style="left:'+x0+'px;width:'+(i<TOUR.length-1?PW+2:TW-x0)+'px"><div class="wt-bg"></div>'+(WT_LOW?'':'<div class="wt-wx '+WT_WX[i]+'"></div>')+'<div class="wt-fade"></div><div class="wt-fog"></div>'+
+      '<div class="wt-plq"><small>REGION '+(i+1)+' OF '+TOUR.length+'</small><b>'+RG.icon+' '+RG.name+'</b><span>🏆 '+prizeLine(RG)+'</span></div></div>';
+    [.17,.42,.67].forEach((fx,j)=>{const x=Math.round(x0+PW*fx),y=Math.round(H*(j===1?.5:j===2?.66:.72));pts.push([x,y]);const c=CLUBS[tourOpp(i,j)];
+      h+='<button type="button" class="wt-n'+(j===2?' boss':'')+'" data-n="'+(i*3+j)+'" style="--c:'+c.col+';left:'+x+'px;top:'+y+'px" aria-label="'+RG.name+' match '+(j+1)+': '+c.name+'"><img src="teams/'+c.key+'.webp" alt="" loading="lazy" decoding="async"><b>'+c.name+'</b><i></i></button>';});
+    h+='<div class="wt-pod" data-p="'+i+'" style="left:'+(x0+PW*.88)+'px;top:'+(H*.5)+'px"><b>'+(RG.coins?'🏆':'🎁')+'</b><span></span></div>';
+    if(i)h+='<div class="wt-gate" data-g="'+i+'" style="left:'+x0+'px"><div class="bars"></div></div><div class="wt-lock" data-g="'+i+'" style="left:'+x0+'px">🔒<small>BEAT '+TOUR[i-1].name+'</small></div>';});
+  pts.push([PW*6+Math.max(40,W*.12),Math.round(H*.7)]);
+  h+='<div class="wt-pod" style="left:'+(pts[18][0]+Math.max(90,ch*.9))+'px;top:'+Math.round(H*.7+ch*.35)+'px"><b style="font-size:56px">🏆</b><span>WORLD CHAMPIONS</span></div>';
+  const sm=wtSmooth(pts);
+  tr.innerHTML='<svg class="wt-trail" width="'+TW+'" height="'+H+'" aria-hidden="true"><path class="sh" d="'+sm.d+'"/><path class="ba" d="'+sm.d+'"/><path class="au" d="'+sm.d+'"/></svg>'+h+
+    '<div class="wt-tok" style="--c:'+me.col+'"><div><img src="teams/'+me.key+'.webp" alt=""></div><span></span></div>';
+  // trail lengths at each stop
+  const au=tr.querySelector('.wt-trail .au'),tmp=document.createElementNS('http://www.w3.org/2000/svg','path');tr.querySelector('.wt-trail').appendChild(tmp);
+  const lens=[0].concat(sm.segs.map(d=>{tmp.setAttribute('d',d);return tmp.getTotalLength();}));tmp.remove();const L=lens[lens.length-1];
+  au.style.strokeDasharray=L;
+  const tok=tr.querySelector('.wt-tok');
+  const place=l=>{const p=au.getPointAtLength(l);tok.style.transform='translate('+p.x+'px,'+p.y+'px)';au.style.strokeDashoffset=L-l;return p;};
+  // backdrops (current region first) and weather
+  const bw=k=>Math.round((k<TOUR.length-1?PW:TW-k*PW)*1.24),zs=[...tr.querySelectorAll('.wt-z')],order=[0,1,2,3,4,5].sort((a,b)=>Math.abs(a-zr)-Math.abs(b-zr));
+  const paintOne=k=>{const bg=zs[k].querySelector('.wt-bg');if(!bg.firstChild)bg.appendChild(wtBackdrop(k,bw(k),H));};
+  paintOne(order[0]);let oi=1;const more=()=>{if(oi<order.length&&wtView===V){paintOne(order[oi++]);setTimeout(more,30);}};
+  zs.forEach((z,i)=>{const wx=z.querySelector('.wt-wx');if(!wx)return;let s='';const N=WT_WX[i]==='rain'?26:16;
+    for(let k=0;k<N;k++){const x=(k*61%100),d=WT_WX[i]==='rain'?.9+(k%5)*.15:5+(k%7)*1.3,dl=-(k*1.37%d);
+      s+='<i style="left:'+x+'%;animation-duration:'+d.toFixed(2)+'s;animation-delay:'+dl.toFixed(2)+'s'+(WT_WX[i]==='stars'?';--y:'+(8+k*37%70)+'vh':'')+'"></i>';}wx.innerHTML=s;});
+  const V=wtView={from,n,pts,lens,place,PW,hs,tr,io:null,W,H,done:from>=n};setTimeout(more,60);
+  if('IntersectionObserver' in window&&!WT_LOW){V.io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('on',e.isIntersecting)),{root:hs});zs.forEach(z=>V.io.observe(z));}
+  // parallax
+  let tk=false;hs.addEventListener('scroll',()=>{if(tk)return;tk=true;requestAnimationFrame(()=>{tk=false;const c=hs.scrollLeft+hs.clientWidth/2;
+    zs.forEach((z,i)=>{const d=c-(i*PW+PW/2);if(Math.abs(d)<PW*1.5)z.firstChild.style.transform='translateX('+(d*.12).toFixed(1)+'px)';});});},{passive:true});
+  sheet.querySelectorAll('.wt-strip button').forEach(b=>b.onclick=()=>hs.scrollTo({left:+b.dataset.z*PW,behavior:'smooth'}));
+  tr.querySelectorAll('.wt-n').forEach(b=>b.onclick=()=>{const g=+b.dataset.n;wtCard(Math.floor(g/3),g%3);});
+  // state as of `from`; then walk on to `n`
+  wtState(n,Math.floor(from/3));const p0=place(lens[Math.min(from,18)]);hs.scrollLeft=Math.max(0,p0.x-W*.4);hs.dispatchEvent(new Event('scroll'));wtDock();
+  const zn=Math.floor(n/3);
+  if(from<n)setTimeout(()=>{if(wtView!==V)return;if(zn>Math.floor(from/3))wtCelebrate(zn-1,()=>wtOpen(V,zn,()=>wtWalk(V,from,n)));else wtWalk(V,from,n);},450);}
+function wtState(n,openTo){const tr=wtView.tr,ts=tourState();
+  tr.querySelectorAll('.wt-n').forEach(el=>{const g=+el.dataset.n,s=g<n?'beat':g===n?'next':Math.floor(g/3)<=openTo?'':'lock';
+    el.classList.toggle('beat',s==='beat');el.classList.toggle('next',s==='next');el.classList.toggle('lock',s==='lock');
+    el.querySelector('i').textContent=s==='beat'?'✓':g%3===2?'👑':s==='lock'?'🔒':'';});
+  tr.querySelectorAll('.wt-z').forEach(z=>z.classList.toggle('open',+z.dataset.z<=openTo));
+  tr.querySelectorAll('.wt-gate,.wt-lock').forEach(g=>g.classList.toggle('open',+g.dataset.g<=openTo));
+  tr.querySelectorAll('.wt-pod[data-p]').forEach(p=>{const i=+p.dataset.p,got=i<ts.r;p.classList.toggle('got',got);p.querySelector('span').textContent=(got?'✓ UNLOCKED: ':'')+prizeLine(TOUR[i]);});
+  sheet.querySelectorAll('.wt-strip button').forEach((b,i)=>b.className=i<ts.r?'done':i===Math.min(ts.r,TOUR.length-1)&&ts.r<TOUR.length?'cur':i<=openTo?'':'lock');}
+function wtOpen(V,z,then){if(wtView!==V)return;const hs=V.hs;hs.scrollTo({left:Math.max(0,z*V.PW-hs.clientWidth*.5),behavior:'smooth'});
+  setTimeout(()=>{if(wtView!==V)return;sfx('whoosh');vib(30);wtState(V.n,z);setTimeout(then,1000);},600);}
+function wtWalk(V,a,b){if(wtView!==V)return;const l0=V.lens[a],l1=V.lens[Math.min(b,18)],dur=Math.min(2600,700+(b-a)*450),t0=performance.now(),hs=V.hs;
+  const step=now=>{if(wtView!==V)return;const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,p=V.place(l0+(l1-l0)*e);
+    hs.scrollLeft=Math.max(0,p.x-hs.clientWidth*.4);if(t<1)requestAnimationFrame(step);else V.done=true;};requestAnimationFrame(step);}
+function wtDock(){const ts=tourState(),d=sheet.querySelector('.wt-dock');if(!d)return;
+  if(ts.r>=TOUR.length){d.innerHTML='<div class="wt-op" style="--c:#ffc23a"><img src="teams/'+CLUBS[pickMe].key+'.webp" alt=""></div><div><small>WORLD TOUR COMPLETE</small><strong>🏆 WORLD CHAMPIONS!</strong></div><button type="button" id="tourReset">PLAY AGAIN</button>';
+    document.getElementById('tourReset').onclick=()=>{initAudio();ts.r=0;ts.m=0;saveWallet();saveOpt('studsTourSeen',0);openTour();};return;}
+  const RG=TOUR[ts.r],c=CLUBS[tourOpp(ts.r,ts.m)];
+  d.innerHTML='<div class="wt-op" style="--c:'+c.col+'"><img src="teams/'+c.key+'.webp" alt=""></div><div><small>'+RG.name+' · MATCH '+(ts.m+1)+'/3'+(ts.m===2?' · BOSS':'')+'</small><strong>VS '+c.name+'</strong></div><button type="button" id="tourPlay">PLAY</button>';
+  document.getElementById('tourPlay').onclick=()=>{initAudio();goLandscape();startTour();};}
+function wtCard(r,m){const ts=tourState(),c=CLUBS[tourOpp(r,m)],g=r*3+m,n=tourIdx(ts),RG=TOUR[r];
+  const st=g<n?'BEATEN ✓':g===n?'YOUR NEXT MATCH':r>ts.r?'🔒 BEAT '+TOUR[r-1].name+' FIRST':'COMING UP';
+  const el=document.createElement('div');el.className='wt-pop';el.setAttribute('role','dialog');el.setAttribute('aria-label',c.name);
+  el.innerHTML='<div class="tc sel" style="--c:'+c.col+';--d:'+c.dark+'"><img class="tc-art" src="teams/'+c.key+'.webp" alt=""><i class="tc-crest" aria-hidden="true">'+c.icon+'</i><div class="tc-info"><b>'+c.name+'</b><span>'+groundName(homeGround(c.key))+'</span></div></div>'+
+    '<p><b>'+st+'</b>'+RG.name+' · MATCH '+(m+1)+' OF 3'+(m===2?' · BOSS':'')+'</p><p style="font-size:11px;opacity:.7">TAP TO CLOSE</p>';
+  el.onclick=()=>el.remove();sheet.appendChild(el);}
+function wtCelebrate(z,then){const RG=TOUR[z],el=document.createElement('div');el.className='wt-cele';
+  const tile=(icon,name)=>'<div class="wt-n" style="--c:#ffc23a"><span class="big">'+icon+'</span><b>'+name+'</b><i></i></div>';
+  const cards=RG.prize.map(id=>{const c=CLUBS.find(k=>'team_'+k.key===id);if(c)return '<div class="wt-n" style="--c:'+c.col+'"><img src="teams/'+c.key+'.webp" alt=""><b>'+c.name+'</b><i></i></div>';
+    const s=CATALOG.stadiums.find(x=>x.id===id);return tile(s?s.icon:'🏟️',prizeName(id));}).join('')+(RG.coins?tile('🪙','+'+RG.coins.toLocaleString()+' COINS'):'');
+  const last=z>=TOUR.length-1;
+  el.innerHTML='<p>REGION CONQUERED</p><h3>'+RG.icon+' '+RG.name+'</h3><div class="prz">'+cards+'</div><p>'+(last?'YOU ARE WORLD CHAMPIONS':'UNLOCKED FOR FREE · NEXT STOP: '+TOUR[z+1].name)+'</p><button type="button">'+(last?'CELEBRATE':'ONWARDS')+'</button>';
+  const cols=['#ffc23a','#3cf0ff','#ff3d63','#4ade80','#fff'];for(let i=0;i<(WT_LOW?14:36);i++){const p=document.createElement('i');p.className='wt-conf';
+    p.style.cssText='left:'+(Math.random()*100)+'%;background:'+cols[i%5]+';animation-duration:'+(1.6+Math.random()*1.6)+'s;animation-delay:'+(Math.random()*.6)+'s';el.appendChild(p);}
+  sheet.appendChild(el);sfx('roar');vib([40,40,90]);el.querySelector('button').onclick=()=>{initAudio();el.remove();then();};}
+{let rt=0;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{const V=wtView,hs=sheet.querySelector('.wt-hs');if(!V||!hs||overlay.hidden||!sheet.classList.contains('wt')||sheet.querySelector('.wt-cele'))return;
+    if(hs.clientWidth===V.W&&hs.clientHeight===V.H)return;wtBuild(V.done?V.n:V.from,V.n);},250);});}
 function bindPicker(){refreshCoins();bindOpts();const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop();};
   const draw=()=>{for(const [id,which] of [['pickMe',0],['pickOpp',1]]){const el=document.getElementById(id);if(!el)continue;
     el.innerHTML=CLUBS.map((c,i)=>{const lock=!which&&!owned('team_'+c.key);return '<button type="button" data-i="'+i+'" style="--c:'+c.col+'" aria-pressed="'+((which?pickOpp:pickMe)===i)+'"'+((which?pickMe:pickOpp)===i?' disabled':'')+'><i>'+c.icon+'</i>'+c.name+(lock?' 🔒'+TEAM_PRICE[c.key]:'')+'</button>';}).join('');
