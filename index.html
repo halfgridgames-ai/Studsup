@@ -804,7 +804,7 @@ const basePos=p=>p.team===0?{x:p.bx,y:p.by}:{x:W-p.bx,y:H-p.by};
 const live=p=>!p.off;
 const ownGoalX=t=>t===0?0:W, attackDir=t=>t===0?1:-1;
 
-function resetBodies(){CT[0].oneTouch=CT[1].oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.skill=0;p.gkDive=null;p.gkLand=p.catchT=p.diveCd=p.trapT=p.stagger=0;p.hitSet.clear();});}
+function resetBodies(){REC.length=0;CT[0].oneTouch=CT[1].oneTouch=null;setPiece=null;stopDance(true);players.forEach(p=>{p.vx=p.vy=p.dvx=p.dvy=0;p.down=p.slide=p.recover=p.barge=0;p.air=p.lz=p.lvz=0;p.kickCd=0;p.skill=0;p.gkDive=null;p.gkLand=p.catchT=p.diveCd=p.trapT=p.stagger=0;p.hitSet.clear();});}
 function kickoff(team){
   resetBodies();
   players.forEach(p=>{if(p.off)return;const b=basePos(p);p.x=b.x;p.y=b.y;p.face=p.team?PI:0;p.gkTx=null;});
@@ -1809,7 +1809,7 @@ function gain(p,silent){if(!silent&&!ball.owner&&p.role!=='GK'&&(ball.z>5||hyp(b
 }
 const KICK_T=0.42;  // how long the kick swing shows after the ball leaves the foot (no wind-up)
 // wind-up (w) with the ball still at the feet, then follow-through (f); the clip's contact frame lands exactly when the ball goes
-const KICKS={pass:{w:0.11,f:0.34},shot:{w:0.15,f:0.5},pen:{w:0.15,f:0.45},punt:{w:0.2,f:0.45},roll:{w:0.2,f:0.4}},KICKN=['pass','shot','pen','punt','roll'];
+const KICKS={pass:{w:0.12,f:0.36},shot:{w:0.2,f:0.55},pen:{w:0.2,f:0.5},punt:{w:0.2,f:0.45},roll:{w:0.2,f:0.4}},KICKN=['pass','shot','pen','punt','roll'];
 function release(p,vx,vy,vz){const had=ball.owner===p&&!(p.air>1),hands=had&&p.role==='GK'&&!setPiece,
     kind=hands?(vz>150?'punt':'roll'):setPiece&&setPiece.kind==='penalty'?'pen':(hyp(vx,vy)>=520||vz>=200)?'shot':'pass',K=KICKS[kind],w=had?K.w:0;
   p.kickK=kind;p.kickW=w;p.kickFace=hyp(vx,vy)>1?Math.atan2(vy,vx):p.face;p.kickT=w+(w?K.f:KICK_T);p.kickAnim=p.kickT;ball.holdT=w;ball.holdBy=w?p:null;ball.holdSfx=null;ball.lastBy=p;ball.owner=null;ball.vx=vx;ball.vy=vy;ball.vz=vz;ball.z=Math.max(ball.z,1);p.kickCd=0.28;ball.lastTeam=p.team;ball.tried=new Set();ball.super=false;ball.shot=false;ball.pen=false;}
@@ -2196,8 +2196,13 @@ function gkThink(p,dt){
     if(cd<260&&Math.abs(c.y-CY)<BOX_H&&toward&&!help){const k=clamp(0.62-cd/700,0.2,0.5);tx=own+(c.x-own)*k;ty=CY+(c.y-CY)*k;spd=SPRINT*1.1;}}}
   if(!ball.owner&&ball.vx*-dir>160){const t=(own-ball.x)/ball.vx;if(t>0&&t<1.3){ty=ball.y+ball.vy*t;spd=330;}
     // a shot about to arrive out of reach: dive for it
-    if(t>0.05&&t<0.42&&ball.lastTeam!==p.team&&ball.vx*-dir>300&&!(p.diveCd>0)){const ly=ball.y+ball.vy*t,lz=Math.max(0,ball.z+ball.vz*t-450*t*t),d=ly-p.y;
-      if(Math.abs(d)>14&&Math.abs(ly-CY)<GH+20&&lz<BAR+6){{const T=clamp(t/0.6,0.4,0.7);p.gkDive={dir:Math.sign(d),t:T,T,sp:clamp(Math.abs(d)/Math.max(t,0.14),220,420),h:clamp(lz,0,32)};}p.diveCd=1.2;return;}}}
+    // a shot about to arrive out of reach: dive for it, timed so the keeper is at full stretch as the ball gets there
+    const react=0.6-0.08*(cpu(p.team)?AIDIFF:1);
+    if(t>0.05&&t<react&&ball.lastTeam!==p.team&&ball.vx*-dir>300&&!(p.diveCd>0)){const ly=ball.y+ball.vy*t,lz=Math.max(0,ball.z+ball.vz*t-450*t*t),d=ly-p.y;
+      if(Math.abs(d)>14&&Math.abs(ly-CY)<GH+20&&lz<BAR+6){{const T=clamp(t/0.55,0.42,0.8);
+        p.gkDive={dir:Math.sign(d),t:T,T,sp:clamp(Math.abs(d)/Math.max(t*0.92,0.14),200,430),h:clamp(lz,0,32)};p.face=dir>0?0:PI;}p.diveCd=1.2;return;}}
+    // a shot straight at the keeper: set the feet and get the body behind it
+    if(t>0.05&&t<0.5&&ball.lastTeam!==p.team&&ball.vx*-dir>300){const ly=ball.y+ball.vy*t;if(Math.abs(ly-p.y)<=14){p.gkTx=own+dir*12;p.gkTy=ly;}}}
   ty=clamp(ty,CY-GH-8,CY+GH+8);
   const inBox=Math.abs(ball.x-own)<BOX_D&&Math.abs(ball.y-CY)<BOX_H;
   if(inBox&&!ball.owner&&ball.z<30&&hyp(ball.vx,ball.vy)<320){const [,od]=nearestOpp({x:ball.x,y:ball.y,team:p.team});if(dist(p,ball)<od*1.2){tx=ball.x;ty=ball.y;spd=RUN*1.2;}}
@@ -2584,16 +2589,26 @@ function anState(p){const spd=hyp(p.vx,p.vy),one=(k,pr)=>[k,clamp(pr,0,1)];
   if(p.role==='GK'&&p.catchT>0)return one('catch',1-p.catchT/0.35);
   if(p.trapT>0)return one('trap',1-p.trapT/0.45);
   // moving against the way they face: backpedal or shuffle sideways (keepers use their own side-step)
-  if(spd>22){const c=Math.cos(p.face),s=Math.sin(p.face),fw=(c*p.vx+s*p.vy)/spd,lf=(s*p.vx-c*p.vy)/spd;
-    if(fw<-0.55&&spd<SPRINT*0.8)return ['jogback'];
-    if(Math.abs(lf)>0.75&&spd<SPRINT*0.8)return [(p.role==='GK'?'gkstep':'strafe')+(lf>0?'L':'R')];}
+  const gk=p.role==='GK';
+  if(spd>(gk?12:22)){const c=Math.cos(p.face),s=Math.sin(p.face),fw=(c*p.vx+s*p.vy)/spd,lf=(s*p.vx-c*p.vy)/spd,pl=p.lat;
+    if(fw<-0.55&&spd<SPRINT*0.8)return [p.lat='jogback'];
+    // keepers side-step whenever the move is mostly sideways; a little stickiness stops them flicking between clips
+    if(Math.abs(lf)>(gk?(pl&&pl!=='jogback'?0.5:0.62):0.75)&&spd<SPRINT*(gk?0.95:0.8))return [p.lat=(gk?'gkstep':'strafe')+(lf>0?'L':'R')];}
+  p.lat=null;
   if(spd<22&&Math.abs(p.turnW||0)>2.5)return ['turnstep'];  /* turning on the spot: step round instead of spinning on the feet */
-  if(p.role==='GK'&&spd<60)return ['gkidle'];
-  return [spd>SPRINT*0.8?'sprint':spd>75?'jog':spd>22?'walk':'idle'];}
+  if(gk&&spd<12)return ['gkidle'];
+  const g=p.gait,hy=(n,v)=>g===n?v*0.85:v;p.gait=spd>hy('sprint',SPRINT*0.8)?'sprint':spd>hy('jog',75)?'jog':spd>hy('walk',gk?12:22)?'walk':'idle';return [gk&&p.gait==='idle'?'gkidle':p.gait];}
+const LOCO=/^(walk|jog|sprint|jogback|strafe[LR]|gkstep[LR]|turnstep|spinrun|idle|gkidle)$/;
 function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;const [k,pr,cut]=anState(p),seg=k&&ANIM_SEG[k];
   const clip=!k?null:seg?rig.clips[seg[0]]||null:anFind(rig,k);
-  if(clip!==m.clip||(clip&&!!seg!==!!m.seg)){const prev=m.clip?m.mixer.clipAction(m.clip):null;m.clip=clip;m.seg=!!seg;
-    if(clip){const a=m.mixer.clipAction(clip);if(a!==prev){a.reset();const xf=k==='getup'?0.2:k==='diveR'?0.3:k==='knockB'||k==='knockF'?0.06:seg?0.08:0.18;if(prev)prev.crossFadeTo(a,xf,false);else a.fadeIn(xf);}
+  if(clip!==m.clip||(clip&&!!seg!==!!m.seg)){const prev=m.clip?m.mixer.clipAction(m.clip):null,wasLoco=m.loco,pk=m.lastK;m.clip=clip;m.seg=!!seg;m.loco=!seg&&LOCO.test(k||'');
+    if(clip){const a=m.mixer.clipAction(clip);if(a!==prev){
+      // a run that changes speed or direction keeps its stride: the new cycle starts at the same point of the step instead of at frame one
+      const ph=prev&&wasLoco&&m.loco&&prev.getClip().duration>0?(prev.time%prev.getClip().duration)/prev.getClip().duration:null;
+      a.reset();if(ph!=null)a.time=ph*clip.duration;
+      // blend times: quick into a timed move so the contact frame lands on time, slower out of one and between running gaits
+      const xf=m.snapA?0:k==='getup'?0.2:k==='diveR'?0.3:k==='knockB'||k==='knockF'?0.06:/^kick/.test(k)?0.12:/^gk(dive|block)/.test(k)?0.1:seg?0.1:m.loco&&wasLoco?0.25:pk&&/^kick|^trap|^catch|^gk/.test(pk)?0.28:0.2;
+      if(prev&&xf>0)prev.crossFadeTo(a,xf,false);else{if(prev)prev.stop();if(xf>0)a.fadeIn(xf);}}
       const once=k==='fly'||k==='fall';a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=once;a.play();}
     else if(prev)prev.fadeOut(0.15);}
   if(clip){const a=m.mixer.clipAction(clip),spd=hyp(p.vx,p.vy);
@@ -2602,7 +2617,7 @@ function anUpdate(p,m,dt){const rig=m.rigRef;if(!m.mixer||!rig.clips)return 0;co
     else a.timeScale=(k==='jog'||k==='walk'||k==='sprint'||k==='jogback'||k.startsWith('strafe')||k.startsWith('gkstep'))?(clip.ground>5?clamp(Math.sqrt(spd/clip.ground),0.7,1.9):clamp(spd/(clip.speed>60?clip.speed:SPRINT*0.8),0.6,1.6)):1;
     /* in-place clips: quicker steps the faster they go, so the feet slide far less. Players cover ground about 4x faster than the mocap runner,
        so matching exactly would mean a blur of legs; the square root keeps the cadence believable (a sprint tops out near 5 steps a second) */}
-  m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*(seg?30:12));return clip?k:0;}
+  m.lastK=k;m.snapA=0;m.mixer.update(dt||0.016);const want=clip?0:1;m.procW=m.procW==null?want:m.procW+(want-m.procW)*Math.min(1,(dt||0.016)*(seg?30:12));return clip?k:0;}
 // ---------- rigged models ----------
 // A team can use a real skinned 3D model (glTF/GLB from Meshy, Mixamo, Blender...) instead of the built-in block figure.
 // The game still poses the simple proxy joints (body, hips, knees, shoulders, elbows) exactly as before, and every frame
@@ -2869,18 +2884,18 @@ function refRecovered(){const a=ref.revenge;ref.revenge=null;ref.down=0;if(!a||a
   restart(1-a.team,ref.x,ref.y,'FREE KICK',false,'free');banner('RED CARD',a.name.toUpperCase()+' FLATTENED THE REF',2.2,'<span class="card rc"></span>');}
 // ---------- fireball replay ----------
 // The last couple of seconds are kept; a Fireball goal plays them back in slow motion from the touchline.
-function recFrame(){REC.push({b:[ball.x,ball.y,ball.z,ball.vx,ball.vy,ball.super?1:0],p:players.map(p=>[p.x,p.y,p.face,p.air||0,p.lz||0,p.down,p.slide,p.tk,p.vx,p.vy,p.phase,p.kickAnim||0,p.skill||0,p.sk,p.gkDive?[p.gkDive.dir,p.gkDive.t,p.gkDive.T||0.55,p.gkDive.h||0]:0,p.gkLand||0,p.gkLandDir||0,p.catchT||0,p.kickW||0,p.kickT||0,p.kickK||null,p.throwAnim||0,p.recover||0,p.barge||0,p.dance||0,p.fb||0,p.downT||0,p.downAir||0]),o:ball.owner?players.indexOf(ball.owner):ball.holdT>0&&ball.holdBy?players.indexOf(ball.holdBy):-1,
+function recFrame(){REC.push({b:[ball.x,ball.y,ball.z,ball.vx,ball.vy,ball.super?1:0],p:players.map(p=>[p.x,p.y,p.face,p.air||0,p.lz||0,p.down,p.slide,p.tk,p.vx,p.vy,p.phase,p.kickAnim||0,p.skill||0,p.sk,p.gkDive?[p.gkDive.dir,p.gkDive.t,p.gkDive.T||0.55,p.gkDive.h||0]:0,p.gkLand||0,p.gkLandDir||0,p.catchT||0,p.kickW||0,p.kickT||0,p.kickK||null,p.throwAnim||0,p.recover||0,p.barge||0,p.dance||0,p.fb||0,p.downT||0,p.downAir||0,p.stagger||0,p.trapT||0,p.skSide||0,p.headHigh?1:0]),o:ball.owner?players.indexOf(ball.owner):ball.holdT>0&&ball.holdBy?players.indexOf(ball.holdBy):-1,
   r:[ref.x,ref.y,ref.face,ref.lz,ref.down,ref.vx,ref.vy,ref.phase,ref.fb||0,ref.downT||0,ref.downAir||0]});if(REC.length>REC_N)REC.shift();}
 function applyFrame(f){const b=f.b;ball.owner=null;ball.x=b[0];ball.y=b[1];ball.z=b[2];ball.vx=b[3];ball.vy=b[4];ball.super=!!b[5];
-  players.forEach((p,i)=>{const s=f.p[i];if(!s||p.off)return;[p.x,p.y,p.face,p.air,p.lz,p.down,p.slide,p.tk,p.vx,p.vy,p.phase,p.kickAnim,p.skill,p.sk]=s;const g=s[14];p.gkDive=g?{dir:g[0],t:g[1],T:g[2],h:g[3]}:null;p.gkLand=s[15]||0;p.gkLandDir=s[16]||0;p.catchT=s[17]||0;p.kickW=s[18]||0;p.kickT=s[19]||KICK_T;p.kickK=s[20]||null;p.throwAnim=s[21]||0;p.recover=s[22]||0;p.barge=s[23]||0;p.dance=s[24]||0;p.fb=s[25]||0;p.downT=s[26]||0;p.downAir=s[27]||0;});
+  players.forEach((p,i)=>{const s=f.p[i];if(!s||p.off)return;[p.x,p.y,p.face,p.air,p.lz,p.down,p.slide,p.tk,p.vx,p.vy,p.phase,p.kickAnim,p.skill,p.sk]=s;const g=s[14];p.gkDive=g?{dir:g[0],t:g[1],T:g[2],h:g[3]}:null;p.gkLand=s[15]||0;p.gkLandDir=s[16]||0;p.catchT=s[17]||0;p.kickW=s[18]||0;p.kickT=s[19]||KICK_T;p.kickK=s[20]||null;p.throwAnim=s[21]||0;p.recover=s[22]||0;p.barge=s[23]||0;p.dance=s[24]||0;p.fb=s[25]||0;p.downT=s[26]||0;p.downAir=s[27]||0;p.stagger=s[28]||0;p.trapT=s[29]||0;p.skSide=s[30]||0;p.headHigh=!!s[31];});
   ball.owner=f.o>=0?players[f.o]:null;
   [ref.x,ref.y,ref.face,ref.lz,ref.down,ref.vx,ref.vy,ref.phase,ref.fb,ref.downT,ref.downAir]=f.r;}
 const lerpA=(a,b,u)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*u;
 function lerpFrame(f0,f1,u){const L=(a,b)=>a+(b-a)*u;ball.x=L(f0.b[0],f1.b[0]);ball.y=L(f0.b[1],f1.b[1]);ball.z=L(f0.b[2],f1.b[2]);
-  players.forEach((p,i)=>{const a=f0.p[i],b=f1.p[i];if(!a||!b||p.off)return;p.x=L(a[0],b[0]);p.y=L(a[1],b[1]);p.face=lerpA(a[2],b[2],u);p.air=L(a[3],b[3]);p.lz=L(a[4],b[4]);
+  players.forEach((p,i)=>{const a=f0.p[i],b=f1.p[i];if(!a||!b||p.off)return;p.x=L(a[0],b[0]);p.y=L(a[1],b[1]);p.face=lerpA(a[2],b[2],u);p.air=L(a[3],b[3]);p.lz=L(a[4],b[4]);p.vx=L(a[8],b[8]);p.vy=L(a[9],b[9]);if(Math.abs(b[10]-a[10])<3)p.phase=L(a[10],b[10]);if(a[28]>0&&b[28]>0)p.stagger=L(a[28],b[28]);if(a[29]>0&&b[29]>0)p.trapT=L(a[29],b[29]);
     if(a[5]>0&&b[5]>0)p.down=L(a[5],b[5]);if(a[6]>0&&b[6]>0)p.slide=L(a[6],b[6]);if(a[11]>0&&b[11]>0)p.kickAnim=L(a[11],b[11]);if(a[12]>0&&b[12]>0)p.skill=L(a[12],b[12]);
     if(p.gkDive&&a[14]&&b[14])p.gkDive.t=L(a[14][1],b[14][1]);if(a[15]>0&&b[15]>0)p.gkLand=L(a[15],b[15]);if(a[17]>0&&b[17]>0)p.catchT=L(a[17],b[17]);if(a[21]>0&&b[21]>0)p.throwAnim=L(a[21],b[21]);if(a[22]>0&&b[22]>0)p.recover=L(a[22],b[22]);});
-  ref.x=L(f0.r[0],f1.r[0]);ref.y=L(f0.r[1],f1.r[1]);ref.face=lerpA(f0.r[2],f1.r[2],u);}
+  ref.x=L(f0.r[0],f1.r[0]);ref.y=L(f0.r[1],f1.r[1]);ref.face=lerpA(f0.r[2],f1.r[2],u);ref.lz=L(f0.r[3],f1.r[3]);if(f0.r[4]>0&&f1.r[4]>0)ref.down=L(f0.r[4],f1.r[4]);if(Math.abs(f1.r[7]-f0.r[7])<3)ref.phase=L(f0.r[7],f1.r[7]);}
 // Find the shot in the recording: the last moment the ball left a player's foot (or suddenly sped up, for headers and deflections).
 // The replay starts a little before it and the camera is set up behind the shooter, looking down the line of the shot at the goal.
 function replayPlan(fr){const n=fr.length,gx=fr[n-1].b[0]<W/2?0:W;let kick=-1;
@@ -2888,13 +2903,15 @@ function replayPlan(fr){const n=fr.length,gx=fr[n-1].b[0]<W/2?0:W;let kick=-1;
     if(hyp(b.b[3],b.b[4])-hyp(a.b[3],a.b[4])>160){kick=i;break;}}
   if(kick<0)kick=Math.max(0,n-70);const start=Math.max(0,kick-80);
   return {start,kick:kick-start,K:{x:fr[kick].b[0],y:fr[kick].b[1]},G:{x:gx,y:CY}};}
-function startReplay(kind){const pl=replayPlan(REC);replay={f:0,frames:REC.slice(pl.start),kind,kick:pl.kick,K:pl.K,G:pl.G,snap:true};state='replay';celeb=null;bannerEl.hidden=true;bannerT=0;comm(kind==='fire'?'replayf':'replay',{},2);}
-function replayStep(dt){const rp=replay;if(!rp||!rp.frames.length){replay=null;kickoff(nextKick);return;}
+// at a cut (replay start/end) bodies take their new pose at once instead of turning and blending from the old one
+function snapModels(){if(!R||!R.models)return;for(const m of R.models.concat(R.refModel?[R.refModel]:[])){if(!m)continue;m.yaw=null;m.bank=0;m.turn=0;m.kal=0;m.procW=null;m.snap=1;m.snapA=1;if(m.mixer){m.mixer.stopAllAction();m.clip=null;m.seg=false;}}}
+function startReplay(kind){snapModels();const pl=replayPlan(REC);replay={f:0,frames:REC.slice(pl.start),kind,kick:pl.kick,K:pl.K,G:pl.G,snap:true};state='replay';celeb=null;bannerEl.hidden=true;bannerT=0;comm(kind==='fire'?'replayf':'replay',{},2);}
+function replayStep(dt){const rp=replay;if(!rp||!rp.frames.length){replay=null;kickoff(nextKick);snapModels();return;}
   // normal-ish speed for the build-up, then real slow motion for the last moments before the goal; frames are blended so it stays smooth
   const fr=rp.frames,slow=rp.kick!=null?rp.f>rp.kick-16:rp.f>fr.length-105;rp.rate=slow?0.3:0.8;rp.f+=dt*60*rp.rate;const i=Math.min(fr.length-1,rp.f|0);applyFrame(fr[i]);
   if(i<fr.length-1)lerpFrame(fr[i],fr[i+1],rp.f-i);
   if(ball.super&&Math.random()<0.9)parts.push({x:ball.x,y:ball.y,z:ball.z+4,vx:rand(-20,20),vy:rand(-20,20),vz:rand(10,40),life:rand(0.2,0.45),col:Math.random()<0.5?'#ffc23a':'#ff5a14',r:rand(2,4)});
-  if(rp.f>=fr.length-1||(rp.f>12&&(CT[0].pressed.pass||CT[0].pressed.shoot||CT[0].pressed.skill||CT[0].pressed.dance||CT[0].pressed.tackle||(NET.host&&(CT[1].pressed.pass||CT[1].pressed.shoot))))){replay=null;kickoff(nextKick);}}
+  if(rp.f>=fr.length-1||(rp.f>12&&(CT[0].pressed.pass||CT[0].pressed.shoot||CT[0].pressed.skill||CT[0].pressed.dance||CT[0].pressed.tackle||(NET.host&&(CT[1].pressed.pass||CT[1].pressed.shoot))))){replay=null;kickoff(nextKick);snapModels();}}
 // A diving player meets a loose ball with the head: it flies on along the dive, bent toward goal when it is close.
 function diveHeader(a){a.headed=true;a.headHigh=ball.z>16;const b=ball;b.lastBy=a;let ang=a.face;const gx=a.team===0?W:0;
   if(Math.abs(gx-a.x)<340){const ga=Math.atan2(CY-a.y,gx-a.x),d=Math.atan2(Math.sin(ga-ang),Math.cos(ga-ang));if(Math.abs(d)<1)ang=ga+rand(-0.18,0.18);}
@@ -2946,17 +2963,26 @@ function ballPhysics(dt){
     const spd=hyp(b.vx,b.vy);
     for(const p of players){if(p.role!=='GK'||p.off||p.down>0||b.tried.has(p))continue;const own=ownGoalX(p.team);
       if(Math.abs(b.x-own)>BOX_D+20)continue;
-      if(hyp(b.x-p.x,b.y-p.y)<(b.pen?(p.gkDive?28:22):(p.gkDive?31:23))&&b.z<BAR-2){
+      // where the keeper's body actually is: standing, a circle round them; diving, a stretched body from the feet to the fingertips
+      const D=p.gkDive&&p.gkDive.dir?p.gkDive.dir:0,cy=D?clamp(b.y,Math.min(p.y-D*5,p.y+D*20),Math.max(p.y-D*5,p.y+D*20)):p.y,
+        gap=hyp(b.x-p.x,b.y-cy),R0=b.pen?(D?12:22):(D?13:23);
+      if(gap<R0&&b.z<BAR-2){
+        // how close the ball's line passes the body (it is checked as it enters reach, so measure the line, not where it is now)
+        const bs=Math.max(1,hyp(b.vx,b.vy)),ux=b.vx/bs,uy=b.vy/bs,ex=p.x-b.x,ey=cy-b.y,along=ex*ux+ey*uy,miss=along>0?Math.abs(ex*uy-ey*ux):gap,
+          core=D?miss<9&&b.z<(p.air||0)+18:miss<10;
         if(b.lastTeam===p.team){if(spd<240&&p.kickCd<=0){gain(p);return;}continue;}
         b.tried.add(p);
         // placement beats keepers: shots towards the posts are much harder to stop than ones at the body
         let chance=b.super?0.1:clamp(1.18-spd/1000+(cpu(1-p.team)?0.12:0),0.22,0.95);
         if(!b.super){const place=Math.abs(b.y-CY)/GH;if(place>0.5)chance-=(place-0.5)*0.8;if(b.shot&&Math.abs(b.shotX-own)>400)chance+=0.12;
-          if(cpu(p.team))chance+=(AIDIFF-1)*0.3;if(b.pen)chance=p.gkDive&&p.gkDive.dir?0.8:0.5;chance=clamp(chance,0.08,0.95);}
+          if(cpu(p.team))chance+=(AIDIFF-1)*0.3;if(b.pen)chance=p.gkDive&&p.gkDive.dir?0.8:0.5;
+          // the ball comes right into the body or the hands: that is nearly always stopped. At full stretch it's the fingertips: harder
+          if(core&&!b.pen)chance=0.97;else if(miss>R0*0.7)chance*=0.75;
+          chance=clamp(chance,0.08,0.95);}
         const kick=b.lastBy,pen=b.pen;
         if(Math.random()<chance){
           if(spd<560){gain(p);popup(p.x,p.y-34,'SAFE HANDS');}
-          else{b.vx=-b.vx*0.35+rand(-60,60);b.vy=rand(-260,260);b.vz=120;b.lastTeam=p.team;popup(p.x,p.y-34,pen?'PENALTY SAVED!':'PARRIED!');sfx('thud');sfx('ooh');}
+          else{b.vx=-b.vx*0.35+rand(-60,60);b.vy=D?D*rand(120,280):rand(-260,260);b.vz=120;b.lastTeam=p.team;if(!D)p.stagger=0.35;popup(p.x,p.y-34,pen?'PENALTY SAVED!':'PARRIED!');sfx('thud');sfx('ooh');}
           comm(pen?'pensave':spd<560?'save':'parry',{k:p,a:kick},2);if(p.team===0)vib(25);
           b.super=false;b.pen=false;b.shot=false;return;}
         else if(b.super){knockDown(p,{face:Math.atan2(b.vy,b.vx)},pick(['TORCHED!','INTO THE NET!']));p.vx=b.vx*0.55;p.vy=b.vy*0.55;p.lvz=150;comm('torched',{k:p,a:kick},3);}
@@ -3875,12 +3901,13 @@ function drawAim(aimY,t){const y=CY+clamp(aimY,-1,1)*(GH-9),s=toScreen(W,y,BAR*0
   ctx.strokeStyle='#ffc23a';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(s.x,s.y,r,0,PI*2);ctx.moveTo(s.x-r*1.6,s.y);ctx.lineTo(s.x-r*0.5,s.y);ctx.moveTo(s.x+r*0.5,s.y);ctx.lineTo(s.x+r*1.6,s.y);
   ctx.moveTo(s.x,s.y-r*1.6);ctx.lineTo(s.x,s.y-r*0.5);ctx.moveTo(s.x,s.y+r*0.5);ctx.lineTo(s.x,s.y+r*1.6);ctx.stroke();}
 // Ease every joint from last frame's pose towards this frame's, so moves flow into each other instead of snapping.
-function blendPose(m,dt){const k=1-Math.exp(-(dt||0.016)*20),js=[m.body,...m.legs,...m.arms,...(m.knees||[]),...(m.elbows||[])];
+function blendPose(m,dt){const k=m.snap?1:1-Math.exp(-(dt||0.016)*20),js=[m.body,...m.legs,...m.arms,...(m.knees||[]),...(m.elbows||[])];
   for(const j of js){const u=j.userData,r=j.rotation;
     if(!u.pr){u.pr=[r.x,r.y,r.z];u.pp=[j.position.x,j.position.y,j.position.z];continue;}
     const w=(a,b)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*k;
     r.set(w(u.pr[0],r.x),w(u.pr[1],r.y),w(u.pr[2],r.z));u.pr[0]=r.x;u.pr[1]=r.y;u.pr[2]=r.z;
-    if(j===m.body){const P=j.position;P.set(u.pp[0]+(P.x-u.pp[0])*k,u.pp[1]+(P.y-u.pp[1])*k,u.pp[2]+(P.z-u.pp[2])*k);u.pp[0]=P.x;u.pp[1]=P.y;u.pp[2]=P.z;}}}
+    if(j===m.body){const P=j.position;P.set(u.pp[0]+(P.x-u.pp[0])*k,u.pp[1]+(P.y-u.pp[1])*k,u.pp[2]+(P.z-u.pp[2])*k);u.pp[0]=P.x;u.pp[1]=P.y;u.pp[2]=P.z;}}
+  m.snap=0;}
 function render(t,dt){
   if(!R)init3D();if(R.stad!==curStad())applyStadium();
   const asp=VW/VH,port=asp<1,far=port?(camMode===2?1.05:1.55):1+Math.max(0,1.7-asp)*0.7;
