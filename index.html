@@ -2788,8 +2788,11 @@ function ballPhysics(dt){
       if(Math.abs(b.x-own)>BOX_D+20)continue;
       // where the keeper's body actually is: standing, a circle round them; diving, a stretched body from the feet to the fingertips
       const D=p.gkDive&&p.gkDive.dir?p.gkDive.dir:0,cy=D?clamp(b.y,Math.min(p.y-D*5,p.y+D*20),Math.max(p.y-D*5,p.y+D*20)):p.y,
-        gap=hyp(b.x-p.x,b.y-cy),R0=b.pen?(D?12:22):(D?13:23),core=D?gap<9&&b.z<(p.air||0)+16:gap<10&&b.z<30;
+        gap=hyp(b.x-p.x,b.y-cy),R0=b.pen?(D?12:22):(D?13:23);
       if(gap<R0&&b.z<BAR-2){
+        // how close the ball's line passes the body (it is checked as it enters reach, so measure the line, not where it is now)
+        const bs=Math.max(1,hyp(b.vx,b.vy)),ux=b.vx/bs,uy=b.vy/bs,ex=p.x-b.x,ey=cy-b.y,along=ex*ux+ey*uy,miss=along>0?Math.abs(ex*uy-ey*ux):gap,
+          core=D?miss<9&&b.z<(p.air||0)+18:miss<10;
         if(b.lastTeam===p.team){if(spd<240&&p.kickCd<=0){gain(p);return;}continue;}
         b.tried.add(p);
         // placement beats keepers: shots towards the posts are much harder to stop than ones at the body
@@ -2797,7 +2800,7 @@ function ballPhysics(dt){
         if(!b.super){const place=Math.abs(b.y-CY)/GH;if(place>0.5)chance-=(place-0.5)*0.8;if(b.shot&&Math.abs(b.shotX-own)>400)chance+=0.12;
           if(cpu(p.team))chance+=(AIDIFF-1)*0.3;if(b.pen)chance=p.gkDive&&p.gkDive.dir?0.8:0.5;
           // the ball comes right into the body or the hands: that is nearly always stopped. At full stretch it's the fingertips: harder
-          if(core&&!b.pen)chance=Math.max(chance,0.9);else if(gap>R0*0.7)chance*=0.75;
+          if(core&&!b.pen)chance=0.97;else if(miss>R0*0.7)chance*=0.75;
           chance=clamp(chance,0.08,0.95);}
         const kick=b.lastBy,pen=b.pen;
         if(Math.random()<chance){
