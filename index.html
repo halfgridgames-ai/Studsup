@@ -482,6 +482,124 @@ body{font-weight:600}
 @media (orientation:landscape) and (max-height:500px){.sheet.wt .subhead{padding-bottom:4px}.wt-strip{padding-bottom:4px}.wt-strip button{font-size:14px;padding:2px 0}
   .wt-plq span{display:none}.wt-dock{padding-top:4px;padding-bottom:6px}.wt-op{width:40px;height:40px}.wt-dock button{padding:10px 16px}}
 @media (prefers-reduced-motion:reduce){.wt-n.next,.wt-tok>div,.wt-tok>span{animation:none}.wt-wx{display:none}.wt-gate .bars,.wt-lock,.wt-fog{transition:none}.wt-conf{display:none}}
+/* ---------- World Tour look for every menu: painted Midjourney backdrops, gold foil frames, navy plaques, red-orange PLAY buttons (same as the career map) ---------- */
+:root{--gold:#ffc23a;--foil:linear-gradient(135deg,#fff3c4,#ffc23a 22%,#8a5a12 48%,#fff0b0 62%,#ffc23a 88%);--plq:rgba(6,11,24,.8);--gline:rgba(255,194,58,.38);
+  --play:linear-gradient(90deg,#ff3d63,#ff7a3c)}
+.overlay::after{display:none}
+/* painted backdrop: the region you are up to in the World Tour, slowly drifting, with its weather */
+.mbg{position:fixed;inset:0;z-index:0;overflow:hidden;display:none;background:#060b18;pointer-events:none}
+body.paint .mbg{display:block}
+.mbg img{position:absolute;inset:-4%;width:108%;height:108%;object-fit:cover;object-position:50% 60%;animation:mbgDrift 38s ease-in-out infinite alternate}
+.mbg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,11,24,.55),rgba(6,11,24,.1) 28%,rgba(6,11,24,.25) 55%,rgba(6,11,24,.92))}
+.mbg .wt-wx{z-index:1}.mbg .wt-wx i{animation-play-state:running}
+@keyframes mbgDrift{from{transform:scale(1) translateX(-1.5%)}to{transform:scale(1.07) translateX(1.5%)}}
+.overlay>.sheet:not(.wt){position:relative;z-index:1}
+/* panels become navy plaques with a thin gold edge */
+.sheet.menu{background:var(--plq);border:1px solid var(--gline);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,233,168,.12)}
+.sheet.menu.home{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:6px 4px}
+.subhead h2{text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 18px rgba(0,0,0,.6)}
+.subhead h2::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.back{background:rgba(6,11,24,.82);color:var(--gold);border:1px solid var(--gline);clip-path:none;border-radius:12px}
+.back:hover{background:rgba(255,194,58,.16)}
+.coins{background:rgba(6,11,24,.82);border:1px solid rgba(255,194,58,.65);color:#ffe9a8;clip-path:none;border-radius:999px;padding:5px 12px}
+.shopbtn{clip-path:none;border-radius:999px;background:var(--foil);color:#2a1800;padding:8px 16px;box-shadow:0 4px 12px rgba(0,0,0,.45)}
+.iconbtn{background:rgba(6,11,24,.82);border:1px solid var(--gline);color:var(--gold);clip-path:none;border-radius:12px}
+.link{color:#ffe9a8;border-bottom-color:rgba(255,194,58,.55);text-shadow:0 1px 4px #000}
+/* primary button = the map's PLAY button */
+.sheet .go{color:#fff;background:var(--play);filter:drop-shadow(0 6px 14px rgba(255,61,99,.4));text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.sheet .go:hover{filter:drop-shadow(0 6px 20px rgba(255,61,99,.65)) brightness(1.06)}
+.sheet .go.alt{background:rgba(6,11,24,.85);color:#ffe9a8;filter:none;box-shadow:inset 0 0 0 1px var(--gline)}
+.ghost{background:rgba(6,11,24,.8);border:1px solid var(--gline);color:#ffe9a8;clip-path:none;border-radius:12px}
+/* home: three tickets with a gold foil edge, each with its own art */
+.mode{--mc:#ff3d63;min-height:86px;clip-path:none;border-radius:16px;border:2px solid transparent;overflow:hidden;padding:12px 14px;grid-template-columns:1fr 22px;
+  background:linear-gradient(100deg,rgba(6,11,24,.92) 30%,color-mix(in srgb,var(--mc) 35%,rgba(6,11,24,.6))) padding-box,var(--foil) border-box;
+  box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.mode::after{display:none}
+.mode>span:not(.mart){position:relative;z-index:1}
+.mode .mi{display:none}
+.mode b{font-size:20px;text-shadow:0 2px 0 rgba(0,0,0,.5)}
+.mode span span{color:#ffe9a8;text-shadow:0 1px 3px #000}
+.mode small{display:block;font-family:var(--display);font-weight:700;font-size:10px;letter-spacing:.2em;color:var(--neon);margin-bottom:2px}
+.mode .ar{color:var(--gold);position:relative;z-index:1}
+.mode:hover{filter:brightness(1.1);}
+.mart{position:absolute;inset:0;pointer-events:none}
+.mart img{position:absolute;bottom:-6%;height:118%;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6))}
+.mode.single .mart img{right:34px}
+.mode.online .mart img{right:30px}.mode.online .mart img+img{right:84px;transform:scaleX(-1);opacity:.95}
+.mode.career{background:linear-gradient(100deg,rgba(6,11,24,.94) 34%,rgba(6,11,24,.15) 75%) padding-box,var(--zbg) 50% 62%/cover padding-box,var(--foil) border-box}
+.mode .pips{display:flex;gap:4px;margin-top:6px}.pips i{width:16px;height:5px;border-radius:999px;background:rgba(255,255,255,.25)}.pips i.on{background:var(--gold);box-shadow:0 0 6px rgba(255,194,58,.8)}
+/* settings, online, how to play */
+.setlist,.netbox{background:rgba(3,6,14,.55);border:1px solid var(--gline);border-radius:14px;padding:2px 14px}
+.netbox{padding:12px 14px}
+.setrow{border-bottom-color:rgba(255,194,58,.16)}.setrow:last-child{border-bottom:0}
+.seg button{border-color:rgba(255,233,168,.28)}
+.seg button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1a1004;box-shadow:0 0 12px rgba(255,194,58,.45)}
+.lnk{background:rgba(3,6,14,.55);border-color:rgba(255,194,58,.2)}
+.lnk.star{background:linear-gradient(90deg,rgba(255,194,58,.18),rgba(3,6,14,.55))}
+.code{border-color:var(--gold)}.bigcode,.status{color:var(--gold)}
+/* single match picker */
+.ttab{clip-path:none;border-radius:12px;background:rgba(6,11,24,.75)}
+.ttab.on{border-color:var(--gold);box-shadow:0 0 12px rgba(255,194,58,.3)}
+.ttab small{color:#ffe9a8}
+.car-nav{background:rgba(6,11,24,.85);border-color:var(--gline);color:var(--gold)}
+.car-dots i.on{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+/* shop */
+.shopbox{background:rgba(6,11,24,.92);border:2px solid transparent;background:linear-gradient(rgba(6,11,24,.95),rgba(6,11,24,.95)) padding-box,var(--foil) border-box}
+.shophead h2{color:var(--gold);text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 16px rgba(255,194,58,.35)}
+.shophead button{background:rgba(6,11,24,.8);border-color:var(--gline);color:#ffe9a8}
+.tabs button{border-color:rgba(255,233,168,.25)}
+.tabs button[aria-selected="true"]{background:var(--gold);border-color:var(--gold);color:#1a1004}
+.item{background:linear-gradient(180deg,rgba(20,30,56,.9),rgba(6,11,24,.95));border-color:rgba(255,194,58,.18);border-radius:12px}
+.item .pr{color:#ffe9a8}
+.item.eq{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset,0 0 16px rgba(255,194,58,.3)}
+.item.wide .pr{background:var(--play);color:#fff}
+.item.hero{background:linear-gradient(120deg,rgba(255,61,99,.3),rgba(255,154,60,.16)) padding-box,var(--foil) border-box;border:2px solid transparent}
+.item .tag{background:var(--play)}
+/* team items: mini collector cards with the Midjourney art */
+.item.team{padding:3px;border:0;background:var(--foil);height:190px;align-content:end;gap:0;overflow:hidden}
+.item.team::before{content:'';position:absolute;inset:2px;border-radius:10px;background:radial-gradient(90% 70% at 50% 30%,color-mix(in srgb,var(--c) 70%,#fff 6%),color-mix(in srgb,var(--c) 30%,#05070d) 62%,#05070d)}
+.item.team .tart{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);height:72%;max-width:92%;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6))}
+.item.team .nm,.item.team .pr{position:relative;width:100%;background:rgba(3,5,12,.88)}
+.item.team .nm{padding-top:5px}.item.team .pr{padding-bottom:5px;border-radius:0 0 10px 10px;font-size:14px}
+.item.team.lockd .tart{filter:brightness(.8) saturate(.85) drop-shadow(0 4px 6px rgba(0,0,0,.6))}
+.item.team.eq{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(255,194,58,.5)}
+/* pause */
+.sheet.menu.pz{max-width:420px;justify-items:stretch;text-align:center}
+.ptitle{font-weight:900;letter-spacing:.12em;color:var(--gold);text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 18px rgba(255,194,58,.4)}
+.pz .go{justify-self:stretch;text-align:center}.pz .brow{justify-content:center}
+.pz .setrow{text-align:left}
+/* full time */
+.sheet.ft{max-width:560px;background:var(--plq);border:1px solid var(--gline);border-radius:18px;padding:18px;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.ft-k{text-align:center;font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.35em;color:var(--neon)}
+.ft-sc{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.ft-t{--c:#888;position:relative;justify-self:center;width:min(118px,28vw);aspect-ratio:3/4;border-radius:12px;padding:3px;background:linear-gradient(135deg,#fff3c4,var(--gold) 22%,#8a5a12 48%,#fff0b0 62%,var(--c) 88%);box-shadow:0 8px 18px rgba(0,0,0,.55)}
+.ft-t::before{content:'';position:absolute;inset:3px;border-radius:9px;background:radial-gradient(90% 70% at 50% 30%,color-mix(in srgb,var(--c) 70%,#fff 6%),color-mix(in srgb,var(--c) 30%,#05070d) 62%,#05070d)}
+.ft-t img{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);height:76%;max-width:92%;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+.ft-t b{position:absolute;left:3px;right:3px;bottom:3px;border-radius:0 0 9px 9px;background:rgba(3,5,12,.9);font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:.04em;text-align:center;padding:4px 0;white-space:nowrap;overflow:hidden}
+.ft-t.win::after{content:'WIN';position:absolute;left:50%;top:-10px;transform:translateX(-50%);font-family:var(--display);font-weight:900;font-size:11px;letter-spacing:.1em;color:#1a1004;background:var(--gold);padding:3px 9px;border-radius:999px;box-shadow:0 0 12px rgba(255,194,58,.7)}
+.ft-n{font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,64px);line-height:1;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.5),0 0 22px rgba(255,194,58,.45);white-space:nowrap}
+.ft-n i{font-style:normal;color:var(--gold);margin:0 4px}
+.ft-v{text-align:center;display:grid;gap:3px}
+.ft-v b{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:.08em;color:var(--gold)}
+.ft-v span{color:#b8c8dc;font-size:16px}
+.ft-tour{text-align:center;display:grid;gap:4px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,194,58,.22),rgba(6,11,24,.6)) padding-box,var(--foil) border-box;border:2px solid transparent}
+.ft-tour b{font-family:var(--display);font-weight:900;font-size:18px;color:var(--gold)}.ft-tour span{color:#ffe9a8;font-size:15px}
+.sheet.ft .earn{max-width:none;background:rgba(3,6,14,.55);border:1px solid var(--gline);border-radius:14px;padding:8px 14px;font-size:16px}
+.sheet.ft .earn div{border-bottom-color:rgba(255,194,58,.14)}.sheet.ft .earn b{color:#ffe9a8}
+.sheet.ft .earn .tot{border:0;padding-top:4px}.sheet.ft .earn .tot b{color:var(--gold);font-size:22px}
+.sheet.ft .topbar{justify-content:center}
+.adbtn{clip-path:none;border-radius:999px;background:linear-gradient(90deg,#17b86a,#1fd67e);font-weight:800;letter-spacing:.06em;font-size:12px;padding:9px 14px}
+.ft-l,.ft-r{display:grid;gap:14px;min-width:0}
+.ft-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ft-btns .go{justify-self:stretch;text-align:center;font-size:16px;padding:14px 10px}
+.ft-btns .go:only-child{grid-column:1/-1}
+.toast{background:var(--foil);color:#2a1800;box-shadow:0 8px 24px rgba(0,0,0,.5);clip-path:none;border-radius:12px}
+@media (pointer:coarse) and (orientation:landscape){.mode{min-height:0;grid-template-columns:1fr}.mode .mart img{display:none}}
+@media (orientation:landscape) and (max-height:560px){
+  .sheet.ft{max-width:840px;grid-template-columns:1fr 1fr;column-gap:18px;row-gap:8px;padding:12px 16px;align-items:center}
+  .sheet.ft>.ft-k{grid-column:1/-1}.ft-l,.ft-r{gap:8px}.ft-t{width:min(96px,13vw)}.ft-n{font-size:44px}.ft-v b{font-size:18px}.ft-v span{font-size:14px}
+  .sheet.ft .earn{font-size:14px;padding:4px 12px}.ratebox{padding:6px 10px;gap:6px}
+  .sheet.menu.pz{max-width:640px;grid-template-columns:1fr 1fr;gap:8px 14px;padding:12px 16px}.pz .ptitle{font-size:28px;align-self:center}.pz .go{padding:12px}.pz .setlist{grid-column:1/-1}.pz .setrow{padding:4px 0}.pz .brow{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){.mbg img{animation:none}.mbg .wt-wx{display:none}}
 </style>
 
 </head><body>
@@ -508,6 +626,7 @@ body{font-weight:600}
 </div>
 
 <div class="overlay" id="overlay">
+  <div class="mbg" id="mbg" aria-hidden="true"></div>
   <div class="sheet" id="sheet"></div>
 </div>
 <div class="overlay shopov" id="shop" hidden>
@@ -857,6 +976,7 @@ function bindGo(){const b=document.getElementById('goBtn');if(b)b.onclick=()=>{i
 const DIFFS=[['EASY',0.8],['NORMAL',1],['HARD',1.22]];let diff=1;try{const v=localStorage.getItem('studsDiff');if(v!==null)diff=(+v||0)%3;}catch(e){}
 const HOWTO="<p class=\"intro\">Six-a-side arcade football with no mercy. Pick your animals, then slide through anyone, ball or no ball. Big hits fill your Fury gauge, and a full gauge turns your next shot into a fireball that flattens whoever gets in its way. The ref only sees some of it, unless you flatten the ref too. Juke and hurdle past the hits, then take on the World Tour.</p><div class=\"ctl kb-only\">      <div><span>Move</span><b>WASD / ARROWS</b></div>      <div><span>Sprint</span><b>SPACE / SHIFT</b></div>      <div><span>Pass \u00b7 switch player</span><b>J / Z</b></div>      <div><span>Shoot (hold) \u00b7 tackle</span><b>K / X</b></div>      <div><span>Jump kick</span><b>SPRINT + TACKLE</b></div>      <div><span>Diving header</span><b>TACKLE FROM RANGE</b></div>      <div><span>Juke \u00b7 hurdle (on the ball)</span><b>L / C</b></div>      <div><span>Team dance (fills Fury)</span><b>B</b></div>      <div><span>Pause</span><b>P / ESC</b></div>      <div><span>Gamepad</span><b>A PASS/SWITCH \u00b7 B SHOOT/TACKLE \u00b7 X JUKE/HURDLE \u00b7 Y DANCE \u00b7 RT SPRINT</b></div>    </div><div class=\"ctl touch-only\">      <div><span>Move</span><b>LEFT THUMB</b></div>      <div><span>Sprint</span><b>AUTOMATIC ON THE BALL</b></div>      <div><span>Shoot</span><b>HOLD FOR POWER</b></div>      <div><span>Off the ball</span><b>SWITCH \u00b7 TACKLE</b></div>      <div><span>Tackle</span><b>BARGE \u00b7 SLIDE \u00b7 JUMP KICK \u00b7 DIVE</b></div>      <div><span>One-touch</span><b>TAP AS THE PASS ARRIVES</b></div>      <div><span>Teal button</span><b>JUKE \u00b7 HURDLE A TACKLE</b></div>      <div><span>Dance</span><b>WHOLE TEAM \u00b7 FILLS FURY</b></div>    </div>";
 function showMenu(html,cls){sheet.innerHTML=html;sheet.className='sheet '+(cls||'menu');overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');refreshCoins();
+  menuBackdrop(state==='title'&&cls!=='wt'&&!sheet.querySelector('.car'));
   sheet.querySelectorAll('[data-back]').forEach(bk=>bk.onclick=()=>{initAudio();({home:openHome,career:openTour,single:openSingle,online:openOnline,pause:openPause})[bk.dataset.back]();});
   const sb=document.getElementById('shopBtn');if(sb)sb.onclick=()=>{initAudio();openShop();};}
 // ---------- 1v1 online ----------
@@ -989,7 +1109,15 @@ function openOnline(){if(!NET.on)netLeave();pickSlot=0;applyTeams();
   document.getElementById('hostBtn').onclick=()=>{initAudio();netHost();};
   const ci=document.getElementById('codeIn');ci.addEventListener('input',()=>{ci.value=ci.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);});
   const go=()=>{initAudio();ci.blur();netJoin(ci.value);};document.getElementById('joinBtn').onclick=go;ci.addEventListener('keydown',e=>{if(e.key==='Enter')go();});}
-function hideMenu(){overlay.hidden=true;document.body.classList.remove('menu-on');}
+function hideMenu(){overlay.hidden=true;document.body.classList.remove('menu-on');menuBackdrop(false);}
+// Menus outside a match sit on the Midjourney painting of the World Tour region you are up to (same art as the career map), with its weather.
+// Screens with the team carousel keep the live fly-round of the picked team's ground instead.
+let mbgZone=-1;
+function menuBackdrop(on){document.body.classList.toggle('paint',!!on);if(!on)return;const z=Math.min(tourState().r,TOUR.length-1),el=document.getElementById('mbg');
+  if(!el||z===mbgZone)return;mbgZone=z;const im=wtBackdrop(z,1200,800);el.innerHTML='';el.appendChild(im);
+  if(!WT_LOW){const wx=document.createElement('div'),k=WT_WX[z]||'stars',N=k==='rain'?26:16;wx.className='wt-wx '+k;let h='';
+    for(let i=0;i<N;i++){const d=k==='rain'?.9+(i%5)*.15:5+(i%7)*1.3;h+='<i style="left:'+(i*61%100)+'%;animation-duration:'+d.toFixed(2)+'s;animation-delay:'+(-(i*1.37%d)).toFixed(2)+'s'+(k==='stars'?';--y:'+(8+i*37%70)+'vh':'')+'"></i>';}
+    wx.innerHTML=h;el.appendChild(wx);}}
 const subHead=(t,back)=>'<div class="subhead"><button type="button" class="back" data-back="'+(back||'home')+'" aria-label="Back"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 5l-7 7 7 7\"/></svg></button><h2>'+t+'</h2><span class="coins"></span></div>';
 const seg=(k,opts,cur)=>'<div class="seg" data-k="'+k+'" role="group">'+opts.map((o,i)=>'<button type="button" data-v="'+i+'" aria-pressed="'+(i===cur)+'">'+o+'</button>').join('')+'</div>';
 const setRow=(label,k,opts,cur)=>'<div class="setrow"><span>'+label+'</span>'+seg(k,opts,cur)+'</div>';
@@ -1004,13 +1132,15 @@ function setOpt(k,v){
   else if(k==='sound'){if((v===1)!==muted)toggleMute();}
   else if(k==='buzz'){buzzOn=!v;saveOpt('studsBuzz',buzzOn?'1':'0');vib(40);}}
 const quickRows=()=>setRow('CAMERA','cam',CAMS,camMode)+setRow('COMMENTARY','comm',['VOICE','TEXT','OFF'],['voice','text','off'].indexOf(commMode))+setRow('MUSIC','music',['ON','OFF'],musicOn?0:1)+setRow('SOUND','sound',['ON','OFF'],muted?1:0);
-const modeBtn=(k,ic,t,sub)=>'<button type="button" class="mode '+k+'" data-m="'+k+'"><span class="mi">'+ic+'</span><span><b>'+t+'</b><span>'+sub+'</span></span><span class="ar"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 5l7 7-7 7\"/></svg></span></button>';
+const modeBtn=(k,ic,t,sub,art,st)=>'<button type="button" class="mode '+k+'" data-m="'+k+'"'+(st?' style="'+st+'"':'')+'>'+(art?'<span class="mart" aria-hidden="true">'+art+'</span>':'')+'<span class="mi">'+ic+'</span><span><b>'+t+'</b><span>'+sub+'</span></span><span class="ar"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 5l7 7-7 7\"/></svg></span></button>';
 function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();state='title';}
-  const ts=tourState(),prog=ts.r>=TOUR.length?'World champions! Play it again':'Region '+(ts.r+1)+' of '+TOUR.length+' · '+TOUR[ts.r].icon+' '+TOUR[ts.r].name;
+  const ts=tourState(),me=CLUBS[pickMe],prog=ts.r>=TOUR.length?'World champions! Play it again':'Region '+(ts.r+1)+' of '+TOUR.length+' · '+TOUR[ts.r].icon+' '+TOUR[ts.r].name;
   showMenu('<div class="hrow"><span class="coins"></span><span style="flex:1"></span><button type="button" class="shopbtn" id="shopBtn">SHOP</button><button type="button" class="iconbtn" id="setBtn" aria-label="Settings">⚙</button></div>'+
     '<h1 class="logo logoimg"><img src="logo.png" srcset="logo.png 1x, logo@2x.png 2x" alt="Studs Up: Red Card Football" onerror="this.parentNode.classList.remove(\'logoimg\');this.parentNode.innerHTML=\'STUDS <em>UP</em><small>RED CARD FOOTBALL</small>\'"></h1>'+
-    '<div class="modes">'+modeBtn('single','⚽','SINGLE MATCH','Any two teams, one match')+modeBtn('career','🏆','CAREER',prog)+modeBtn('online','📶','1V1 ONLINE','Play a friend with a room code')+'</div>'+
-    '<button type="button" class="link" id="howBtn">HOW TO PLAY</button>');
+    '<div class="modes">'+modeBtn('single','⚽','SINGLE MATCH','Any two teams, one match','<img src="teams/'+me.key+'.webp" alt="" onerror="this.remove()">','--mc:'+me.col)+
+      modeBtn('career','🏆','CAREER',prog+(ts.r<TOUR.length?'</span><span class="pips">'+[0,1,2].map(j=>'<i'+(j<ts.m?' class="on"':'')+'></i>').join(''):''),'','--mc:#ffc23a;--zbg:url('+WT_ART[Math.min(ts.r,TOUR.length-1)]+')')+
+      modeBtn('online','📶','1V1 ONLINE','Play a friend with a room code','<img src="teams/'+me.key+'.webp" alt="" onerror="this.remove()"><img src="teams/'+CLUBS[pickOpp].key+'.webp" alt="" onerror="this.remove()">','--mc:#3c86ff')+'</div>'+
+    '<button type="button" class="link" id="howBtn">HOW TO PLAY</button>','menu home');
   sheet.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{initAudio();({single:openSingle,career:openTour,online:openOnline})[b.dataset.m]();});
   document.getElementById('setBtn').onclick=()=>{initAudio();openSettings();};
   document.getElementById('howBtn').onclick=()=>{initAudio();showMenu(subHead('HOW TO PLAY')+HOWTO);};}
@@ -1227,8 +1357,8 @@ function renderShop(){refreshCoins();const mz=MZ();
   if(shopTab==='coins')items=coinItems();
   else items=(shopTab==='kits'?kitItems():CATALOG[shopTab]).map(it=>{const own=owned(it.id),eq=own&&isEquipped(shopTab,it.id);
     return Object.assign({},it,{own,eq,label:eq?'EQUIPPED':own?'EQUIP':'🪙 '+it.price.toLocaleString(),poor:!own&&wallet.coins<it.price});});
-  shopGrid.innerHTML=items.map((it,i)=>'<button type="button" class="item'+(it.own?' owned':'')+(it.eq?' eq':'')+(it.poor?' poor':'')+(it.cls?' '+it.cls:'')+'" data-i="'+i+'">'+
-    (it.col?'<span class="sw" style="background:'+it.col+';--sh:'+it.sh+'"></span>':it.h?'<img class="ball" alt="" src="'+ballIcon(it)+'">':it.icon?'<span class="ic">'+it.icon+'</span>':'')+
+  shopGrid.innerHTML=items.map((it,i)=>'<button type="button" class="item'+(it.own?' owned':'')+(it.eq?' eq':'')+(it.poor?' poor':'')+(it.cls?' '+it.cls:'')+(it.club?' team'+(it.own?'':' lockd'):'')+'" data-i="'+i+'"'+(it.club?' style="--c:'+it.club.col+'"':'')+'>'+
+    (it.club?'<img class="tart" alt="" src="teams/'+it.club.key+'.webp" onerror="this.outerHTML=\'<span class=ic>'+it.icon+'</span>\'">':it.col?'<span class="sw" style="background:'+it.col+';--sh:'+it.sh+'"></span>':it.h?'<img class="ball" alt="" src="'+ballIcon(it)+'">':it.icon?'<span class="ic">'+it.icon+'</span>':'')+
     '<span class="nm">'+it.name+'</span>'+(it.sub?'<span class="sub">'+it.sub+'</span>':'')+'<span class="pr">'+it.label+'</span>'+(it.tag?'<span class="tag">'+it.tag+'</span>':'')+'</button>').join('');
   shopGrid.querySelectorAll('.item').forEach(b=>b.onclick=()=>shopAction(items[+b.dataset.i]));}
 function shopAction(it){
@@ -1276,7 +1406,7 @@ function togglePause(){if(state==='title'||state==='full')return;
   if(NET.on){if(overlay.hidden)openPause();else hideMenu();return;}   // online: the match keeps going behind the menu
   paused=!paused;if(paused)openPause();else hideMenu();}
 function openPause(){showMenu('<h2 class="ptitle">PAUSED</h2><button class="go" id="resBtn" type="button">RESUME</button><div class="setlist">'+quickRows()+'</div>'+
-    '<div class="brow">'+(CLIP.blob?'<button type="button" class="ghost" id="clipBtn2">📤 SHARE LAST GOAL</button>':'')+'<button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button><button type="button" class="ghost" id="quitBtn">'+(NET.on?'LEAVE MATCH':tourMatch?'QUIT TO CAREER':'QUIT MATCH')+'</button></div>');
+    '<div class="brow">'+(CLIP.blob?'<button type="button" class="ghost" id="clipBtn2">📤 SHARE LAST GOAL</button>':'')+'<button type="button" class="ghost" id="fsBtn2">FULL SCREEN</button><button type="button" class="ghost" id="quitBtn">'+(NET.on?'LEAVE MATCH':tourMatch?'QUIT TO CAREER':'QUIT MATCH')+'</button></div>','menu pz');
   bindSegs();{const c2=document.getElementById('clipBtn2');if(c2)c2.onclick=()=>clipShare();}document.getElementById('resBtn').onclick=togglePause;document.getElementById('fsBtn2').onclick=()=>toggleFull();
   document.getElementById('quitBtn').onclick=()=>{const t=!!tourMatch;if(NET.on)netLeave();openHome();if(t)openTour();};}
 pauseBtn.addEventListener('click',()=>{togglePause();pauseBtn.blur();});
@@ -1301,21 +1431,23 @@ function fullTime(){
   const wasTour=tourMatch;let tourWin=0,tourMsg='';
   if(wasTour){const ts=tourState();if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);ts.m++;
       if(ts.m>=3){const RG=TOUR[ts.r];RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
-        tourMsg='<div class="final" style="color:#ffd84a">'+RG.name+' CONQUERED!</div><p style="display:block">Unlocked '+RG.prize.map(prizeName).join(', ')+(RG.coins?' and '+RG.coins.toLocaleString()+' coins':'')+'. They are yours to use for free.</p>';}}
+        tourMsg='<div class="ft-tour"><b>'+RG.icon+' '+RG.name+' CONQUERED!</b><span>Unlocked '+RG.prize.map(prizeName).join(', ')+(RG.coins?' and '+RG.coins.toLocaleString()+' coins':'')+'. They are yours to use for free.</span></div>';}}
     endTour();}
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits+tourWin;addCoins(earned);
   const row=(l,v)=>'<div><span>'+l+'</span><b>+'+v+'</b></div>';
   let askRate=a>b&&!NET.on&&(wallet.matches||0)>=2&&!loadOpt('studsRateAsked');const canAd=!!MZ()&&wallet.ads.rewarded<6;
   if(askRate){saveOpt('studsRateAsked','1');if(IAR()){askRate=false;setTimeout(()=>IAR().requestReview().catch(()=>{}),1200);}}   // Google's own pop-up when the app has it, our strip otherwise
-  sheet.innerHTML='<h1>FULL<br><em>TIME</em></h1><div class="final">'+TEAMS[0].name+' '+a+' – '+b+' '+TEAMS[1].name+'</div><p>'+verdict+'</p>'+tourMsg+
+  const ftCard=(t,w)=>'<div class="ft-t'+(w?' win':'')+'" style="--c:'+TEAMS[t].col+'"><img src="teams/'+TEAMS[t].key+'.webp" alt="" onerror="this.remove()"><b>'+TEAMS[t].name+'</b></div>';
+  const ftK=wasTour?TOUR[wasTour.r].icon+' '+TOUR[wasTour.r].name+' · MATCH '+(wasTour.m+1)+'/3':NET.on?'1V1 ONLINE':'SINGLE MATCH';
+  sheet.innerHTML='<div class="ft-k">FULL TIME · '+ftK+'</div><div class="ft-l"><div class="ft-sc">'+ftCard(0,a>b)+'<div class="ft-n">'+a+'<i>–</i>'+b+'</div>'+ftCard(1,b>a)+'</div>'+
+    '<div class="ft-v"><b>'+(a>b?'YOU WIN':a<b?'YOU LOSE':'DRAW')+'</b><span>'+verdict+'</span></div>'+tourMsg+'</div><div class="ft-r">'+
     '<div class="earn">'+row(a>b?'Win':a===b?'Draw':'Loss',res)+(gl?row('Goals ×'+a,gl):'')+(cs?row('Clean sheet',cs):'')+(hits?row('Big hits',hits):'')+(tourWin?row('Tour win',tourWin):'')+
     '<div class="tot"><span>COINS</span><b id="earnTot">+'+earned+'</b></div></div>'+
     (askRate?'<div class="ratebox" id="rateBox"><span>ENJOYING STUDS UP? A QUICK RATING HELPS A LOT</span><button type="button" class="yes" id="rateYes">★ RATE IT</button><button type="button" class="no" id="rateNo">NOT NOW</button></div>':'')+
     '<div class="topbar"><span class="coins"></span>'+(canAd?'<button type="button" class="adbtn" id="dblBtn">📺 WATCH AD: DOUBLE COINS</button>':'')+'<button type="button" class="shopbtn" id="shopBtn">SHOP</button>'+(CLIP.blob?'<button type="button" class="adbtn" id="clipBtn3">📤 SHARE LAST GOAL</button>':'')+'</div>'+
-    (wasTour?'<div style="display:flex;gap:14px;flex-wrap:wrap">'+(tourState().r<TOUR.length?'<button class="go" id="goBtn" data-mode="tour" type="button">'+(a>b?'NEXT MATCH':'TRY AGAIN')+'</button>':'')+
-      '<button class="go" id="teamsBtn" data-mode="tour" type="button" style="background:var(--panel)">CAREER MAP</button></div>'
-    :'<div style="display:flex;gap:14px;flex-wrap:wrap"><button class="go" id="goBtn" type="button"'+(NET.on?' data-mode="net"':'')+'>REMATCH</button><button class="go" id="teamsBtn" type="button" style="background:var(--panel)">MAIN MENU</button></div>');
-  sheet.className='sheet';overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');bindGo();{const c3=document.getElementById('clipBtn3');if(c3)c3.onclick=()=>clipShare();}
+    (wasTour?'<div class="ft-btns">'+'<button class="go alt" id="teamsBtn" data-mode="tour" type="button">CAREER MAP</button>'+(tourState().r<TOUR.length?'<button class="go" id="goBtn" data-mode="tour" type="button">'+(a>b?'NEXT MATCH':'TRY AGAIN')+'</button>':'')+'</div>'
+    :'<div class="ft-btns"><button class="go alt" id="teamsBtn" type="button">MAIN MENU</button><button class="go" id="goBtn" type="button"'+(NET.on?' data-mode="net"':'')+'>REMATCH</button></div>')+'</div>';
+  sheet.className='sheet ft';menuBackdrop(false);overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');bindGo();{const c3=document.getElementById('clipBtn3');if(c3)c3.onclick=()=>clipShare();}
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
