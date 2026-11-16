@@ -14,9 +14,12 @@ def api(path):
 for bundle, name in [('com.studsup.game', 'STUDS UP'), ('com.halfgridgames.marblemayhem', 'MARBLE MAYHEM'), ('com.halfgridgames.knotwizard', 'KNOT WIZARD')]:
     print(f'\n=== {name}')
     app = api(f'/v1/apps?filter[bundleId]={bundle}')['data'][0]['id']
+    print('APP ID', app, f'https://apps.apple.com/app/id{app}')
     for v in api(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&limit=3')['data']:
         b = api(f"/v1/appStoreVersions/{v['id']}/build").get('data')
-        print('VERSION', v['attributes']['versionString'], v['attributes']['appStoreState'], 'build', b and b['attributes']['version'])
+        va=v['attributes']; print('VERSION', va['versionString'], va['appStoreState'], 'build', b and b['attributes']['version'], 'releaseType', va.get('releaseType'), 'earliest', va.get('earliestReleaseDate'))
+        for l in api(f"/v1/appStoreVersions/{v['id']}/appStoreVersionLocalizations")['data']:
+            la=l['attributes']; print('  LOC', la.get('locale'), 'marketingUrl', la.get('marketingUrl'), 'supportUrl', la.get('supportUrl'))
         rd = api(f"/v1/appStoreVersions/{v['id']}/appStoreReviewDetail").get('data')
         if rd:
             for a in api(f"/v1/appStoreReviewDetails/{rd['id']}/appStoreReviewAttachments").get('data', []):
