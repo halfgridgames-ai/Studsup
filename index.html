@@ -592,6 +592,8 @@ body.paint .mbg{display:block}
 .ft-l,.ft-r{display:grid;gap:14px;min-width:0}
 .ft-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ft-btns .go{justify-self:stretch;text-align:center;font-size:16px;padding:14px 10px}
 .ft-btns .go:only-child{grid-column:1/-1}
+.ft-conf{position:fixed;inset:0;z-index:7;pointer-events:none;overflow:hidden}
+.overlay>.wt-cele{position:fixed;z-index:8}
 .toast{background:var(--foil);color:#2a1800;box-shadow:0 8px 24px rgba(0,0,0,.5);clip-path:none;border-radius:12px}
 @media (pointer:coarse) and (orientation:landscape){.mode{min-height:0;grid-template-columns:1fr}.mode .mart img{display:none}}
 @media (orientation:landscape) and (max-height:560px){
@@ -1137,8 +1139,8 @@ function openHome(){paused=false;if(state!=='title'){stopDance(true);endTour();s
   const ts=tourState(),me=CLUBS[pickMe],prog=ts.r>=TOUR.length?'World champions! Play it again':'Region '+(ts.r+1)+' of '+TOUR.length+' · '+TOUR[ts.r].icon+' '+TOUR[ts.r].name;
   showMenu('<div class="hrow"><span class="coins"></span><span style="flex:1"></span><button type="button" class="shopbtn" id="shopBtn">SHOP</button><button type="button" class="iconbtn" id="setBtn" aria-label="Settings">⚙</button></div>'+
     '<h1 class="logo logoimg"><img src="logo.png" srcset="logo.png 1x, logo@2x.png 2x" alt="Studs Up: Red Card Football" onerror="this.parentNode.classList.remove(\'logoimg\');this.parentNode.innerHTML=\'STUDS <em>UP</em><small>RED CARD FOOTBALL</small>\'"></h1>'+
-    '<div class="modes">'+modeBtn('single','⚽','SINGLE MATCH','Any two teams, one match','<img src="teams/'+me.key+'.webp" alt="" onerror="this.remove()">','--mc:'+me.col)+
-      modeBtn('career','🏆','CAREER',prog+(ts.r<TOUR.length?'</span><span class="pips">'+[0,1,2].map(j=>'<i'+(j<ts.m?' class="on"':'')+'></i>').join(''):''),'','--mc:#ffc23a;--zbg:url('+WT_ART[Math.min(ts.r,TOUR.length-1)]+')')+
+    '<div class="modes">'+modeBtn('career','🏆','CAREER',prog+(ts.r<TOUR.length?'</span><span class="pips">'+[0,1,2].map(j=>'<i'+(j<ts.m?' class="on"':'')+'></i>').join(''):''),'','--mc:#ffc23a;--zbg:url('+WT_ART[Math.min(ts.r,TOUR.length-1)]+')')+
+      modeBtn('single','⚽','SINGLE MATCH','Any two teams, one match','<img src="teams/'+me.key+'.webp" alt="" onerror="this.remove()">','--mc:'+me.col)+
       modeBtn('online','📶','1V1 ONLINE','Play a friend with a room code','<img src="teams/'+me.key+'.webp" alt="" onerror="this.remove()"><img src="teams/'+CLUBS[pickOpp].key+'.webp" alt="" onerror="this.remove()">','--mc:#3c86ff')+'</div>'+
     '<button type="button" class="link" id="howBtn">HOW TO PLAY</button>','menu home');
   sheet.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{initAudio();({single:openSingle,career:openTour,online:openOnline})[b.dataset.m]();});
@@ -1285,7 +1287,7 @@ function wtBuild(from,n){const ts=tourState(),hs=sheet.querySelector('.wt-hs'),t
   // state as of `from`; then walk on to `n`
   wtState(n,Math.floor(from/3));const p0=place(lens[Math.min(from,18)]);hs.scrollLeft=Math.max(0,p0.x-W*.4);hs.dispatchEvent(new Event('scroll'));wtDock();
   const zn=Math.floor(n/3);
-  if(from<n)setTimeout(()=>{if(wtView!==V)return;if(zn>Math.floor(from/3))wtCelebrate(zn-1,()=>wtOpen(V,zn,()=>wtWalk(V,from,n)));else wtWalk(V,from,n);},450);}
+  if(from<n)setTimeout(()=>{if(wtView!==V)return;if(zn>Math.floor(from/3)){if(wtCeleDone===zn-1){wtCeleDone=-1;wtOpen(V,zn,()=>wtWalk(V,from,n));}else wtCelebrate(zn-1,()=>wtOpen(V,zn,()=>wtWalk(V,from,n)));}else wtWalk(V,from,n);},450);}
 function wtState(n,openTo){const tr=wtView.tr,ts=tourState();
   tr.querySelectorAll('.wt-n').forEach(el=>{const g=+el.dataset.n,s=g<n?'beat':g===n?'next':Math.floor(g/3)<=openTo?'':'lock';
     el.classList.toggle('beat',s==='beat');el.classList.toggle('next',s==='next');el.classList.toggle('lock',s==='lock');
@@ -1424,13 +1426,24 @@ async function toggleFull(){
 fsBtn.addEventListener('click',()=>{initAudio();toggleFull();fsBtn.blur();});
 const fsSync=()=>{fsBtn.textContent=fsEl()?'EXIT FULL':'FULL SCREEN';setTimeout(resize,120);};
 document.addEventListener('fullscreenchange',fsSync);document.addEventListener('webkitfullscreenchange',fsSync);
+// Full time cheer: the coin total counts up, a win throws gold confetti, and a career match that finishes a region shows the map's prize cards.
+let ftCountT=0,wtCeleDone=-1;
+function ftCheer(win,earned,conq){const el=document.getElementById('earnTot');
+  if(el){const t0=performance.now(),dur=1200;cancelAnimationFrame(ftCountT);
+    const step=now=>{if(!el.isConnected||/DOUBLED/.test((document.getElementById('dblBtn')||{}).textContent||''))return;const t=Math.min(1,(now-t0)/dur),v=Math.round(earned*(1-Math.pow(1-t,3)));
+      el.textContent='+'+v;if(t<1)ftCountT=requestAnimationFrame(step);};el.textContent='+0';ftCountT=requestAnimationFrame(step);}
+  if(win&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const box=document.createElement('div');box.className='ft-conf';
+    const cols=['#ffc23a','#fff3c4','#ff3d63','#ff7a3c','#fff'];for(let i=0;i<(WT_LOW?16:40);i++){const p=document.createElement('i');p.className='wt-conf';
+      p.style.cssText='left:'+(Math.random()*100)+'%;background:'+cols[i%5]+';animation-duration:'+(1.8+Math.random()*1.6)+'s;animation-delay:'+(Math.random()*.7)+'s';box.appendChild(p);}
+    overlay.appendChild(box);setTimeout(()=>box.remove(),4500);}
+  if(conq>=0)setTimeout(()=>{if(overlay.hidden||!sheet.classList.contains('ft'))return;wtCeleDone=conq;wtCelebrate(conq,()=>{});const c=sheet.querySelector('.wt-cele');if(c)overlay.appendChild(c);},900);}
 function fullTime(){
   stopDance(true);state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;comm('full',{},3);
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
   track('match_end',{mode:matchMode(),result:a>b?'win':a<b?'loss':'draw',goals_for:a,goals_against:b,big_hits:matchHits,matches_played:(wallet.matches||0)+1});
-  const wasTour=tourMatch;let tourWin=0,tourMsg='';
+  const wasTour=tourMatch;let tourWin=0,tourMsg='',conq=-1;
   if(wasTour){const ts=tourState();if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);ts.m++;
-      if(ts.m>=3){const RG=TOUR[ts.r];RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
+      if(ts.m>=3){const RG=TOUR[ts.r];conq=ts.r;RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
         tourMsg='<div class="ft-tour"><b>'+RG.icon+' '+RG.name+' CONQUERED!</b><span>Unlocked '+RG.prize.map(prizeName).join(', ')+(RG.coins?' and '+RG.coins.toLocaleString()+' coins':'')+'. They are yours to use for free.</span></div>';}}
     endTour();}
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits+tourWin;addCoins(earned);
@@ -1450,6 +1463,7 @@ function fullTime(){
   sheet.className='sheet ft';menuBackdrop(false);overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');bindGo();{const c3=document.getElementById('clipBtn3');if(c3)c3.onclick=()=>clipShare();}
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
+  ftCheer(a>b,earned,conq);
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
     if(ok){track('rewarded_ad_watched',{placement:'double_coins'});wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
