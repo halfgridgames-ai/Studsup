@@ -20,10 +20,3 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           SEND_FOR_BETA_REVIEW: "0"
         run: python3 .github/asc-review/asc_status.py
-      - name: Submit MM 1.0.13 and KW 1.1.2 for review (Joseph asked, 16 Nov 21:12)
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          SUBMIT: "com.halfgridgames.marblemayhem=1.0.13;com.halfgridgames.knotwizard=1.1.2"
-        run: python3 .github/asc-review/asc_submit.py
