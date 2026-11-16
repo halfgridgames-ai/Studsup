@@ -9,6 +9,15 @@
  "riot": "models/riot_v3.glb",
  "alien": "models/alien_v3.glb",
  "dolphin": "models/dolphin_v3.glb",
+ "walrus": "models/walrus.glb",
+ "emu": "models/emu.glb",
+ "ranger": "models/ranger.glb",
+ "pigeon": "models/pigeon.glb",
+ "tiger": "models/tiger.glb",
+ "pirate": "models/pirate.glb",
+ "shark": "models/shark.glb",
+ "robot": "models/robot.glb",
+ "astronaut": "models/astronaut.glb",
  "referee": "models/referee.glb",
  "_anims": "models/anims.glb"
 }
