@@ -563,7 +563,26 @@ const CLUBS=[
   {name:'DOLPHINS',key:'dolphins',kind:'dolphin',icon:'🐬',col:'#00c2c7',dark:'#006a70',shorts:'#ffe14a',gk:'#ff5a3c',
     names:['Flipper','Squeaky','Blowhole Bob','Fin Diesel','Echo','Splashdown']},
   {name:'ALIENS',key:'aliens',kind:'alien',icon:'👽',col:'#b6ff3a',dark:'#5a8a10',shorts:'#7a2ff0',gk:'#ff8a1f',
-    names:['Zorp','Probe','Glorbo','Xenon Xavi','Beam Me Up','Little Green Lad']}];
+    names:['Zorp','Probe','Glorbo','Xenon Xavi','Beam Me Up','Little Green Lad']},
+  // World Tour locals (Nov 2026): with these, all 18 career matches are against different teams.
+  {name:'WALRUSES',key:'walruses',kind:'walrus',icon:'🦭',col:'#8c1d2e',dark:'#4a0c17',shorts:'#f3efe2',gk:'#38e0ff',
+    names:['Tusker','Blubber Bob','Whiskers','Flop Flop','Big Moustache','Ice Breaker']},
+  {name:'EMUS',key:'emus',kind:'emu',icon:'🪶',col:'#7a4a24',dark:'#3f230e',shorts:'#7cc8ff',gk:'#ffc23a',
+    names:['Leggy Lou','Peck','Turbo Legs','Dusty','Neck Nick','Feathers']},
+  {name:'BUSH RANGERS',key:'rangers',kind:'ranger',icon:'🤠',col:'#c2b27a',dark:'#6e6136',shorts:'#5a3d1e',gk:'#ff5fa2',
+    names:['Dingo Dan','Sunburn Steve','Crocs Craig','Dusty Dee','Billabong Bev','Big Hat Harry']},
+  {name:'PIGEONS',key:'pigeons',kind:'pigeon',icon:'🕊️',col:'#a98bff',dark:'#5a3fb0',shorts:'#4a4f5c',gk:'#b6ff3a',
+    names:['Coo Coo','Crumbs','Pecky Paul','Breadcrumb Bill','Statue Sam','Flappy']},
+  {name:'TIGERS',key:'tigers',kind:'tiger',icon:'🐯',col:'#12a150',dark:'#075a2b',shorts:'#16191f',gk:'#ff8a1f',
+    names:['Stripes','Pounce','Big Paws','Roary','Tiger Tim','Jungle Jaws']},
+  {name:'PIRATES',key:'pirates',kind:'pirate',icon:'🏴‍☠️',col:'#22252d',dark:'#08090c',shorts:'#e8c547',gk:'#ff5a3c',
+    names:['Cap\'n Kick','Barnacle Bill','One-Eye Ollie','Plank Walker','Parrot Pat','Salty Sid']},
+  {name:'SHARKS',key:'sharks',kind:'shark',icon:'🦈',col:'#173a6b',dark:'#081a36',shorts:'#f3efe2',gk:'#ffe14a',
+    names:['Gnasher','Finn','Chompy','Hammerhead Harry','Great White Wes','Jaws Junior']},
+  {name:'ROBOTS',key:'robots',kind:'robot',icon:'🤖',col:'#e0309a',dark:'#7a0f50',shorts:'#c7ccd6',gk:'#38e0ff',
+    names:['Bolt','Clank','Byte','Rusty','Servo Steve','Unit Nine']},
+  {name:'ASTRONAUTS',key:'astronauts',kind:'astronaut',icon:'🧑‍🚀',col:'#eef1f5',dark:'#8a93a6',shorts:'#1f2f6b',gk:'#ff8a1f',
+    names:['Moonboots','Rocket Ron','Zero G','Countdown','Orbit Olly','Houston']}];
 // ---------- wallet, shop catalogue (see mobile/SHOP-SPEC.md) ----------
 const MZ=()=>window.Monetize||null;
 // Firebase Analytics in the phone app (analytics.js); does nothing on the web.
@@ -586,7 +605,8 @@ const CATALOG={
 const BALLS=[{id:'ball_classic',name:'CLASSIC',h:[246,245,240],p:[27,27,31],price:0,sh:80},{id:'ball_royal',name:'ROYAL NAVY',h:[24,38,82],p:[226,178,58],price:2500,sh:90},
   {id:'ball_hivis',name:'HI-VIS',h:[236,255,40],p:[22,26,34],price:2500,sh:70},{id:'ball_gold',name:'SOLID GOLD',h:[255,206,84],p:[178,112,20],price:8000,sh:140}];
 CATALOG.balls=BALLS;
-const TEAM_PRICE={hooligans:0,penguins:0,polar_bears:4000,kangaroos:2500,gorillas:2500,grannies:2000,ninjas:3000,riot:3000,dolphins:5000,aliens:6000};
+const TEAM_PRICE={hooligans:0,penguins:0,polar_bears:4000,kangaroos:2500,gorillas:2500,grannies:2000,ninjas:3000,riot:3000,dolphins:5000,aliens:6000,
+  walruses:2500,emus:2500,rangers:2500,pigeons:3000,tigers:3000,pirates:4000,sharks:4000,robots:5000,astronauts:6000};
 // Coin packs climb in coins per pound (+10%, +20%, +50% over the 99p pack), same rule as Marble Mayhem.
 const COIN_PACKS=[{id:'coins_1000',coins:1000,icon:'🪙'},{id:'coins_5500',coins:5500,icon:'💰',tag:'+10% BONUS'},{id:'coins_12000',coins:12000,icon:'💰',tag:'+20% BONUS'},{id:'coins_30000',coins:30000,icon:'🏦',tag:'BEST VALUE'}];
 const DAILY=[50,75,100,125,150,200,500];
@@ -606,13 +626,15 @@ const saveOpt=(k,v)=>{try{localStorage.setItem(k,String(v));}catch(e){}},loadOpt
 function vib(ms){if(!buzzOn)return;try{const C=window.Capacitor,Hp=C&&C.Plugins&&C.Plugins.Haptics;
   if(Hp&&Hp.vibrate){Hp.vibrate({duration:Array.isArray(ms)?ms.reduce((a,b)=>a+b,0):ms});return;}if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 // World Tour: six regions, three matches each, the last one a boss. Conquering a region unlocks its prizes for free.
+// Every zone's own team is its boss; the new locals fill the first two matches, so no team is met twice.
+// Hooligans (the starting team) sit out and step in for whichever team you play as (tourOpp).
 const TOUR=[
-  {name:'ICE CAP',icon:'🧊',stad:'home_penguins',opp:['penguins','grannies','polar_bears'],prize:['team_polar_bears','stadium_ice_rink']},
-  {name:'OUTBACK',icon:'🦘',stad:'home_kangaroos',opp:['hooligans','ninjas','kangaroos'],prize:['team_kangaroos']},
-  {name:'THE CITY',icon:'🏙️',stad:'stadium_rooftop',opp:['grannies','kangaroos','riot'],prize:['team_riot','team_grannies','stadium_rooftop']},
-  {name:'JUNGLE',icon:'🌴',stad:'home_gorillas',opp:['ninjas','riot','gorillas'],prize:['team_gorillas','team_ninjas','stadium_volcano_bowl']},
-  {name:'THE OCEAN',icon:'🐬',stad:'home_dolphins',opp:['polar_bears','gorillas','dolphins'],prize:['team_dolphins','stadium_reef']},
-  {name:'SPACE FINALS',icon:'👽',stad:'home_aliens',opp:['dolphins','gorillas','aliens'],prize:['team_aliens'],coins:3000}];
+  {name:'ICE CAP',icon:'🧊',stad:'home_penguins',opp:['walruses','penguins','polar_bears'],prize:['team_polar_bears','team_walruses','stadium_ice_rink']},
+  {name:'OUTBACK',icon:'🦘',stad:'home_kangaroos',opp:['emus','rangers','kangaroos'],prize:['team_kangaroos','team_emus','team_rangers']},
+  {name:'THE CITY',icon:'🏙️',stad:'stadium_rooftop',opp:['pigeons','grannies','riot'],prize:['team_riot','team_grannies','team_pigeons','stadium_rooftop']},
+  {name:'JUNGLE',icon:'🌴',stad:'home_gorillas',opp:['tigers','ninjas','gorillas'],prize:['team_gorillas','team_ninjas','team_tigers','stadium_volcano_bowl']},
+  {name:'THE OCEAN',icon:'🐬',stad:'home_dolphins',opp:['pirates','sharks','dolphins'],prize:['team_dolphins','team_pirates','team_sharks','stadium_reef']},
+  {name:'SPACE FINALS',icon:'👽',stad:'home_aliens',opp:['robots','astronauts','aliens'],prize:['team_aliens','team_robots','team_astronauts'],coins:3000}];
 let tourMatch=null,savedOpp=null,AIDIFF=1,stadOverride=null;
 function tourState(){if(!wallet.tour||typeof wallet.tour.r!=='number')wallet.tour={r:0,m:0};return wallet.tour;}
 function saveWallet(){try{localStorage.setItem('studsWallet',JSON.stringify(wallet));}catch(e){}refreshCoins();}
@@ -1088,7 +1110,7 @@ function versus(label,go){applyTeams();makeTeams();if(R)buildModels();overlay.hi
 const clubIdx=k=>CLUBS.findIndex(c=>c.key===k);
 const prizeName=id=>{const t=CLUBS.find(c=>'team_'+c.key===id);if(t)return t.name;const st=CATALOG.stadiums.find(x=>x.id===id);return st?st.name:id;};
 // Opponent for a tour match; if it is your own team, the region sends someone else.
-function tourOpp(r,m){const RG=TOUR[r],me=CLUBS[pickMe].key;let k=RG.opp[m];if(k===me)k=RG.opp.find(x=>x!==me)||(me==='hooligans'?'penguins':'hooligans');return clubIdx(k);}
+function tourOpp(r,m){const RG=TOUR[r],me=CLUBS[pickMe].key;let k=RG.opp[m];if(k===me)k=me==='hooligans'?'penguins':'hooligans';return clubIdx(k);}
 function endTour(){tourMatch=null;AIDIFF=1;stadOverride=null;if(savedOpp!=null){pickOpp=savedOpp;savedOpp=null;}}
 function startTour(){const ts=tourState();if(ts.r>=TOUR.length){openTour();return;}
   if(savedOpp==null)savedOpp=pickOpp;tourMatch={r:ts.r,m:ts.m};pickOpp=tourOpp(ts.r,ts.m);stadOverride=TOUR[ts.r].stad;AIDIFF=0.82+ts.r*0.07+ts.m*0.05;
@@ -1546,7 +1568,16 @@ const TEAM_LINES={hooligans:['The {T} fans have been singing since breakfast.','
   ninjas:['You cannot hear the {T} coming.','Did a {T} player just vanish? I think they did.','The {T} wear black. Very hard to referee.'],
   riot:['The {T} have brought the shields again.','The {T} are trying to kettle the ball.','Never seen the {T} lose a scuffle.'],
   dolphins:['The {T} are clicking to each other. A secret code.','Very slippery, the {T}. Hard to tackle.','The {T} would rather be in the sea, you can tell.'],
-  aliens:['The {T} might be probing the opposition.','Some say the {T} came here just for this match.','The {T} are a long way from home.']};
+  aliens:['The {T} might be probing the opposition.','Some say the {T} came here just for this match.','The {T} are a long way from home.'],
+  walruses:['The {T} have waxed their moustaches for this.','When the {T} belly flop, you hear it in the stands.','Those tusks are not regulation, surely, {T}.'],
+  emus:['The {T} have the longest legs on the pitch.','Nobody has ever outrun the {T}. Nobody.','The {T} look surprised. They always look surprised.'],
+  rangers:['The {T} have checked the pitch for snakes.','The {T} can read the wind like a map.','Hats stay on for the {T}. Always.'],
+  pigeons:['The {T} have nicked someone\'s sandwich already.','Coo! The {T} are strutting about like they own the place.','The {T} train in the town square.'],
+  tigers:['The {T} are crouching. Something is about to happen.','Stripes and stealth from the {T}.','You do not want the {T} pouncing on you.'],
+  pirates:['The {T} want the trophy for their treasure chest.','Arr! The {T} have arrived.','The {T} have spotted the ball through the telescope.'],
+  sharks:['The {T} can smell a goal from a mile away.','Big grins from the {T}. Lots of teeth.','The {T} and the Dolphins do not get on.'],
+  robots:['The {T} have run the numbers. They like their chances.','Beep boop. The {T} are online.','The {T} never get tired. Never.'],
+  astronauts:['The {T} trained for this in zero gravity.','One small step for the {T}...','Mission control are watching the {T} closely.']};
 const STAD_LINES={stadium_home:['Welcome to Brawl Park, under the lights.'],
   home_penguins:['We are out on the Iceberg. Mind your footing.'],home_polar_bears:['Under the aurora at Aurora Glacier. What a sky.'],home_kangaroos:['Red dust and blue skies at the Outback.'],home_gorillas:['Deep in the jungle at the Temple. Watch for snakes.'],
   home_grannies:['Tea and biscuits at Bingo Gardens.'],home_ninjas:['Lanterns lit at the Shadow Dojo.'],home_riot:['Searchlights on at Lockdown Yard. Nobody leaves.'],home_dolphins:['Sun, sand and palm trees at Paradise Island.'],home_aliens:['Low gravity at the Moon Base, apparently.'],
@@ -2847,7 +2878,9 @@ const GROUNDS={
   dolphins:{name:'PARADISE ISLAND',build:'island',sky:['#1e88e5','#5fc3ff','#c9f1ff','#c9f1ff'],fog:0xbfe9fb,near:1300,far:4600,hemi:0xffffff,hg:0x3a8a8a,hi:0.55,sun:0xfff4dc,si:0.82,stars:false,wx:null,grip:9.5,roll:1.25,pitch:'island'},
   aliens:{name:'MOON BASE',build:'moon',sky:['#000000','#02030a','#0a0e1c','#05060a'],fog:0x05060a,near:1400,far:4600,hemi:0xd8e6ff,hg:0x22242c,hi:0.5,sun:0xffffff,si:1,stars:true,wx:null,grip:9,roll:0.9,pitch:'moon'}};
 for(const k in GROUNDS){const G=GROUNDS[k];STADS['home_'+k]=Object.assign({ground:0xffffff,skyCol:G.sky},G,{sky:0xffffff});}
-const homeGround=key=>GROUNDS[key]?'home_'+key:'stadium_home';
+// The newer teams share a home ground with the team from their World Tour zone.
+const GROUND_OF={walruses:'polar_bears',emus:'kangaroos',rangers:'kangaroos',pigeons:'grannies',tigers:'gorillas',pirates:'dolphins',sharks:'dolphins',robots:'aliens',astronauts:'aliens'};
+const homeGround=key=>{key=GROUND_OF[key]||key;return GROUNDS[key]?'home_'+key:'stadium_home';};
 const groundName=id=>(STADS[id]&&STADS[id].name)||(id==='stadium_home'?'BRAWL PARK':(CATALOG.stadiums.find(s=>s.id===id)||{}).name||'');
 function skyTexture(st){return canvasTex(16,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,st[0]);gr.addColorStop(0.36,st[1]);gr.addColorStop(0.5,st[2]);gr.addColorStop(0.53,st[3]);gr.addColorStop(1,st[3]);g.fillStyle=gr;g.fillRect(0,0,w,h);});}
 const glowSprite=(col,size,op)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:R.glowTex,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:op==null?1:op,fog:false}));s.scale.set(size,size,1);return s;};
