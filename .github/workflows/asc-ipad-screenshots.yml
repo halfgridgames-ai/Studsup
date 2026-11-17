@@ -1,0 +1,23 @@
+# 13-inch iPad screenshots for all four games. Runs only when this branch is pushed.
+# UPLOAD "0" = report only. UPLOAD "1" = fill the empty 13-inch iPad slot of editable versions.
+# Never deletes screenshots and never submits anything for review.
+name: App Store iPad screenshots
+on:
+  push:
+    branches: [asc-ipad-screenshots]
+permissions:
+  contents: read
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - run: pip install pyjwt cryptography
+      - name: iPad screenshots
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          UPLOAD: "0"
+        run: python3 .github/asc-ipad/asc_ipad_shots.py
