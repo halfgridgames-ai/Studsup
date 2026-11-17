@@ -9,10 +9,24 @@ permissions:
 jobs:
   prep:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
+      - name: Attach newest iPad builds (MM 1.0.13, KW 1.1.2)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ATTACH: "com.halfgridgames.marblemayhem=1.0.13;com.halfgridgames.knotwizard=1.1.2"
+        run: python3 .github/asc-review/asc_attach_build.py
+      - name: Submit MM 1.0.13 + KW 1.1.2 for review (Joseph said "Send them" 17 Nov 11:09)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          SUBMIT: "com.halfgridgames.marblemayhem=1.0.13;com.halfgridgames.knotwizard=1.1.2"
+        run: python3 .github/asc-review/asc_submit.py
       - name: Search metadata (read-only)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
