@@ -1,6 +1,7 @@
 # 13-inch iPad screenshots for all four games. Runs only when this branch is pushed.
-# UPLOAD "0" = report only. UPLOAD "1" = fill the empty 13-inch iPad slot of editable versions.
-# Never deletes screenshots and never submits anything for review.
+# Store screenshots (iPhone 6.9-inch + iPad 13-inch) for all four games, editable versions only.
+# MODE report = print only. MODE replace = swap in the pictures in .github/asc-ipad/iphone and ipad.
+# Never touches text and never submits anything for review.
 name: App Store iPad screenshots
 on:
   push:
@@ -19,5 +20,5 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          UPLOAD: "1"
-        run: python3 .github/asc-ipad/asc_ipad_shots.py
+          MODE: report
+        run: python3 .github/asc-ipad/asc_store_shots.py
