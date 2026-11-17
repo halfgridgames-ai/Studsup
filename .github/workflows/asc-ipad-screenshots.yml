@@ -19,5 +19,5 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          UPLOAD: "0"
+          UPLOAD: "1"
         run: python3 .github/asc-ipad/asc_ipad_shots.py
