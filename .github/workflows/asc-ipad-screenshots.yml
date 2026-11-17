@@ -20,5 +20,5 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          MODE: report
+          MODE: replace
         run: python3 .github/asc-ipad/asc_store_shots.py
