@@ -564,7 +564,10 @@ body.paint .mbg{display:block}
 .item.team.lockd .tart{filter:brightness(.8) saturate(.85) drop-shadow(0 4px 6px rgba(0,0,0,.6))}
 .item.team.eq{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(255,194,58,.5)}
 /* pause */
-.sheet.menu.pz{max-width:420px;justify-items:stretch;text-align:center}
+.sheet/* tablets and unfolded foldables: menus grow with the screen instead of staying phone-sized */
+@media (min-width:760px) and (min-height:760px){.sheet.menu{zoom:1.2}}
+@media (min-width:960px) and (min-height:1000px){.sheet.menu{zoom:1.4}}
+.menu.pz{max-width:420px;justify-items:stretch;text-align:center}
 .ptitle{font-weight:900;letter-spacing:.12em;color:var(--gold);text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 18px rgba(255,194,58,.4)}
 .pz .go{justify-self:stretch;text-align:center}.pz .brow{justify-content:center}
 .pz .setrow{text-align:left}
