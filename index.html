@@ -1492,6 +1492,8 @@ function fullTime(){
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   ftCheer(a>b,earned,conq);
+  // ads (and the consent form where the law needs one) start after the first finished match, not at launch
+  setTimeout(()=>{try{MZ()&&MZ().startAds&&MZ().startAds();}catch(e){}},1500);
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
     if(ok){track('rewarded_ad_watched',{placement:'double_coins'});wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
