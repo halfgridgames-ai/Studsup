@@ -1427,6 +1427,30 @@ function checkDaily(){const t=TODAY();if(wallet.daily.day===t)return;const y=new
   wallet.daily={day:t,streak};addCoins(amt);
   toast('DAILY BONUS · DAY '+streak+' · +'+amt+' 🪙<small>'+DAILY.map((v,i)=>i<streak?'●':'○').join(' ')+'  Come back tomorrow for '+DAILY[streak%7]+'</small>',4.5);}
 checkDaily();
+// Collect the daily bonus when the app comes back from the background on a new day (for example from a reminder), not only on a cold start.
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(state==='title'||state==='full'))checkDaily();});
+// ---------- reminders ----------
+// Phone app only (needs @capacitor/local-notifications). Three gentle nudges, rescheduled every time the game opens or a match ends,
+// so they only fire if the player stays away: tomorrow evening (daily bonus), in 3 days (career) and in 7 days.
+// We ask for permission once, after the second finished match, never on first launch.
+const LN=()=>window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.LocalNotifications;
+const REM_IDS=[101,102,103];
+const remTC=x=>x.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+function remAt(days){const d=new Date();d.setDate(d.getDate()+days);d.setHours(18,0,0,0);return d;}
+function remList(){const st=wallet.daily.day===TODAY()?wallet.daily.streak%7:0,ts=tourState(),list=[];
+  list.push({id:101,title:'Your daily bonus is ready 🪙',body:'Day '+(st+1)+' bonus: +'+DAILY[st]+' coins. '+(st?'Keep your streak going!':'Kick off and grab it.'),schedule:{at:remAt(1)}});
+  if(ts.r<TOUR.length){const RG=TOUR[ts.r],left=3-ts.m;
+    list.push({id:102,title:RG.icon+' '+remTC(RG.name)+' is waiting',body:left+' more win'+(left>1?'s':'')+' to unlock '+remTC(RG.prize.map(prizeName).join(', '))+'.',schedule:{at:remAt(3)}});}
+  else list.push({id:102,title:'The world champions are getting rusty',body:'Come back and remind them who is boss.',schedule:{at:remAt(3)}});
+  list.push({id:103,title:'The ref has forgotten your face 😇',body:'Clean slate. Come back and flatten somebody.',schedule:{at:remAt(7)}});
+  return list;}
+async function remSchedule(ask){const ln=LN();if(!ln)return;
+  try{let p=await ln.checkPermissions();
+    if(p.display!=='granted'&&ask&&!loadOpt('studsRemAsked')){saveOpt('studsRemAsked','1');p=await ln.requestPermissions();track('reminders_prompt',{granted:p.display==='granted'?1:0});}
+    if(p.display!=='granted')return;
+    await ln.cancel({notifications:REM_IDS.map(id=>({id}))}).catch(()=>{});
+    await ln.schedule({notifications:remList()});}catch(e){}}
+setTimeout(()=>remSchedule(false),3000);
 applyTeams();openHome();
 const pauseBtn=document.getElementById('pauseBtn');
 function togglePause(){if(state==='title'||state==='full')return;
@@ -1492,6 +1516,7 @@ function fullTime(){
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   ftCheer(a>b,earned,conq);
+  setTimeout(()=>remSchedule(!NET.on&&(wallet.matches||0)>=2),2500);
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
     if(ok){track('rewarded_ad_watched',{placement:'double_coins'});wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
