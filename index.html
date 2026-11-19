@@ -586,6 +586,7 @@ body.paint .mbg{display:block}
 .ft-v b{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:.08em;color:var(--gold)}
 .ft-v span{color:#b8c8dc;font-size:16px}
 .ft-tour{text-align:center;display:grid;gap:4px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,194,58,.22),rgba(6,11,24,.6)) padding-box,var(--foil) border-box;border:2px solid transparent}
+.wt-win{color:var(--gold)!important;opacity:1!important}
 .ft-tour b{font-family:var(--display);font-weight:900;font-size:18px;color:var(--gold)}.ft-tour span{color:#ffe9a8;font-size:15px}
 .sheet.ft .earn{max-width:none;background:rgba(3,6,14,.55);border:1px solid var(--gline);border-radius:14px;padding:8px 14px;font-size:16px}
 .sheet.ft .earn div{border-bottom-color:rgba(255,194,58,.14)}.sheet.ft .earn b{color:#ffe9a8}
@@ -1259,6 +1260,8 @@ const WT_LOW=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<
 const WT_WX=['snow','dust','rain','flies','bubbles','stars'];
 const WT_BG={};let wtView=null;
 const prizeLine=RG=>RG.prize.map(prizeName).join(', ')+(RG.coins?' + '+RG.coins.toLocaleString()+' 🪙':'');
+// Every career win unlocks something: wins 1 and 2 give one prize each, the boss win gives the rest (and any coins).
+const winPrize=(r,m)=>m<2?TOUR[r].prize.slice(m,m+1):TOUR[r].prize.slice(2);
 const tourIdx=ts=>Math.min(ts.r*3+ts.m,TOUR.length*3);
 function wtBackdrop(i,w,h){const f=WT_ART[i];if(f){const im=new Image();im.decoding='async';im.alt='';im.src=f;return im;}
   const k=i+'_'+w+'x'+h;if(!WT_BG[k]){if(!window.careerPaint)return document.createElement('canvas');for(const o in WT_BG)if(o.startsWith(i+'_'))delete WT_BG[o];WT_BG[k]=window.careerPaint(i,w,h);}
@@ -1330,7 +1333,7 @@ function wtDock(){const ts=tourState(),d=sheet.querySelector('.wt-dock');if(!d)r
   if(ts.r>=TOUR.length){d.innerHTML='<div class="wt-op" style="--c:#ffc23a"><img src="teams/'+CLUBS[pickMe].key+'.webp" alt=""></div><div><small>WORLD TOUR COMPLETE</small><strong>🏆 WORLD CHAMPIONS!</strong></div><button type="button" id="tourReset">PLAY AGAIN</button>';
     document.getElementById('tourReset').onclick=()=>{initAudio();ts.r=0;ts.m=0;saveWallet();saveOpt('studsTourSeen',0);openTour();};return;}
   const RG=TOUR[ts.r],c=CLUBS[tourOpp(ts.r,ts.m)];
-  d.innerHTML='<div class="wt-op" style="--c:'+c.col+'"><img src="teams/'+c.key+'.webp" alt=""></div><div><small>'+RG.name+' · MATCH '+(ts.m+1)+'/3'+(ts.m===2?' · BOSS':'')+'</small><strong>VS '+c.name+'</strong></div><button type="button" id="tourPlay">PLAY</button>';
+  d.innerHTML='<div class="wt-op" style="--c:'+c.col+'"><img src="teams/'+c.key+'.webp" alt=""></div><div><small>'+RG.name+' · MATCH '+(ts.m+1)+'/3'+(ts.m===2?' · BOSS':'')+'</small><strong>VS '+c.name+'</strong><small class="wt-win">🎁 WIN TO UNLOCK '+winPrize(ts.r,ts.m).map(prizeName).join(', ')+'</small></div><button type="button" id="tourPlay">PLAY</button>';
   document.getElementById('tourPlay').onclick=()=>{initAudio();goLandscape();startTour();};}
 function wtCard(r,m){const ts=tourState(),c=CLUBS[tourOpp(r,m)],g=r*3+m,n=tourIdx(ts),RG=TOUR[r];
   const st=g<n?'BEATEN ✓':g===n?'YOUR NEXT MATCH':r>ts.r?'🔒 BEAT '+TOUR[r-1].name+' FIRST':'COMING UP';
@@ -1467,9 +1470,16 @@ function fullTime(){
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
   track('match_end',{mode:matchMode(),result:a>b?'win':a<b?'loss':'draw',goals_for:a,goals_against:b,big_hits:matchHits,matches_played:(wallet.matches||0)+1});
   const wasTour=tourMatch;let tourWin=0,tourMsg='',conq=-1;
-  if(wasTour){const ts=tourState();if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);ts.m++;
+  let gotTeam=null;
+  if(wasTour){const ts=tourState();const nextUp=winPrize(wasTour.r,wasTour.m);
+    if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);const fresh=nextUp.filter(id=>!owned(id));nextUp.forEach(grantOwn);ts.m++;
+      gotTeam=CLUBS.findIndex(c=>fresh.includes('team_'+c.key));if(gotTeam<0)gotTeam=null;
+      if(ts.m<3&&fresh.length){const left=3-ts.m;
+        tourMsg='<div class="ft-tour"><b>🎁 UNLOCKED: '+fresh.map(prizeName).join(', ')+'!</b><span>Yours to use for free. '+left+' more win'+(left>1?'s':'')+' to conquer '+TOUR[ts.r].name+'.</span>'+
+          (gotTeam!=null?'<button type="button" class="shopbtn" id="useTeam" style="justify-self:center;margin-top:6px">PLAY AS THE '+CLUBS[gotTeam].name+'</button>':'')+'</div>';}
       if(ts.m>=3){const RG=TOUR[ts.r];conq=ts.r;RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
-        tourMsg='<div class="ft-tour"><b>'+RG.icon+' '+RG.name+' CONQUERED!</b><span>Unlocked '+RG.prize.map(prizeName).join(', ')+(RG.coins?' and '+RG.coins.toLocaleString()+' coins':'')+'. They are yours to use for free.</span></div>';}}
+        tourMsg='<div class="ft-tour"><b>'+RG.icon+' '+RG.name+' CONQUERED!</b><span>Unlocked '+(fresh.length?fresh:RG.prize).map(prizeName).join(', ')+(RG.coins?' and '+RG.coins.toLocaleString()+' coins':'')+'. They are yours to use for free.</span></div>';}}
+    else if(a<=b)tourMsg='<div class="ft-tour"><b>SO CLOSE</b><span>Win this one to unlock '+nextUp.map(prizeName).join(', ')+'.</span></div>';
     endTour();}
   const res=a>b?100:a===b?50:30,gl=a*10,cs=b===0?20:0,hits=Math.min(50,matchHits*5),earned=res+gl+cs+hits+tourWin;addCoins(earned);
   const row=(l,v)=>'<div><span>'+l+'</span><b>+'+v+'</b></div>';
@@ -1489,6 +1499,7 @@ function fullTime(){
     (wasTour?'<div class="ft-btns">'+'<button class="go alt" id="teamsBtn" data-mode="tour" type="button">CAREER MAP</button>'+(tourState().r<TOUR.length?'<button class="go" id="goBtn" data-mode="tour" type="button">'+(a>b?'NEXT MATCH':'TRY AGAIN')+'</button>':'')+'</div>'
     :'<div class="ft-btns"><button class="go alt" id="teamsBtn" type="button">MAIN MENU</button><button class="go" id="goBtn" type="button"'+(NET.on?' data-mode="net"':'')+'>REMATCH</button></div>')+'</div>';
   sheet.className='sheet ft';menuBackdrop(false);overlay.hidden=false;overlay.scrollTop=0;document.body.classList.add('menu-on');bindGo();{const c3=document.getElementById('clipBtn3');if(c3)c3.onclick=()=>clipShare();}
+  {const ut=document.getElementById('useTeam');if(ut)ut.onclick=()=>{initAudio();equip('teams','team_'+CLUBS[gotTeam].key);applyTeams();ut.disabled=true;ut.textContent='✓ YOU ARE THE '+CLUBS[gotTeam].name;};}
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   ftCheer(a>b,earned,conq);
