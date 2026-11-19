@@ -1466,6 +1466,8 @@ function fullTime(){
   stopDance(true);state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;comm('full',{},3);
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
   track('match_end',{mode:matchMode(),result:a>b?'win':a<b?'loss':'draw',goals_for:a,goals_against:b,big_hits:matchHits,matches_played:(wallet.matches||0)+1});
+  // ads (and the consent form where the law needs one) start after the first finished match, not at launch
+  setTimeout(()=>{try{MZ()&&MZ().startAds&&MZ().startAds();}catch(e){}},1500);
   const wasTour=tourMatch;let tourWin=0,tourMsg='',conq=-1;
   if(wasTour){const ts=tourState();if(a>b&&ts.r===wasTour.r&&ts.m===wasTour.m){tourWin=50*(ts.r+1);ts.m++;
       if(ts.m>=3){const RG=TOUR[ts.r];conq=ts.r;RG.prize.forEach(grantOwn);if(RG.coins)wallet.coins+=RG.coins;ts.r++;ts.m=0;
@@ -1492,8 +1494,6 @@ function fullTime(){
   {const ry=document.getElementById('rateYes'),rn=document.getElementById('rateNo'),rb=document.getElementById('rateBox');
    if(ry){ry.onclick=()=>{initAudio();rb.remove();openLink(LINKS.rate);};rn.onclick=()=>rb.remove();}}
   ftCheer(a>b,earned,conq);
-  // ads (and the consent form where the law needs one) start after the first finished match, not at launch
-  setTimeout(()=>{try{MZ()&&MZ().startAds&&MZ().startAds();}catch(e){}},1500);
   const db=document.getElementById('dblBtn');if(db)db.onclick=()=>{db.disabled=true;MZ().showRewarded('double_coins').then(ok=>{
     if(ok){track('rewarded_ad_watched',{placement:'double_coins'});wallet.ads.rewarded++;addCoins(earned);db.textContent='DOUBLED! +'+earned;document.getElementById('earnTot').textContent='+'+earned*2;}else db.disabled=false;}).catch(()=>{db.disabled=false;});};
   // interstitial after every 2nd finished match (the app applies its own limits and remove_ads)
