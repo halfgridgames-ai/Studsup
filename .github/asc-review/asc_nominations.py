@@ -51,7 +51,7 @@ if MODE == 'draft':
         if n['name'] in have:
             old = have[n['name']]
             if old['attributes']['state'] != 'DRAFT': print('SKIP (not draft)', n['name']); continue
-            r = call('PATCH', f"/v1/nominations/{old['id']}", {'data': {'type': 'nominations', 'id': old['id'], 'attributes': attrs, 'relationships': rel}})
+            r = call('PATCH', f"/v1/nominations/{old['id']}", {'data': {'type': 'nominations', 'id': old['id'], 'attributes': dict(attrs, submitted=False), 'relationships': rel}})
         else:
             attrs['submitted'] = False
             r = call('POST', '/v1/nominations', {'data': {'type': 'nominations', 'attributes': attrs, 'relationships': rel}})
