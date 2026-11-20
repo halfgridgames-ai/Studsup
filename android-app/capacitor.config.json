@@ -14,6 +14,10 @@
       "hidden": true,
       "style": "DARK",
       "initialViewportFitValueHint": "cover"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_studs",
+      "iconColor": "#3fdc3f"
     }
   },
   "ios": {
@@ -22,6 +26,7 @@
       "@capacitor-community/in-app-review",
       "@capacitor/filesystem",
       "@capacitor/haptics",
+      "@capacitor/local-notifications",
       "@capacitor/share",
       "cordova-plugin-purchase"
     ]
