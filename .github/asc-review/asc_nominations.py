@@ -16,7 +16,7 @@ def call(method, path, body=None):
             raw = r.read(); return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
         print('  !', method, path.split('?')[0], e.code, e.read().decode()[:1500]); return {'data': []}
-if MODE == 'read':
+if MODE == 'read' and os.environ.get('PRINT_SPEC'):
     try:
         z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen('https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip').read()))
         spec = json.loads(z.read([n for n in z.namelist() if n.endswith('.json')][0]))
@@ -27,6 +27,7 @@ if MODE == 'read':
             if 'nomination' in p: print('PATH', p, list(ops.keys()))
     except Exception as e:
         print('spec download failed', e)
+if MODE == 'read':
     for bundle in ['com.studsup.game', 'com.halfgridgames.marblemayhem', 'com.halfgridgames.knotwizard', 'com.halfgridgames.nestrows']:
         d = call('GET', f'/v1/apps?filter[bundleId]={bundle}')['data']
         print('APP', bundle, d and d[0]['id'], d and d[0]['attributes'].get('name'))
