@@ -43,6 +43,11 @@
         </provider>
     </application>
 
+    <!-- screenOrientation="portrait" makes Play assume the device needs a portrait screen.
+         Mark it optional so tablets, Chromebooks and Play Games on PC can still install;
+         those devices show the game in a portrait window. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
