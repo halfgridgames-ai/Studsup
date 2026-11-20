@@ -898,13 +898,27 @@ function initAudio(){
   CROWD.amb=AC.createGain();CROWD.amb.gain.value=0;src.connect(lpf);lpf.connect(CROWD.amb);CROWD.amb.connect(master);src.start();
   const src2=AC.createBufferSource();src2.buffer=bb;src2.loop=true;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=700;bp.Q.value=0.7;
   crowdGain=AC.createGain();crowdGain.gain.value=0;src2.connect(bp);bp.connect(crowdGain);crowdGain.connect(master);src2.start(0,1.7);
+  sfxLoad();
 }
+// recorded effects in sfx/: a word-free stadium roar, a goal boom, the net ripple, the fireball strike and a heavy tackle
+const SFXB={};
+function roarSwell(){const t=AC.currentTime;crowdGain.gain.cancelScheduledValues(t);crowdGain.gain.setValueAtTime(crowdGain.gain.value,t);
+  crowdGain.gain.linearRampToValueAtTime(0.42,t+0.35);crowdGain.gain.linearRampToValueAtTime(0,t+3.4);}
+function sfxLoad(){if(!AC||location.protocol==='file:')return;
+  for(const n of ['goal_roar','goal_boom','net','fireball_shot','tackle'])fetch('sfx/'+n+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(b=>{SFXB[n]=b;}).catch(()=>{});}
+// each club's signature sound (sfx/team/<key>.mp3), fetched the first time that club scores
+const TEAMSFX={};
+function teamSfx(key,delay){if(!AC||!key||location.protocol==='file:')return;const go=b=>{const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=0.8;s.connect(g);g.connect(master);s.start(AC.currentTime+delay);};
+  if(TEAMSFX[key]instanceof AudioBuffer)return go(TEAMSFX[key]);if(TEAMSFX[key])return;
+  TEAMSFX[key]=fetch('sfx/team/'+key+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(b=>{TEAMSFX[key]=b;go(b);}).catch(()=>{});}
+function sfxPlay(n,vol,delay=0){const b=SFXB[n];if(!AC||!b)return false;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=vol;s.connect(g);g.connect(master);s.start(AC.currentTime+delay);return true;}
 function tone(type,f0,f1,dur,vol,delay=0){const t=AC.currentTime+delay,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);
   o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+0.006);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.02);}
 function noise(dur,vol,ftype,freq,delay=0){const t=AC.currentTime+delay,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nbuf;f.type=ftype;f.frequency.value=freq;
   g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+0.008);g.gain.exponentialRampToValueAtTime(0.001,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random());s.stop(t+dur+0.02);}
 function sfx(k){if(typeof ball!=='undefined'&&ball&&ball.holdT>0&&(k==='kick'||k==='bigkick')){ball.holdSfx=k;return;}netEv('s',k);
   if(!AC||muted)return;
+  if(k.startsWith('team:'))return teamSfx(k.slice(5),0.55);
   switch(k){
     case 'kick':tone('sine',180,55,0.09,0.6);noise(0.04,0.25,'lowpass',1800);break;
     case 'bigkick':tone('sine',140,40,0.18,0.9);noise(0.25,0.5,'lowpass',900);break;
@@ -918,8 +932,10 @@ function sfx(k){if(typeof ball!=='undefined'&&ball&&ball.holdT>0&&(k==='kick'||k
     case 'post':tone('triangle',1250,1180,0.5,0.35);tone('sine',870,860,0.6,0.3);break;
     case 'whistle':[0,0.32].forEach(dl=>{tone('sine',2900,2850,0.24,0.22,dl);tone('square',2950,2900,0.24,0.04,dl);});break;
     case 'long':[0,0.45,0.9].forEach(dl=>tone('sine',2900,2850,dl===0.9?0.8:0.3,0.22,dl));break;
-    case 'roar':{const t=AC.currentTime;crowdGain.gain.cancelScheduledValues(t);crowdGain.gain.setValueAtTime(crowdGain.gain.value,t);
-      crowdGain.gain.linearRampToValueAtTime(0.42,t+0.35);crowdGain.gain.linearRampToValueAtTime(0,t+3.4);break;}
+    case 'roar':roarSwell();break;
+    case 'goal':if(SFXB.goal_roar){sfxPlay('net',0.8);sfxPlay('goal_boom',0.85);sfxPlay('goal_roar',0.75,0.05);}else roarSwell();break;
+    case 'fireshot':sfxPlay('fireball_shot',0.8);break;
+    case 'tackle':sfxPlay('tackle',0.75);break;
     case 'ooh':{const t=AC.currentTime;crowdGain.gain.cancelScheduledValues(t);crowdGain.gain.setValueAtTime(crowdGain.gain.value,t);
       crowdGain.gain.linearRampToValueAtTime(0.2,t+0.2);crowdGain.gain.linearRampToValueAtTime(0,t+1.4);break;}
   }
@@ -1917,7 +1933,7 @@ function shoot(p,pow,aimY){if(p===HUMS[0])coachNote('shot');
   const dx=gx-p.x,dy=ty-p.y,d=hyp(dx,dy);let sp=430+pow*520,vz=50+pow*230+rand(-20,20);
   if(sup){sp=1180;T.fury=0;const gk=players.find(q=>q.team!==p.team&&q.role==='GK'&&!q.off),side=aimY?Math.sign(aimY):gk&&Math.abs(gk.y-CY)>4?(gk.y>CY?-1:1):(Math.random()<0.5?-1:1);
     const cy=CY+side*(GH-11),ex=gx-ball.x,ey=cy-ball.y,dd=hyp(ex,ey),tt=dd/sp*1.03,z0=Math.max(ball.z,1);vz=(BAR-6-z0+450*tt*tt)/tt;
-    release(p,ex/dd*sp,ey/dd*sp,vz);ball.super=true;p.face=Math.atan2(ey,ex);ball.shot=true;ball.shotX=p.x;stat('shot'+p.team);stat('onT'+p.team);}
+    release(p,ex/dd*sp,ey/dd*sp,vz);sfx('fireshot');ball.super=true;p.face=Math.atan2(ey,ex);ball.shot=true;ball.shotX=p.x;stat('shot'+p.team);stat('onT'+p.team);}
   else release(p,dx/d*sp,dy/d*sp,vz);
   if(!sup){ball.super=false;p.face=Math.atan2(dy,dx);ball.shot=true;ball.shotX=p.x;stat('shot'+p.team);if(Math.abs(ty-CY)<GH-4)stat('onT'+p.team);}
   {const dg=hyp(gx-p.x,CY-p.y);comm(sup?'fireball':dg>420?'longshot':'shot',{a:p},sup?3:1);}
@@ -1950,7 +1966,7 @@ function knockDown(q,a,word,kind){
   burst(q.x,q.y,big?16:9,['#ffffff','#ffe08a','#ffc23a'],big?320:230,140,big?20:10);
   slowmo(big?0.55:0.32);if(a&&a.team===0)flash(big?0.3:0.18,big?'255,236,170':'255,255,255');
   let words=HITW[kind]||HITWORDS;if(kind==='dive'&&a&&TEAMS[a.team]&&TEAMS[a.team].kind==='penguin')words=words.concat(['BELLY FLOP!','PENGUIN TORPEDO!']);
-  popup(q.x,q.y-34,word||pick(words),big?'#ff6a3a':'#ffc23a');sfx('thud');if(big||kind==='dive')sfx('crack');sfx('ooh');
+  popup(q.x,q.y-34,word||pick(words),big?'#ff6a3a':'#ffc23a');sfx('thud');if(big||kind==='dive')sfx('crack');if(big)sfx('tackle');sfx('ooh');
   if(q.team===0||(a&&a.team===0))vib(big?55:28);
 }
 // Which way a flattened body goes over. People are spun round to face the hit and blown over backwards (one clean mocap fall, landing on
@@ -2072,7 +2088,7 @@ function takeSetPiece(p){const sp=setPiece;setPiece=null;
 let celeb=null;
 const CELEBS=['slide','flip','plane','dance','pile','roll','boxer'];
 function goal(team){stat('goal'+team);if(R&&R.venue&&R.venue.userData.onGoal)R.venue.userData.onGoal(team);
-  replayOn=REC.length>30?(ball.super?'fire':'goal'):false;TEAMS[team].score++;stopDance(true);goalSting();state='goal';vib([60,40,140]);freeze=3.4;nextKick=1-team;shake=14;sfx('roar');sfx('bigkick');
+  replayOn=REC.length>30?(ball.super?'fire':'goal'):false;TEAMS[team].score++;stopDance(true);goalSting();state='goal';vib([60,40,140]);freeze=3.4;nextKick=1-team;shake=14;sfx('goal');sfx('bigkick');sfx('team:'+TEAMS[team].key);
   const lb=ball.lastBy,own=!!(lb&&lb.team!==team);
   let by=lb&&!own&&!lb.off?lb:null;if(!by){let bd=1e9;for(const p of players)if(p.team===team&&!p.off&&p.role!=='GK'){const d=dist(p,ball);if(d<bd){bd=d;by=p;}}}
   const type=team===0?{celebration_classic:'plane',celebration_knee_slide:'slide',celebration_corner_flag:'flag',celebration_penguin_waddle:'waddle'}[wallet.equipped.celebration]||'plane'
