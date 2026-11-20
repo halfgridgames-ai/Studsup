@@ -908,7 +908,7 @@ function sfxLoad(){if(!AC||location.protocol==='file:')return;
   for(const n of ['goal_roar','goal_boom','net','fireball_shot','tackle'])fetch('sfx/'+n+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(b=>{SFXB[n]=b;}).catch(()=>{});}
 // each club's signature sound (sfx/team/<key>.mp3), fetched the first time that club scores
 const TEAMSFX={};
-function teamSfx(key,delay){if(!AC||!key||location.protocol==='file:')return;const go=b=>{const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=0.8;s.connect(g);g.connect(master);s.start(AC.currentTime+delay);};
+function teamSfx(key,delay){if(!AC||!key||location.protocol==='file:')return;const go=b=>{const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=0.55;s.connect(g);g.connect(master);s.start(AC.currentTime+delay);};
   if(TEAMSFX[key]instanceof AudioBuffer)return go(TEAMSFX[key]);if(TEAMSFX[key])return;
   TEAMSFX[key]=fetch('sfx/team/'+key+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(b=>{TEAMSFX[key]=b;go(b);}).catch(()=>{});}
 function sfxPlay(n,vol,delay=0){const b=SFXB[n];if(!AC||!b)return false;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=vol;s.connect(g);g.connect(master);s.start(AC.currentTime+delay);return true;}
@@ -933,9 +933,9 @@ function sfx(k){if(typeof ball!=='undefined'&&ball&&ball.holdT>0&&(k==='kick'||k
     case 'whistle':[0,0.32].forEach(dl=>{tone('sine',2900,2850,0.24,0.22,dl);tone('square',2950,2900,0.24,0.04,dl);});break;
     case 'long':[0,0.45,0.9].forEach(dl=>tone('sine',2900,2850,dl===0.9?0.8:0.3,0.22,dl));break;
     case 'roar':roarSwell();break;
-    case 'goal':if(SFXB.goal_roar){sfxPlay('net',0.8);sfxPlay('goal_boom',0.85);sfxPlay('goal_roar',0.75,0.05);}else roarSwell();break;
-    case 'fireshot':sfxPlay('fireball_shot',0.8);break;
-    case 'tackle':sfxPlay('tackle',0.75);break;
+    case 'goal':if(SFXB.goal_roar){sfxPlay('net',0.6);sfxPlay('goal_boom',0.6);sfxPlay('goal_roar',0.45,0.05);}else roarSwell();break;
+    case 'fireshot':sfxPlay('fireball_shot',0.55);break;
+    case 'tackle':sfxPlay('tackle',0.55);break;
     case 'ooh':{const t=AC.currentTime;crowdGain.gain.cancelScheduledValues(t);crowdGain.gain.setValueAtTime(crowdGain.gain.value,t);
       crowdGain.gain.linearRampToValueAtTime(0.2,t+0.2);crowdGain.gain.linearRampToValueAtTime(0,t+1.4);break;}
   }
