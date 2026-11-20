@@ -1493,6 +1493,8 @@ function fullTime(){
   stopDance(true);state='full';sfx('long');const a=TEAMS[0].score,b=TEAMS[1].score;comm('full',{},3);
   const verdict=a>b?'You win. The ref never stood a chance.':a<b?'Beaten by the '+TEAMS[1].name.toLowerCase()+'. Get your studs sharpened.':'All square. Nobody walked off happy.';
   track('match_end',{mode:matchMode(),result:a>b?'win':a<b?'loss':'draw',goals_for:a,goals_against:b,big_hits:matchHits,matches_played:(wallet.matches||0)+1});
+  // ads (and the consent form where the law needs one) start after the first finished match, not at launch
+  setTimeout(()=>{try{MZ()&&MZ().startAds&&MZ().startAds();}catch(e){}},1500);
   const wasTour=tourMatch;let tourWin=0,tourMsg='',conq=-1;
   let gotTeam=null;
   if(wasTour){const ts=tourState();const nextUp=winPrize(wasTour.r,wasTour.m);

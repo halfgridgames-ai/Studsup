@@ -59,7 +59,11 @@
   // privacyOptions: true when Google's consent rules (UK/EU and some US states) need an
   // "Ad privacy choices" button in Settings so players can change their answer.
   var privacyOptions = false;
-  var adsReady = (async function () {
+  // Ads start lazily: a brand-new player sees the consent form (and Apple's tracking prompt) after their first
+  // match instead of on top of the splash screen. Players who have finished a match before start them at launch.
+  var adsPromise = null;
+  function startAds() { if (!adsPromise) { var st = loadState(); if (!st.adsStarted) { st.adsStarted = true; saveState(st); } adsPromise = initAds(); } return adsPromise; }
+  async function initAds() {
     try {
       // Family-friendly ads: AdMob serves nothing above a PG (parental guidance) rating.
       await AdMob.initialize({ initializeForTesting: TEST, maxAdContentRating: 'ParentalGuidance' });
@@ -80,7 +84,8 @@
       console.warn('Monetize: ads unavailable', e);
       return false;
     }
-  })();
+  }
+  if (loadState().adsStarted || loadState().interstitialCalls) startAds();
 
   function once(event) {
     return new Promise(function (resolve) {
@@ -100,7 +105,7 @@
     // The game calls this after every 2nd match; skip the first call so a new player's first 3 matches are ad-free.
     if (s.interstitialCalls < 2) return;
     if (s.lastAdAt && Date.now() - s.lastAdAt < MIN_AD_GAP_MS) return;
-    if (!(await adsReady)) return;
+    if (!(await startAds())) return;
     try {
       await AdMob.prepareInterstitial({ adId: ids.interstitial, isTesting: TEST, immersiveMode: true });
       var closed = Promise.race([once('interstitialAdDismissed'), once('interstitialAdFailedToShow')]);
@@ -113,7 +118,7 @@
   }
 
   async function showRewarded(placement) {
-    if (!(await adsReady)) return false;
+    if (!(await startAds())) return false;
     try {
       await AdMob.prepareRewardVideoAd({ adId: ids.rewarded, isTesting: TEST, immersiveMode: true });
       var rewarded = false;
@@ -206,7 +211,8 @@
   }
 
   window.Monetize = {
-    ready: function () { return Promise.all([adsReady, storeReady]).then(function () {}); },
+    ready: function () { return storeReady.then(function () {}); },
+    startAds: function () { startAds(); },
     privacyOptionsRequired: function () { return privacyOptions; },
     showPrivacyOptions: showPrivacyOptions,
     showInterstitial: showInterstitial,
