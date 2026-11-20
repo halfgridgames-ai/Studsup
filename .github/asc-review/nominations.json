@@ -11,7 +11,7 @@
   "supplementalMaterialsUris": ["https://apps.apple.com/app/id6829033430", "https://play.google.com/store/apps/details?id=com.halfgridgames.marblemayhem", "https://halfgridgames-ai.github.io/"]},
  {"app": "6829033479", "name": "Knot Wizard: Untangle Puzzle - new indie launch, now on iPad",
   "type": "APP_LAUNCH",
-  "description": "Knot Wizard: Untangle Puzzle is a calm, relaxing logic puzzle made by a one-person indie studio in the UK. A wizard's ropes have got into a terrible tangle, and your job is to untangle them one level at a time. Levels start gentle and build up to real brain-teasers, there are no timers, and hints are there when you get stuck. It suits a five-minute break or a long quiet session. Launched on the App Store in November 2026 and now universal for iPhone and iPad. Free to play, rated 4+.",
+  "description": "Knot Wizard: Untangle Puzzle is a calm, relaxing logic puzzle made by a one-person indie studio in the UK. A wizard's ropes have got into a terrible tangle: drag the wooden pins until no rope crosses another, and try to do it in par moves. Levels start gentle and build up to real brain-teasers, there are no timers, and hints are there when you get stuck. It suits a five-minute break or a long quiet session. Launched on the App Store in November 2026 and now universal for iPhone and iPad. Free to play, rated 4+.",
   "notes": "Priority: medium. Launched 16 November 2026. Half Grid Games is one developer in the UK. A 3840x1646 header artwork is ready to send on request.",
   "supplementalMaterialsUris": ["https://apps.apple.com/app/id6829033479", "https://halfgridgames-ai.github.io/"]}
 ]
