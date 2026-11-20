@@ -892,7 +892,7 @@ function initAudio(){
   // soft brown noise for the crowd: a low rumble rather than hiss
   const bb=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate),bd=bb.getChannelData(0);let lp=0;for(let i=0;i<bd.length;i++){lp=(lp+0.02*(Math.random()*2-1))/1.02;bd[i]=lp*3.5;}
   for(let i=0,n=AC.sampleRate*0.25;i<n;i++){const u=i/n,j=bd.length-n+i;bd[j]=bd[j]*(1-u)+bd[i]*u;}  /* seamless loop */
-  musicGain=AC.createGain();musicGain.gain.value=musicOn?MUSIC_VOL:0;musicGain.connect(master);setInterval(musicTick,40);
+  musicGain=AC.createGain();musicGain.gain.value=musicOn?MUSIC_VOL:0;musicGain.connect(master);themeLoad();setInterval(musicTick,40);
   // crowd: a steady murmur only while a match is on (silent in the menus), plus swells for chances and goals
   const src=AC.createBufferSource();src.buffer=bb;src.loop=true;const lpf=AC.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=650;
   CROWD.amb=AC.createGain();CROWD.amb.gain.value=0;src.connect(lpf);lpf.connect(CROWD.amb);CROWD.amb.connect(master);src.start();
@@ -995,9 +995,25 @@ const SONGS={
       if(st===0||st===6||st===10)ch.forEach(n=>mNote(n+12,t,sd*2.5,0.04,'sawtooth',2600));
       const tune=[[72,-1,72,74,76,-1,72,-1,79,-1,-1,-1,77,-1,76,-1],[77,-1,77,76,74,-1,72,-1,74,-1,-1,-1,-1,-1,-1,-1]][bar%2];
       if(tune[st]>0)mNote(tune[st],t,sd*1.8,0.07,'square',3200);}}};
-function musicMode(){if(TD[0]||TD[1])return 'dance';if(state==='goal'||state==='replay')return 'party';return 'chill';}
+// menu theme: "Samba Breakbeat Carnival", a recorded 60 s loop (music/theme-loop.mp3, 32 bars at 128 bpm) for the title and full-time screens
+const THEME={len:60,buf:null,src:null,gain:null,loading:false};
+function themeLoad(){if(!AC||THEME.loading||location.protocol==='file:')return;THEME.loading=true;
+  THEME.gain=AC.createGain();THEME.gain.gain.value=0;THEME.gain.connect(musicGain);
+  fetch('music/theme-loop.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(b=>{THEME.buf=b;}).catch(()=>{});}
+function themeOn(on){if(!THEME.gain)return;const t=AC.currentTime;
+  if(on&&!THEME.src&&THEME.buf){const b=THEME.buf,d=b.getChannelData(0);
+    // some decoders keep the MP3's encoder padding: skip the leading digital silence so the loop is gapless
+    let i=0;if(b.duration-THEME.len>0.005)while(i<d.length&&Math.abs(d[i])<1e-4)i++;
+    const s=AC.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=i/b.sampleRate;s.loopEnd=Math.min(b.duration,s.loopStart+THEME.len);
+    s.connect(THEME.gain);s.start(t,s.loopStart);THEME.src=s;}
+  THEME.gain.gain.cancelScheduledValues(t);THEME.gain.gain.setValueAtTime(THEME.gain.gain.value,t);
+  THEME.gain.gain.linearRampToValueAtTime(on?0.9:0,t+(on?0.8:0.6));
+  if(!on&&THEME.src){const s=THEME.src;THEME.src=null;try{s.stop(t+0.65);}catch(e){}}}
+function musicMode(){if(state==='title'||state==='full')return 'menu';if(TD[0]||TD[1])return 'dance';if(state==='goal'||state==='replay')return 'party';return 'chill';}
 function musicTick(){if(!AC||!musicGain)return;const mode=musicMode();
-  if(mode!==mus.mode){mus.mode=mode;mus.step=0;mus.next=AC.currentTime+0.06;}
+  if(mode==='menu'&&!THEME.buf){themeLoad();if(mus.mode!=='menu'){mus.mode='menu';}return;}  // stay quiet until the theme has loaded
+  if(mode!==mus.mode||(mode==='menu'&&!THEME.src)){mus.mode=mode;mus.step=0;mus.next=AC.currentTime+0.06;themeOn(mode==='menu');}
+  if(mode==='menu')return;
   const S=SONGS[mode],sd=60/S.bpm/4;
   while(mus.next<AC.currentTime+0.15){const st=mus.step%16,bar=(mus.step/16|0),ch=S.bars[bar%S.bars.length];
     S.play(st,mus.next+(st%2?S.swing*sd:0),bar,ch,sd);mus.step++;mus.next+=sd;}}
