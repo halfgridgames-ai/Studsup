@@ -1,0 +1,17 @@
+[
+ {"app": "6829033071", "name": "Studs Up: Red Card Football - App Store launch + World Tour",
+  "type": "APP_LAUNCH",
+  "description": "Studs Up: Red Card Football is a chaotic arcade football game made by a one-person indie studio in the UK. There are no rules: flying kicks, diving headers, fireball shots and full-body barges are all part of the game. Play quick 1v1 matches online or against the computer with teams of polar bears, penguins, gorillas, kangaroos, dolphins, aliens, ninjas and a squad of grannies. The new World Tour career takes you across six zones (Ice Cap, Outback, City, Jungle, Ocean and Space) for 18 matches against 19 teams, each with its own home ground and live commentary. This is the game's first App Store release, built for iPhone and iPad. Free to play, rated 9+, no ads in your first three matches and a single Remove Ads purchase.",
+  "notes": "Priority: high. This is our studio's biggest game and its first App Store release. Half Grid Games is one developer in the UK who designs, codes and markets every game. A 3840x1646 header artwork and short gameplay trailers are ready to send on request.",
+  "supplementalMaterialsUris": ["https://apps.apple.com/app/id6829033071", "https://play.google.com/store/apps/details?id=com.studsup.game", "https://halfgridgames-ai.github.io/"]},
+ {"app": "6829033430", "name": "Marble Mayhem: Downhill Dash - new indie launch, now on iPad",
+  "type": "APP_LAUNCH",
+  "description": "Marble Mayhem: Downhill Dash is a 3D marble racing game made by a one-person indie studio in the UK. Pick a marble, drop onto twisting downhill tracks and race a pack of rivals to the finish: knock them off the edge, grab power-ups and fight from last to first. Each world has its own look and hazards, runs are short enough for a quick play, and there are plenty of marbles to unlock. It launched on the App Store in November 2026 and is now universal for iPhone and iPad. Free to play, rated 9+.",
+  "notes": "Priority: medium. Launched 16 November 2026; our first App Store game. Half Grid Games is one developer in the UK. A 3840x1646 header artwork and short gameplay trailers are ready to send on request.",
+  "supplementalMaterialsUris": ["https://apps.apple.com/app/id6829033430", "https://play.google.com/store/apps/details?id=com.halfgridgames.marblemayhem", "https://halfgridgames-ai.github.io/"]},
+ {"app": "6829033479", "name": "Knot Wizard: Untangle Puzzle - new indie launch, now on iPad",
+  "type": "APP_LAUNCH",
+  "description": "Knot Wizard: Untangle Puzzle is a calm, relaxing logic puzzle made by a one-person indie studio in the UK. A wizard's ropes have got into a terrible tangle, and your job is to untangle them one level at a time. Levels start gentle and build up to real brain-teasers, there are no timers, and hints are there when you get stuck. It suits a five-minute break or a long quiet session. Launched on the App Store in November 2026 and now universal for iPhone and iPad. Free to play, rated 4+.",
+  "notes": "Priority: medium. Launched 16 November 2026. Half Grid Games is one developer in the UK. A 3840x1646 header artwork is ready to send on request.",
+  "supplementalMaterialsUris": ["https://apps.apple.com/app/id6829033479", "https://halfgridgames-ai.github.io/"]}
+]

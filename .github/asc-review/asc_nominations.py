@@ -31,5 +31,35 @@ if MODE == 'read':
         d = call('GET', f'/v1/apps?filter[bundleId]={bundle}')['data']
         print('APP', bundle, d and d[0]['id'], d and d[0]['attributes'].get('name'))
     print('EXISTING NOMINATIONS')
-    for n in call('GET', '/v1/nominations?filter[type]=APP_LAUNCH,APP_ENHANCEMENTS,NEW_CONTENT&filter[state]=DRAFT,SUBMITTED,ARCHIVED&limit=50').get('data', []):
-        print(' ', n['id'], json.dumps(n['attributes']))
+def existing():
+    out = []
+    for st in ['DRAFT', 'SUBMITTED']:
+        for t in ['APP_LAUNCH', 'APP_ENHANCEMENTS', 'NEW_CONTENT']:
+            out += call('GET', f'/v1/nominations?filter[type]={t}&filter[state]={st}&limit=50').get('data', [])
+    return out
+if MODE == 'read':
+    for n in existing(): print(' ', n['id'], json.dumps(n['attributes']))
+if MODE == 'draft':
+    noms = json.load(open(os.path.join(os.path.dirname(__file__), 'nominations.json')))
+    have = {n['attributes']['name']: n for n in existing()}
+    for n in noms:
+        attrs = {k: n[k] for k in ['name', 'type', 'description', 'notes', 'supplementalMaterialsUris']}
+        attrs.update({'publishStartDate': os.environ.get('START', '2026-12-11T09:00:00Z'), 'publishEndDate': os.environ.get('END', '2027-01-31T09:00:00Z'),
+                      'deviceFamilies': ['IPHONE', 'IPAD'], 'locales': ['en-US'], 'hasInAppEvents': False, 'launchInSelectMarketsFirst': False, 'preOrderEnabled': False})
+        rel = {'relatedApps': {'data': [{'type': 'apps', 'id': n['app']}]}}
+        if n['name'] in have:
+            old = have[n['name']]
+            if old['attributes']['state'] != 'DRAFT': print('SKIP (not draft)', n['name']); continue
+            r = call('PATCH', f"/v1/nominations/{old['id']}", {'data': {'type': 'nominations', 'id': old['id'], 'attributes': attrs, 'relationships': rel}})
+        else:
+            attrs['submitted'] = False
+            r = call('POST', '/v1/nominations', {'data': {'type': 'nominations', 'attributes': attrs, 'relationships': rel}})
+        d = r.get('data') or {}
+        print('DRAFT', d.get('id'), (d.get('attributes') or {}).get('state'), n['name'])
+    for n in existing(): print('NOW', n['id'], n['attributes']['state'], n['attributes']['name'], n['attributes'].get('publishStartDate'))
+if MODE == 'submit':
+    names = [s.strip() for s in os.environ['SUBMIT_NAMES'].split('|') if s.strip()]
+    for n in existing():
+        if n['attributes']['name'] in names and n['attributes']['state'] == 'DRAFT':
+            r = call('PATCH', f"/v1/nominations/{n['id']}", {'data': {'type': 'nominations', 'id': n['id'], 'attributes': {'submitted': True}}})
+            print('SUBMITTED', n['attributes']['name'], (r.get('data') or {}).get('attributes', {}).get('state'))
