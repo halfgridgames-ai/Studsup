@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
+      - name: Upload header pictures to Asset Library (no review submit)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: python3 .github/asc-review/asc_headers.py
       - name: Search metadata (read-only)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
