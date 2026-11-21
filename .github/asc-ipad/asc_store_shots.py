@@ -92,7 +92,10 @@ def refresh(loc_id, kind, files):
         print('      ', a.get('fileName'), st.get('state'), st.get('errors') or '')
 
 
+ONLY = os.environ.get('ONLY', '')
 for bundle, key, name in APPS:
+    if ONLY and key not in ONLY.split(','):
+        continue
     print(f'\n=== {name}')
     apps = api(f'/v1/apps?filter[bundleId]={bundle}')
     if not apps or not apps['data']:

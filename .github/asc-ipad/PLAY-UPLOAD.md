@@ -19,23 +19,25 @@ play-tablet:
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/mm-4-shop.jpg
 
 ## Studs Up: Red Card Football
-(Updated 17 Nov 2026 evening: 7 new pictures from 0.6.2. Remove ALL old Studs Up screenshots first.)
+(Updated 21 Nov 2026: 8 new pictures with career trophies. Remove ALL old Studs Up screenshots first.)
 play-phone:
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-1-match.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-2-tackles.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-3-pick.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-4-collect.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-5-career.jpg
-- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-6-win.jpg
-- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-7-online.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-6-trophies.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-7-win.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-phone/su-8-online.jpg
 play-tablet (7-inch and 10-inch):
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-1-match.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-2-tackles.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-3-pick.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-4-collect.jpg
 - https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-5-career.jpg
-- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-6-win.jpg
-- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-7-online.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-6-trophies.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-7-win.jpg
+- https://raw.githubusercontent.com/halfgridgames-ai/Studsup/asc-ipad-screenshots/.github/asc-ipad/play-tablet/su-8-online.jpg
 
 ## Knot Wizard
 play-phone:
