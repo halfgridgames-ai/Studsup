@@ -14,7 +14,9 @@ def api(method, path, body=None):
             raw = r.read(); return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
         print('  !', method, path.split('?')[0], e.code, e.read().decode()[:1500]); return None
-APPS = [('com.studsup.game', 'studs-up-header.jpg'), ('com.halfgridgames.marblemayhem', 'marble-mayhem-header.jpg'), ('com.halfgridgames.knotwizard', 'knot-wizard-header.jpg')]
+APPS = [('com.studsup.game', 'studs-up-header.png'), ('com.halfgridgames.marblemayhem', 'marble-mayhem-header.png'), ('com.halfgridgames.knotwizard', 'knot-wizard-header.png')]
+rd = api('GET', '/v1/appAssetLibraryRefData')
+print('REFDATA', json.dumps(rd)[:6000] if rd else rd)
 for bundle, fn in APPS:
     app = api('GET', f'/v1/apps?filter[bundleId]={bundle}')['data'][0]['id']
     print(f'\n=== {bundle} {fn}')
@@ -23,7 +25,7 @@ for bundle, fn in APPS:
     lid = lib['data']['id']; print('  library', lid, lib['data'].get('type'))
     have = api('GET', f'/v1/appAssetLibraries/{lid}/images?limit=200') or {}
     for im in have.get('data', []): print('  EXISTING', im['id'], json.dumps(im['attributes'])[:300])
-    if any((im['attributes'].get('referenceName') == fn[:-4]) for im in have.get('data', [])):
+    if any((im['attributes'].get('referenceName') == fn[:-4] and im['attributes'].get('state') != 'FAILED' and im['attributes'].get('fileName') == fn) for im in have.get('data', [])):
         print('  already uploaded, skipping'); continue
     path = os.path.join(HERE, 'headers', fn); size = os.path.getsize(path); data = open(path, 'rb').read()
     r = api('POST', '/v1/appAssetLibraryImages', {'data': {'type': 'appAssetLibraryImages',
