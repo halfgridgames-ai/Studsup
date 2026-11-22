@@ -33,7 +33,7 @@ for x in allv:
                 print('    shots', l['attributes']['locale'], s['attributes']['screenshotDisplayType'], n)
 for s in api('GET', f'/v1/reviewSubmissions?filter[app]={app}&filter[platform]=IOS&limit=10')['data']:
     items = api('GET', f"/v1/reviewSubmissions/{s['id']}/items")['data']
-    kinds = [k for it in items for k, v in it['relationships'].items() if isinstance(v, dict) and v.get('data')]
+    kinds = [k for it in items for k, v in (it.get('relationships') or {}).items() if isinstance(v, dict) and v.get('data')]
     print('  submission', s['id'][:8], s['attributes']['state'], s['attributes'].get('submittedDate'), kinds)
 for b in api('GET', f'/v1/builds?filter[app]={app}&filter[preReleaseVersion.version]={VER}&sort=-uploadedDate&limit=4')['data']:
     print('  build', b['attributes']['version'], b['attributes']['processingState'], b['attributes']['uploadedDate'][:16])
@@ -67,13 +67,13 @@ open_subs = [s for s in api('GET', f'/v1/reviewSubmissions?filter[app]={app}&fil
 sub = None
 for s in open_subs:
     items = api('GET', f"/v1/reviewSubmissions/{s['id']}/items")['data']
-    if items and all((it['relationships'].get('appStoreVersion') or {}).get('data') for it in items): sub = s
+    if items and all(((it.get('relationships') or {}).get('appStoreVersion') or {}).get('data') for it in items): sub = s
 if not sub:
     sub = (api('POST', '/v1/reviewSubmissions', {'data': {'type': 'reviewSubmissions', 'attributes': {'platform': 'IOS'},
              'relationships': {'app': {'data': {'type': 'apps', 'id': app}}}}}) or {}).get('data')
 if not sub: raise SystemExit(1)
 items = api('GET', f"/v1/reviewSubmissions/{sub['id']}/items")['data']
-if not any((it['relationships'].get('appStoreVersion') or {}).get('data') for it in items):
+if not any(((it.get('relationships') or {}).get('appStoreVersion') or {}).get('data') for it in items):
     r = api('POST', '/v1/reviewSubmissionItems', {'data': {'type': 'reviewSubmissionItems', 'relationships': {
              'reviewSubmission': {'data': {'type': 'reviewSubmissions', 'id': sub['id']}},
              'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': v['id']}}}}})
