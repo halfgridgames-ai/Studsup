@@ -25,5 +25,12 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          STEP: submit   # Boss asked 22 Nov 17:40: "Send the apple ones"
+          STEP: status   # read-only; 1.1.4 was submitted 22 Nov 17:4x
         run: python3 .github/asc-review/asc_kw114.py
+      - name: Studs Up 0.6.3
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          STEP: status
+        run: python3 .github/asc-review/asc_su063.py
