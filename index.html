@@ -1665,16 +1665,17 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(state===
 // Phone app only (needs @capacitor/local-notifications). Three gentle nudges, rescheduled every time the game opens or a match ends,
 // so they only fire if the player stays away: tomorrow evening (daily bonus), in 3 days (career) and in 7 days.
 // We ask for permission once, after the second finished match, never on first launch.
+// isExactNotification:false: left exact (the plugin default), each schedule() opened Android's 'Alarms and reminders' screen.
 const LN=()=>window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.LocalNotifications;
 const REM_IDS=[101,102,103];
 const remTC=x=>x.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
 function remAt(days){const d=new Date();d.setDate(d.getDate()+days);d.setHours(18,0,0,0);return d;}
 function remList(){const st=wallet.daily.day===TODAY()?wallet.daily.streak%7:0,ts=tourState(),list=[];
-  list.push({id:101,title:'Your daily bonus is ready 🪙',body:'Day '+(st+1)+' bonus: +'+DAILY[st]+' coins. '+(st?'Keep your streak going!':'Kick off and grab it.'),schedule:{at:remAt(1)}});
+  list.push({id:101,title:'Your daily bonus is ready 🪙',body:'Day '+(st+1)+' bonus: +'+DAILY[st]+' coins. '+(st?'Keep your streak going!':'Kick off and grab it.'),schedule:{at:remAt(1)},isExactNotification:false});
   if(ts.r<TOUR.length){const RG=TOUR[ts.r],left=3-ts.m;
-    list.push({id:102,title:RG.icon+' '+remTC(RG.name)+' is waiting',body:left+' more win'+(left>1?'s':'')+' to unlock '+remTC(RG.prize.map(prizeName).join(', '))+'.',schedule:{at:remAt(3)}});}
-  else list.push({id:102,title:'The world champions are getting rusty',body:'Come back and remind them who is boss.',schedule:{at:remAt(3)}});
-  list.push({id:103,title:'The ref has forgotten your face 😇',body:'Clean slate. Come back and flatten somebody.',schedule:{at:remAt(7)}});
+    list.push({id:102,title:RG.icon+' '+remTC(RG.name)+' is waiting',body:left+' more win'+(left>1?'s':'')+' to unlock '+remTC(RG.prize.map(prizeName).join(', '))+'.',schedule:{at:remAt(3)},isExactNotification:false});}
+  else list.push({id:102,title:'The world champions are getting rusty',body:'Come back and remind them who is boss.',schedule:{at:remAt(3)},isExactNotification:false});
+  list.push({id:103,title:'The ref has forgotten your face 😇',body:'Clean slate. Come back and flatten somebody.',schedule:{at:remAt(7)},isExactNotification:false});
   return list;}
 async function remSchedule(ask){const ln=LN();if(!ln)return;
   try{let p=await ln.checkPermissions();
