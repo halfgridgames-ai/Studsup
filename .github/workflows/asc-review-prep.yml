@@ -9,7 +9,7 @@ permissions:
 jobs:
   prep:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
@@ -20,3 +20,10 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           STEP: status   # read-only; 1.0.16 was submitted 22 Nov
         run: python3 .github/asc-review/asc_mm116.py
+      - name: Knot Wizard 1.1.4
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          STEP: submit   # Boss asked 22 Nov 17:40: "Send the apple ones"
+        run: python3 .github/asc-review/asc_kw114.py
