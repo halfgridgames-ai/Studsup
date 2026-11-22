@@ -23,6 +23,7 @@ def api(method, path, body=None):
 app = api('GET', f'/v1/apps?filter[bundleId]={BUNDLE}')['data'][0]['id']
 allv = api('GET', f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&limit=8')['data']
 for x in allv: print('  version', x['attributes']['versionString'], x['attributes']['appStoreState'])
+if STEP == 'status': raise SystemExit(0)
 v = next((x for x in allv if x['attributes']['versionString'] == VER), None)
 if not v:
     v = next((x for x in allv if x['attributes']['appStoreState'] in EDITABLE), None)
