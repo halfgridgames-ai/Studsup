@@ -11,7 +11,7 @@ DEST="$HERE/www"
 
 rm -rf "$DEST"
 mkdir -p "$DEST"
-for name in career comm crowd lib models teams icon-192.png icon-512.png logo.png logo@2x.png privacy.html terms.html; do
+for name in career comm crowd lib music sfx models teams icon-192.png icon-512.png logo.png logo@2x.png privacy.html terms.html; do
   cp -R "$ROOT/$name" "$DEST/"
 done
 cp -R "$HERE"/web-extra/* "$DEST/"
