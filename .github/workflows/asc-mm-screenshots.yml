@@ -11,7 +11,7 @@ permissions:
 jobs:
   shots:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyjwt cryptography
@@ -20,7 +20,13 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          MODE: replace
+          MODE: report   # pictures went on 1.0.17 on 25 Nov 13:41
           ONLY: mm
-          CREATE_VERSION: 1.0.17
         run: python3 .github/asc-ipad/asc_store_shots.py
+      - name: Marble Mayhem 1.0.17 submit
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          STEP: submit   # Boss said "Send them" / "Yes both" 25 Nov 13:39-13:41
+        run: python3 .github/asc-ipad/asc_mm117.py
