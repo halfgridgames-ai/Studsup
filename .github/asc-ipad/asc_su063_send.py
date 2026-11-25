@@ -11,7 +11,7 @@ NOTES = ('Every career win now unlocks something: beat your first opponent and t
          'conquer a region, nine new teams, new goal and team sounds, and fresh menu music. Turn on reminders and we will tell you '
          'when your daily bonus is ready, so your streak keeps growing.')
 SUB = 'Crazy Soccer Brawl Online 1v1'
-KW = 'arcade,sports,party,funny,tackle,goal,striker,penalty,kick,career,animals,multiplayer,offline,match,cup,team'
+KW = 'arcade,sports,party,funny,tackle,goal,striker,penalty,kick,career,animals,multiplayer,offline,cup'
 assert len(SUB) <= 30 and len(KW) <= 100
 EDITABLE = {'PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'}
 def api(method, path, body=None):
