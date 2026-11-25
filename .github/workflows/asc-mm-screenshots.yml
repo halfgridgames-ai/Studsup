@@ -2,10 +2,10 @@
 # Store screenshots (iPhone 6.9-inch + iPad 13-inch) for all four games, editable versions only.
 # MODE report = print only. MODE replace = swap in the pictures in .github/asc-ipad/iphone and ipad.
 # Never touches text and never submits anything for review.
-name: App Store iPad screenshots
+name: Marble Mayhem App Store screenshots
 on:
   push:
-    branches: [asc-ipad-screenshots]
+    branches: [asc-mm-screenshots]
 permissions:
   contents: read
 jobs:
@@ -20,14 +20,6 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          MODE: replace
-          ONLY: su
-          CREATE_VERSION: 0.6.3
-        run: python3 .github/asc-ipad/asc_store_shots.py
-      - name: Google Play screenshots (only when PLAY_SA_JSON is set)
-        env:
-          PLAY_SA_JSON: ${{ secrets.PLAY_SA_JSON }}
           MODE: report
-        run: |
-          if [ -z "$PLAY_SA_JSON" ]; then echo "PLAY_SA_JSON not set - skipping Google Play"; exit 0; fi
-          python3 .github/asc-ipad/play_store_shots.py
+          ONLY: mm
+        run: python3 .github/asc-ipad/asc_store_shots.py
