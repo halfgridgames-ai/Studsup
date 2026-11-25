@@ -28,5 +28,5 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          STEP: submit   # Boss said "Send them" / "Yes both" 25 Nov 13:39-13:41
+          STEP: status   # read-only; 1.0.17 submitted 25 Nov 13:45 (WAITING_FOR_REVIEW)
         run: python3 .github/asc-ipad/asc_mm117.py
