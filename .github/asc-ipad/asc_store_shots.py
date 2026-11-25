@@ -103,7 +103,18 @@ for bundle, key, name in APPS:
         continue
     app = apps['data'][0]['id']
     files = {k: sorted(glob.glob(os.path.join(HERE, k, key + '-*.jpg'))) for k in TARGETS}
-    for v in (api(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&limit=5') or {}).get('data', []):
+    vers = (api(f'/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&limit=5') or {}).get('data', [])
+    NEWV = os.environ.get('CREATE_VERSION', '')
+    if NEWV and not any(v['attributes']['appStoreState'] in EDITABLE for v in vers) \
+            and not any(v['attributes']['versionString'] == NEWV for v in vers):
+        print('creating version', NEWV if REPLACE else NEWV + ' (report mode: not created)')
+        if REPLACE:
+            r = api('/v1/appStoreVersions', 'POST', {'data': {'type': 'appStoreVersions',
+                    'attributes': {'platform': 'IOS', 'versionString': NEWV},
+                    'relationships': {'app': {'data': {'type': 'apps', 'id': app}}}}})
+            if r:
+                vers.insert(0, r['data'])
+    for v in vers:
         va = v['attributes']
         print('VERSION', va['versionString'], va['appStoreState'])
         if va['appStoreState'] not in EDITABLE:

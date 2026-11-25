@@ -20,8 +20,9 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          MODE: report
+          MODE: replace
           ONLY: su
+          CREATE_VERSION: 0.6.3
         run: python3 .github/asc-ipad/asc_store_shots.py
       - name: Google Play screenshots (only when PLAY_SA_JSON is set)
         env:
