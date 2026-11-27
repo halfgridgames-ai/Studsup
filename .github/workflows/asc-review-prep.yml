@@ -25,7 +25,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          STEP: submit   # Boss: "Send it" 27 Nov 09:32
+          STEP: status   # read-only; 1.1.5 submitted 27 Nov 09:34 UTC
         run: python3 .github/asc-review/asc_kw115.py
       - name: Studs Up 0.6.3
         env:
