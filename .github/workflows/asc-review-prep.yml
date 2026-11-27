@@ -34,3 +34,11 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           STEP: status
         run: python3 .github/asc-review/asc_su063.py
+      - name: Featuring nominations
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MODE: submit   # Boss said "Send them" 27 Nov 21:25 UTC
+          SUBMIT_NAMES: "Studs Up: Red Card Football - App Store launch + World Tour|Marble Mayhem: Downhill Dash - new indie launch, now on iPad|Knot Wizard: Untangle Puzzle - new indie launch, now on iPad"
+        run: python3 .github/asc-review/asc_nominations.py && MODE=read python3 .github/asc-review/asc_nominations.py
