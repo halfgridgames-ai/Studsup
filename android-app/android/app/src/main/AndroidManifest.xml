@@ -17,7 +17,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullUser"
             android:exported="true">
 
             <intent-filter>
@@ -44,9 +44,8 @@
         </provider>
     </application>
 
-    <!-- screenOrientation="portrait" makes Play assume the device needs a portrait screen.
-         Mark it optional so tablets, Chromebooks and Play Games on PC can still install;
-         those devices show the game in a portrait window. -->
+    <!-- The game runs in portrait and landscape; neither screen shape is required, so
+         tablets, Chromebooks and Play Games on PC can all install. -->
     <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
 
     <!-- Permissions -->
